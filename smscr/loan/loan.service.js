@@ -1,12 +1,17 @@
 const CustomError = require("../../utils/custom-error.js");
 const Loan = require("./loan.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.code = new RegExp(keyword, "i");
 
+  const query = Loan.find(filter);
+  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
+
   const countPromise = Loan.countDocuments(filter);
-  const loansPromise = Loan.find(filter).skip(offset).limit(limit).exec();
+  const loansPromise = query.skip(offset).limit(limit).exec();
 
   const [count, loans] = await Promise.all([countPromise, loansPromise]);
 
