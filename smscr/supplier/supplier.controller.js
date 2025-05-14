@@ -4,9 +4,10 @@ const supplierService = require("./supplier.service.js");
 
 exports.getSuppliers = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, sort } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await supplierService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search));
+    const validatedSort = ["code-asc", "code-desc", "description-asc", "description-desc"].includes(sort) ? sort : "";
+    const result = await supplierService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

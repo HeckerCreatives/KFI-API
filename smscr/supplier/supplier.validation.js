@@ -29,3 +29,36 @@ exports.supplierRules = [
     }),
   body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 1 to 255 characters"),
 ];
+
+exports.supplierRules = [
+  body("code")
+    .trim()
+    .notEmpty()
+    .withMessage("Code is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Code must only consist of 1 to 255 characters")
+    .custom(async value => {
+      const exists = await Supplier.exists({ code: value.toUpperCase(), deletedAt: null });
+      if (exists) throw new Error("Supplier already exists");
+      return true;
+    }),
+  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 1 to 255 characters"),
+];
+
+exports.updateSupplierRules = [
+  body("code")
+    .trim()
+    .notEmpty()
+    .withMessage("Code is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Code must only consist of 1 to 255 characters")
+    .custom(async (value, { req }) => {
+      const supplier = await Supplier.findById(req.params.id).lean().exec();
+      if (supplier.code.toLowerCase() !== value.toLowerCase()) {
+        const exists = await Supplier.exists({ code: value.toUpperCase(), deletedAt: null });
+        if (exists) throw new Error("Supplier code already exists");
+      }
+      return true;
+    }),
+  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 1 to 255 characters"),
+];

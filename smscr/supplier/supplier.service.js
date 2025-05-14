@@ -1,12 +1,17 @@
 const CustomError = require("../../utils/custom-error.js");
 const Supplier = require("./supplier.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
+
+  const query = Supplier.find(filter);
+  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = Supplier.countDocuments(filter);
-  const suppliersPromise = Supplier.find(filter).skip(offset).limit(limit).exec();
+  const suppliersPromise = query.skip(offset).limit(limit).exec();
 
   const [count, suppliers] = await Promise.all([countPromise, suppliersPromise]);
 

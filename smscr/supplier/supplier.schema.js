@@ -4,7 +4,7 @@ const supplierSchema = new mongoose.Schema(
   {
     code: { type: String },
     description: { type: String },
-    deleted: { type: Boolean, default: false },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );
