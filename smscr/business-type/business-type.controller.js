@@ -4,9 +4,10 @@ const businessTypeService = require("./business-type.service.js");
 
 exports.getBusinessTypes = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, sort } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await businessTypeService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search));
+    const validatedSort = ["type-asc", "type-desc"].includes(sort) ? sort : "";
+    const result = await businessTypeService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

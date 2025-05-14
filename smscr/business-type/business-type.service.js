@@ -1,12 +1,16 @@
 const CustomError = require("../../utils/custom-error.js");
 const BusinessType = require("./business-type.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  if (keyword) filter.type = new RegExp(keyword, "i");
+
+  const query = BusinessType.find(filter);
+  if (sort && ["type-asc", "type-desc"].includes(sort)) query.sort({ type: sort === "type-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = BusinessType.countDocuments(filter);
-  const businessTypesPromise = BusinessType.find(filter).skip(offset).limit(limit).exec();
+  const businessTypesPromise = query.skip(offset).limit(limit).exec();
 
   const [count, businessTypes] = await Promise.all([countPromise, businessTypesPromise]);
 
