@@ -1,12 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const WeeklySaving = require("./weekly-saving.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  const query = WeeklySaving.find(filter);
+  if (sort && ["from-asc", "from-desc"].includes(sort)) query.sort({ rangeAmountFrom: sort === "from-asc" ? 1 : -1 });
+  else if (sort && ["to-asc", "to-desc"].includes(sort)) query.sort({ rangeAmountTo: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = WeeklySaving.countDocuments(filter);
-  const weeklySavingsPromise = WeeklySaving.find(filter).skip(offset).limit(limit).exec();
+  const weeklySavingsPromise = query.skip(offset).limit(limit).exec();
 
   const [count, weelySavings] = await Promise.all([countPromise, weeklySavingsPromise]);
 
