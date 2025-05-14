@@ -3,14 +3,14 @@ const GroupAccount = require("./group-account.schema.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  const sorter = {};
   if (keyword) filter.code = new RegExp(keyword, "i");
 
-  if (sort && sort === "code") sorter.code = -1;
-  else sorter.createdAt = -1;
+  const query = GroupAccount.find(filter);
+  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = GroupAccount.countDocuments(filter);
-  const groupAccountsPromise = GroupAccount.find(filter).sort(sorter).skip(offset).limit(limit).exec();
+  const groupAccountsPromise = query.skip(offset).limit(limit).exec();
 
   const [count, groupAccounts] = await Promise.all([countPromise, groupAccountsPromise]);
 

@@ -5,8 +5,9 @@ const groupAcctService = require("./group-account.service.js");
 exports.getGroupAccounts = async (req, res, next) => {
   try {
     const { page, limit, search, sort } = req.query;
+    const validatedSort = ["code-asc", "code-desc"].includes(sort) ? sort : "";
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await groupAcctService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), stringEscape(sort));
+    const result = await groupAcctService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
