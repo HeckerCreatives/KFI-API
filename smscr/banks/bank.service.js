@@ -1,12 +1,17 @@
 const CustomError = require("../../utils/custom-error.js");
 const Bank = require("./bank.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
+
+  const query = Bank.find(filter);
+  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = Bank.countDocuments(filter);
-  const banksPromise = Bank.find(filter).skip(offset).limit(limit).exec();
+  const banksPromise = query.skip(offset).limit(limit).exec();
 
   const [count, banks] = await Promise.all([countPromise, banksPromise]);
 
