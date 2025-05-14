@@ -3,7 +3,7 @@ const Loan = require("./loan.schema.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
 
   const query = Loan.find(filter);
   if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });

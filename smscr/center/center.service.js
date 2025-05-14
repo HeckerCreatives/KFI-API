@@ -1,12 +1,17 @@
 const CustomError = require("../../utils/custom-error.js");
 const Center = require("./center.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.centerCode = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ centerNo: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
+
+  const query = Center.find(filter);
+  if (sort && ["centerno-asc", "centerno-desc"].includes(sort)) query.sort({ centerNo: sort === "centerno-asc" ? 1 : -1 });
+  else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = Center.countDocuments(filter);
-  const centersPromise = Center.find(filter).skip(offset).limit(limit).exec();
+  const centersPromise = query.skip(offset).limit(limit).exec();
 
   const [count, centers] = await Promise.all([countPromise, centersPromise]);
 

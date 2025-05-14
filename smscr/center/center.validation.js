@@ -40,3 +40,30 @@ exports.centerRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Account Officer must only consist of 255 characters"),
 ];
+
+exports.updateCenterRules = [
+  body("centerNo")
+    .trim()
+    .notEmpty()
+    .withMessage("Center No. is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Center No. must only consist of 255 characters")
+    .custom(async (value, { req }) => {
+      const center = await Center.findById(req.params.id).lean().exec();
+      if (center.centerNo.toLowerCase() !== value.toLowerCase()) {
+        const exists = await Center.exists({ centerNo: value.toUpperCase(), deletedAt: null });
+        if (exists) throw new Error("Center No. already exists");
+      }
+      return true;
+    }),
+  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 255 characters"),
+  body("location").trim().notEmpty().withMessage("Location is required").isLength({ min: 1, max: 255 }).withMessage("Location must only consist of 255 characters"),
+  body("centerChief").trim().notEmpty().withMessage("Center Chief is required").isLength({ min: 1, max: 255 }).withMessage("Center Chief must only consist of 255 characters"),
+  body("treasurer").trim().notEmpty().withMessage("Treasurer is required").isLength({ min: 1, max: 255 }).withMessage("Treasurer must only consist of 255 characters"),
+  body("acctOfficer")
+    .trim()
+    .notEmpty()
+    .withMessage("Account Officer is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Account Officer must only consist of 255 characters"),
+];

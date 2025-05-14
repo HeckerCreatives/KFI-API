@@ -4,9 +4,10 @@ const centerService = require("./center.service.js");
 
 exports.getCenters = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, sort } = req.query;
+    const validatedSort = ["centerno-asc", "centerno-desc", "description-asc", "description-desc"].includes(sort) ? sort : "";
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await centerService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search));
+    const result = await centerService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
