@@ -1,12 +1,16 @@
 const CustomError = require("../../utils/custom-error.js");
 const Nature = require("./nature.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.code = new RegExp(keyword, "i");
 
+  const query = Nature.find(filter);
+  if (sort && ["type-asc", "type-desc"].includes(sort)) query.sort({ type: sort === "type-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
+
   const countPromise = Nature.countDocuments(filter);
-  const naturesPromise = Nature.find(filter).skip(offset).limit(limit).exec();
+  const naturesPromise = query.skip(offset).limit(limit).exec();
 
   const [count, natures] = await Promise.all([countPromise, naturesPromise]);
 

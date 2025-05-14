@@ -3,15 +3,10 @@ const ChartOfAccount = require("./chart-of-account.schema.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  const sorter = {};
   if (keyword) filter.code = new RegExp(keyword, "i");
 
-  if (sort && sort === "code") sorter.code = -1;
-  else if (sort && sort === "description") sorter.description = -1;
-  else sorter.createdAt = -1;
-
   const countPromise = ChartOfAccount.countDocuments(filter);
-  const chartOfAccountsPromise = ChartOfAccount.find(filter).sort(sorter).skip(offset).limit(limit).exec();
+  const chartOfAccountsPromise = ChartOfAccount.find(filter).skip(offset).limit(limit).exec();
 
   const [count, chartOfAccounts] = await Promise.all([countPromise, chartOfAccountsPromise]);
 

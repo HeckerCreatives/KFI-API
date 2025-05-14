@@ -22,7 +22,6 @@ const chartOfAccountSchema = new mongoose.Schema(
 
 chartOfAccountSchema.set("toJSON", {
   transform: (doc, ret) => {
-    delete ret.deleted;
     delete ret.updatedAt;
     delete ret.__v;
     return ret;
