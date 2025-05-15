@@ -2,6 +2,15 @@ const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const centerService = require("./center.service.js");
 
+exports.getOptions = async (req, res, next) => {
+  try {
+    const result = await centerService.get_options();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getCenters = async (req, res, next) => {
   try {
     const { page, limit, search, sort } = req.query;

@@ -1,12 +1,17 @@
 const Customer = require("./customer.schema.js");
 const CustomError = require("../../utils/custom-error.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
+exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.name = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ acctNumber: new RegExp(keyword, "i") }, { name: new RegExp(keyword, "i") }];
+
+  const query = Customer.find(filter);
+  if (sort && ["acctno-asc", "acctno-desc"].includes(sort)) query.sort({ acctNumber: sort === "acctno-asc" ? 1 : -1 });
+  else if (sort && ["name-asc", "name-desc"].includes(sort)) query.sort({ name: sort === "name-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = Customer.countDocuments(filter);
-  const customersPromise = Customer.find(filter).skip(offset).limit(limit).exec();
+  const customersPromise = query.populate({ path: "center", select: "centerNo" }).populate({ path: "business", select: "type" }).skip(offset).limit(limit).exec();
 
   const [count, customers] = await Promise.all([countPromise, customersPromise]);
 
@@ -24,7 +29,7 @@ exports.get_all = async (limit, page, offset, keyword) => {
 };
 
 exports.get_single = async filter => {
-  const customer = await Customer.findOne(filter).exec();
+  const customer = await Customer.findOne(filter).populate({ path: "center", select: "centerNo" }).populate({ path: "business", select: "type" }).exec();
   if (!customer) {
     throw new CustomError("Customer not found", 404);
   }
@@ -50,7 +55,8 @@ exports.create = async data => {
     business: data.business,
     position: data.position,
     age: data.age,
-    acctNumber: data.acctNumber,
+    acctNumber: data.acctNumber.toUpperCase(),
+    acctOfficer: data.acctOfficer,
     sex: data.sex,
     dateResigned: data.dateResigned,
     newStatus: data.newStatus,
@@ -89,7 +95,8 @@ exports.update = async (filter, data) => {
         business: data.business,
         position: data.position,
         age: data.age,
-        acctNumber: data.acctNumber,
+        acctNumber: data.acctNumber.toUpperCase(),
+        acctOfficer: data.acctOfficer,
         sex: data.sex,
         dateResigned: data.dateResigned,
         newStatus: data.newStatus,
@@ -98,7 +105,10 @@ exports.update = async (filter, data) => {
       },
     },
     { new: true }
-  ).exec();
+  )
+    .populate({ path: "center", select: "centerNo" })
+    .populate({ path: "business", select: "type" })
+    .exec();
   if (!updatedCustomer) {
     throw new CustomError("Failed to update the customer", 500);
   }

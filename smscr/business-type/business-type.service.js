@@ -1,6 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const BusinessType = require("./business-type.schema.js");
 
+exports.get_options = async () => {
+  const filter = { deletedAt: null };
+  const options = await BusinessType.find(filter, { label: "$type", value: "$_id", _id: 0 }).lean().exec();
+  return {
+    success: true,
+    businessTypes: options,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.type = new RegExp(keyword, "i");

@@ -4,9 +4,10 @@ const { validatePaginationParams } = require("../../utils/paginate-validate.js")
 
 exports.getCustomers = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, sort } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await customerService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search));
+    const validatedSort = ["acctno-asc", "acctno-desc", "name-asc", "name-desc"].includes(sort) ? sort : "";
+    const result = await customerService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

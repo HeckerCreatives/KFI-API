@@ -19,6 +19,7 @@ const customerSchema = new mongoose.Schema(
     business: { type: mongoose.Schema.Types.ObjectId, ref: "BusinessType" },
     position: { type: String },
     age: { type: Number },
+    acctOfficer: { type: String },
     acctNumber: { type: String },
     sex: { type: String },
     dateResigned: { type: String },
