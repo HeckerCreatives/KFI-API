@@ -1,6 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const GroupAccount = require("./group-account.schema.js");
 
+exports.get_options = async () => {
+  const filter = { deletedAt: null };
+  const options = await GroupAccount.find(filter, { label: "$code", value: "$_id", _id: 0 }).lean().exec();
+  return {
+    success: true,
+    groupAccounts: options,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.code = new RegExp(keyword, "i");

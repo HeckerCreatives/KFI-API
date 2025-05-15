@@ -3,10 +3,14 @@ const ChartOfAccount = require("./chart-of-account.schema.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+  if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
+  const query = ChartOfAccount.find(filter);
+  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = ChartOfAccount.countDocuments(filter);
-  const chartOfAccountsPromise = ChartOfAccount.find(filter).skip(offset).limit(limit).exec();
+  const chartOfAccountsPromise = query.skip(offset).limit(limit).exec();
 
   const [count, chartOfAccounts] = await Promise.all([countPromise, chartOfAccountsPromise]);
 
@@ -44,7 +48,7 @@ exports.create = async data => {
     branchCode: data.branchCode,
     sequence: data.sequence,
     parent: data.parent,
-    indentation: data.indentation,
+    indention: data.indention,
     detailed: data.detailed,
   }).save();
   if (!newChartOfAccount) {
@@ -69,7 +73,7 @@ exports.update = async (filter, data) => {
         branchCode: data.branchCode,
         sequence: data.sequence,
         parent: data.parent,
-        indentation: data.indentation,
+        indention: data.indention,
         detailed: data.detailed,
       },
     },

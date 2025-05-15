@@ -13,7 +13,7 @@ const chartOfAccountSchema = new mongoose.Schema(
     branchCode: { type: String },
     sequence: { type: String },
     parent: { type: String },
-    indentation: { type: String },
+    indention: { type: String },
     detailed: { type: Boolean },
     deletedAt: { type: Date },
   },

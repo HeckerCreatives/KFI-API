@@ -2,6 +2,15 @@ const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const groupAcctService = require("./group-account.service.js");
 
+exports.getOptions = async (req, res, next) => {
+  try {
+    const result = await groupAcctService.get_options();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getGroupAccounts = async (req, res, next) => {
   try {
     const { page, limit, search, sort } = req.query;

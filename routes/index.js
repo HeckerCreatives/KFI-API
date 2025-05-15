@@ -20,6 +20,7 @@ const weeklySavingTimeRoutes = require("../smscr/weekly-saving-time/weekly-savin
 const userRoutes = require("../smscr/user/user.route");
 const passport = require("passport");
 const authRoutes = require("../smscr/auth/auth.routes");
+const optionRoutes = require("../smscr/options/options.route");
 
 exports.routers = app => {
   app.use("/api/v1/auth", authRoutes);
@@ -43,4 +44,5 @@ exports.routers = app => {
   app.use("/api/v1/weekly-saving", passport.authenticate("jwt", { session: false }), weeklySavingRoutes);
   app.use("/api/v1/weekly-saving-time", passport.authenticate("jwt", { session: false }), weeklySavingTimeRoutes);
   app.use("/api/v1/user", passport.authenticate("jwt", { session: false }), userRoutes);
+  app.use("/api/v1/option", passport.authenticate("jwt", { session: false }), optionRoutes);
 };
