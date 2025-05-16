@@ -4,9 +4,10 @@ const userService = require("./user.service.js");
 
 exports.getUsers = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, search, sort } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await userService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search));
+    const validatedSort = ["name-asc", "name-desc", "user-asc", "user-desc"].includes(sort) ? sort : "";
+    const result = await userService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -15,7 +16,7 @@ exports.getUsers = async (req, res, next) => {
 
 exports.getUser = async (req, res, next) => {
   try {
-    const filter = { _id: req.params.id, deletedAt: null };
+    const filter = { _id: req.params.id, deletedAt: null, role: "user" };
     const result = await userService.get_single(filter);
     return res.status(200).json(result);
   } catch (error) {
@@ -26,6 +27,15 @@ exports.getUser = async (req, res, next) => {
 exports.createUser = async (req, res, next) => {
   try {
     const result = await userService.create(req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updatePermissions = async (req, res, next) => {
+  try {
+    const result = await userService.update_permissions(req.params.id, req.body);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

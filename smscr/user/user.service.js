@@ -1,12 +1,18 @@
+const { default: mongoose } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const User = require("./user.schema.js");
 
-exports.get_all = async (limit, page, offset, keyword) => {
-  const filter = { deletedAt: null, role: "admin" };
-  if (keyword) filter.code = new RegExp(keyword, "i");
+exports.get_all = async (limit, page, offset, keyword, sort) => {
+  const filter = { deletedAt: null, role: "user" };
+  if (keyword) filter.$or = [{ name: new RegExp(keyword, "i") }, { username: new RegExp(keyword, "i") }];
+
+  const query = User.find(filter);
+  if (sort && ["name-asc", "name-desc"].includes(sort)) query.sort({ name: sort === "name-asc" ? 1 : -1 });
+  else if (sort && ["user-asc", "user-desc"].includes(sort)) query.sort({ username: sort === "user-asc" ? 1 : -1 });
+  else query.sort({ createdAt: -1 });
 
   const countPromise = User.countDocuments(filter);
-  const usersPromise = User.find(filter).skip(offset).limit(limit).exec();
+  const usersPromise = query.skip(offset).limit(limit).exec();
 
   const [count, users] = await Promise.all([countPromise, usersPromise]);
 
@@ -36,7 +42,7 @@ exports.create = async data => {
     name: data.name,
     username: data.username,
     password: data.password,
-    role: "admin",
+    role: "user",
   });
   await newUser.savePassword(data.password);
   await newUser.save();
@@ -47,6 +53,42 @@ exports.create = async data => {
     success: true,
     user: newUser,
   };
+};
+
+exports.update_permissions = async (id, data) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    const { permissions } = data;
+    const updateOperations = permissions.map(permission => ({
+      updateOne: {
+        filter: {
+          _id: id,
+          "permissions._id": permission._id,
+          "permissions.resource": permission.resource,
+        },
+        update: { $set: { "permissions.$.actions": permission.actions } },
+      },
+    }));
+
+    const updates = await User.bulkWrite(updateOperations);
+
+    if (updates.matchedCount !== permissions.length || updates.modifiedCount < 1) {
+      throw new CustomError("Failed to set permissions", 500);
+    }
+
+    const user = await this.get_single({ _id: id, deletedAt: null, role: "user" });
+
+    return {
+      success: true,
+      user,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to set permissions", error.statusCode || 500);
+  } finally {
+    session.endSession();
+  }
 };
 
 exports.change_password = async data => {

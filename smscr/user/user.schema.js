@@ -1,13 +1,44 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 const CustomError = require("../../utils/custom-error");
+const { ALL_RESOURCES } = require("../../constants/resources");
+
+const permissionSchema = new mongoose.Schema({
+  resource: {
+    type: String,
+    required: true,
+    enum: ALL_RESOURCES,
+  },
+  actions: {
+    create: { type: Boolean, required: true, default: false },
+    update: { type: Boolean, required: true, default: false },
+    delete: { type: Boolean, required: true, default: false },
+    view: { type: Boolean, required: true, default: false },
+    print: { type: Boolean, required: true, default: false },
+    visible: { type: Boolean, required: true, default: false },
+  },
+});
 
 const userSchema = new mongoose.Schema(
   {
     name: { type: String },
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ["superadmin", "admin"] },
+    role: { type: String, enum: ["superadmin", "user"] },
+    permissions: {
+      type: [permissionSchema],
+      default: ALL_RESOURCES.map(resource => ({
+        resource,
+        actions: {
+          create: false,
+          update: false,
+          delete: false,
+          view: false,
+          print: false,
+          visible: false,
+        },
+      })),
+    },
     deletedAt: { type: Date },
   },
   { timestamps: true }

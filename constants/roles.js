@@ -1,2 +1,2 @@
 exports.admin = process.env.ADMIN;
-exports.su = process.env.SU;
+exports.su = process.env.SUPERADMIN;

@@ -1,5 +1,6 @@
 const { param, body } = require("express-validator");
 const User = require("./user.schema");
+const { ALL_RESOURCES } = require("../../constants/resources");
 
 exports.userIdRules = [
   param("id")
@@ -52,4 +53,21 @@ exports.changePasswordRules = [
       if (password !== value) throw new Error("Password and confirm password must match");
       return true;
     }),
+];
+
+exports.permissionRules = [
+  body("permissions")
+    .isArray()
+    .withMessage("Permissions must be an array")
+    .custom(permissions => permissions.length > 0)
+    .withMessage("At least one permission is required"),
+  body("permissions.*.resource").isString().withMessage("Resource must be a string").isIn(ALL_RESOURCES).withMessage("Invalid resource type"),
+  body("permissions.*._id").isMongoId().withMessage("Invalid permissions id"),
+  body("permissions.*.actions").isObject().withMessage("Invalid actions"),
+  body("permissions.*.actions.create").isBoolean().withMessage("Create action must be boolean"),
+  body("permissions.*.actions.update").isBoolean().withMessage("Update action must be boolean"),
+  body("permissions.*.actions.delete").isBoolean().withMessage("Delete action must be boolean"),
+  body("permissions.*.actions.view").isBoolean().withMessage("View action must be boolean"),
+  body("permissions.*.actions.print").isBoolean().withMessage("Print action must be boolean"),
+  body("permissions.*.actions.visible").isBoolean().withMessage("Visible must be boolean"),
 ];
