@@ -11,7 +11,14 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
   else query.sort({ createdAt: -1 });
 
   const countPromise = Customer.countDocuments(filter);
-  const customersPromise = query.populate({ path: "center", select: "centerNo" }).populate({ path: "business", select: "type" }).skip(offset).limit(limit).exec();
+  const customersPromise = query
+    .populate({ path: "center", select: "centerNo" })
+    .populate({ path: "business", select: "type" })
+    .populate({ path: "beneficiaries" })
+    .populate({ path: "children" })
+    .skip(offset)
+    .limit(limit)
+    .exec();
 
   const [count, customers] = await Promise.all([countPromise, customersPromise]);
 
@@ -29,7 +36,12 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
 };
 
 exports.get_single = async filter => {
-  const customer = await Customer.findOne(filter).populate({ path: "center", select: "centerNo" }).populate({ path: "business", select: "type" }).exec();
+  const customer = await Customer.findOne(filter)
+    .populate({ path: "center", select: "centerNo" })
+    .populate({ path: "business", select: "type" })
+    .populate({ path: "beneficiaries" })
+    .populate({ path: "children" })
+    .exec();
   if (!customer) {
     throw new CustomError("Customer not found", 404);
   }
@@ -63,13 +75,16 @@ exports.create = async data => {
     reason: data.reason,
     parent: data.parent,
   }).save();
+
   if (!newCustomer) {
     throw new CustomError("Failed to create a new customer", 500);
   }
 
+  const customer = await this.get_single({ _id: newCustomer._id });
+
   return {
     success: true,
-    customer: newCustomer,
+    customer,
   };
 };
 
