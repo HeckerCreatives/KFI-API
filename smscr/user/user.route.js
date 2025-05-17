@@ -1,7 +1,7 @@
 const express = require("express");
 const userController = require("./user.controller.js");
 const { validateData } = require("../../validation/validate-data.js");
-const { userIdRules, userRules, permissionRules } = require("./user.validation.js");
+const { userIdRules, userRules, permissionRules, banUserRules } = require("./user.validation.js");
 
 const userRoutes = express.Router();
 
@@ -11,6 +11,8 @@ userRoutes
   .post("/", userRules, validateData, userController.createUser)
   .put("/change-password", userIdRules, validateData, userController.changePassword)
   .put("/permissions/:id", userIdRules, permissionRules, validateData, userController.updatePermissions)
+  .put("/ban", banUserRules, validateData, userController.banUsers)
+  .put("/unbanned", banUserRules, validateData, userController.unbannedUsers)
   .delete("/:id", userIdRules, validateData, userController.deleteUser);
 
 module.exports = userRoutes;

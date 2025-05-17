@@ -1,6 +1,7 @@
 const { param, body } = require("express-validator");
 const User = require("./user.schema");
 const { ALL_RESOURCES } = require("../../constants/resources");
+const { isValidObjectId } = require("mongoose");
 
 exports.userIdRules = [
   param("id")
@@ -70,4 +71,17 @@ exports.permissionRules = [
   body("permissions.*.actions.view").isBoolean().withMessage("View action must be boolean"),
   body("permissions.*.actions.print").isBoolean().withMessage("Print action must be boolean"),
   body("permissions.*.actions.visible").isBoolean().withMessage("Visible must be boolean"),
+];
+
+exports.banUserRules = [
+  body("ids")
+    .isArray()
+    .withMessage("User ids must be in an array")
+    .custom(value => value.length > 0)
+    .withMessage("Please select user to ban")
+    .custom(value => {
+      return value.every(id => isValidObjectId(id));
+    })
+    .withMessage("All user ids must be valid id"),
+  ,
 ];

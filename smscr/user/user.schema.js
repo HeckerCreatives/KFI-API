@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ["superadmin", "user"] },
+    status: { type: String, enum: ["active", "inactive", "banned"], default: "active" },
     permissions: {
       type: [permissionSchema],
       default: ALL_RESOURCES.map(resource => ({

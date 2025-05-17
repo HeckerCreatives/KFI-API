@@ -55,6 +55,19 @@ exports.create = async data => {
   };
 };
 
+exports.ban_users = async (data, status) => {
+  const { ids } = data;
+  const updated = await User.updateMany({ _id: { $in: ids } }, { $set: { status } });
+
+  if (updated.modifiedCount !== ids.length) {
+    throw new CustomError("Failed to ban to selected users", 500);
+  }
+  return {
+    success: true,
+    user: ids,
+  };
+};
+
 exports.update_permissions = async (id, data) => {
   const session = await mongoose.startSession();
   try {

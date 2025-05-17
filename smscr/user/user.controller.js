@@ -42,6 +42,24 @@ exports.updatePermissions = async (req, res, next) => {
   }
 };
 
+exports.banUsers = async (req, res, next) => {
+  try {
+    const result = await userService.ban_users(req.body, "banned");
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.unbannedUsers = async (req, res, next) => {
+  try {
+    const result = await userService.ban_users(req.body, "active");
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.changePassword = async (req, res, next) => {
   try {
     const result = await userService.change_password(req.body);
