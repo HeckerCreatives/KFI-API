@@ -7,10 +7,10 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const customerRoutes = express.Router();
 
 customerRoutes
-  .get("/", isAuthorize("master client file", "visible"), customerController.getCustomers)
-  .get("/:id", isAuthorize("master client file", "read"), customerIdRules, validateData, customerController.getCustomer)
-  .post("/", isAuthorize("master client file", "create"), customerRules, validateData, customerController.createCustomer)
-  .put("/:id", isAuthorize("master client file", "update"), customerIdRules, updateCustomerRules, validateData, customerController.updateCustomer)
-  .delete("/:id", isAuthorize("master client file", "delete"), customerIdRules, validateData, customerController.deleteCustomer);
+  .get("/", isAuthorize("client master file", "visible"), customerController.getCustomers)
+  .get("/:id", isAuthorize("client master file", "read"), customerIdRules, validateData, customerController.getCustomer)
+  .post("/", isAuthorize("client master file", "create"), customerRules, validateData, customerController.createCustomer)
+  .put("/:id", isAuthorize("client master file", "update"), customerIdRules, updateCustomerRules, validateData, customerController.updateCustomer)
+  .delete("/:id", isAuthorize("client master file", "delete"), customerIdRules, validateData, customerController.deleteCustomer);
 
 module.exports = customerRoutes;
