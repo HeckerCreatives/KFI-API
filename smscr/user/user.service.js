@@ -111,13 +111,9 @@ exports.change_password = async data => {
     throw new CustomError("User not found", 404);
   }
 
-  if (user && !(await user.matchPassword(oldPassword))) {
-    throw new CustomError("Old Password does not match.", 400);
-  }
-
-  user.password = password;
+  user.password = data.password;
   user.markModified("password");
-  user.savePassword(password);
+  await user.savePassword(data.password);
   await user.save();
 
   return {

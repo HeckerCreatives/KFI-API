@@ -43,7 +43,6 @@ exports.userRules = [
 ];
 
 exports.changePasswordRules = [
-  body("current_password").trim().notEmpty().withMessage("Current password is required"),
   body("password").trim().notEmpty().withMessage("Password is required"),
   body("confirm_password")
     .trim()
