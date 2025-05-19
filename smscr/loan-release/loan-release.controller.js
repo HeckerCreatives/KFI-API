@@ -1,4 +1,5 @@
 const { stringEscape } = require("../../utils/escape-string.js");
+const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const loanReleaseService = require("./loan-release.service.js");
 
@@ -25,7 +26,8 @@ exports.getLoanRelease = async (req, res, next) => {
 
 exports.createLoanRelease = async (req, res, next) => {
   try {
-    const result = await loanReleaseService.create(req.body);
+    const token = getToken(req);
+    const result = await loanReleaseService.create(req.body, token._id);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

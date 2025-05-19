@@ -104,6 +104,12 @@ exports.updateChartOfAccountRules = [
       }
       return true;
     }),
+  body("closeAccount")
+    .trim()
+    .notEmpty()
+    .withMessage("Close account is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Close account must consist of only 1 to 255 characters."),
   body("fsCode").trim().notEmpty().withMessage("FS Code").isLength({ min: 1, max: 255 }).withMessage("FS Code must consist of only 1 to 255 characters."),
   body("mainAcctNo")
     .trim()

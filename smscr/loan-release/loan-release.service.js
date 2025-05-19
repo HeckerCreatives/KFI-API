@@ -31,10 +31,12 @@ exports.get_single = async filter => {
   return { success: true, loanRelease };
 };
 
-exports.create = async data => {
+exports.create = async (data, userId) => {
   const newLoanRelease = await new LoanRelease({
     cvNo: data.cvNo,
     center: data.center,
+    name: data.name,
+    refNumber: data.refNumber,
     date: data.date,
     acctMonth: data.acctMonth,
     noOfWeeks: data.noOfWeeks,
@@ -47,6 +49,7 @@ exports.create = async data => {
     interestRate: data.interestRate,
     remarks: data.remarks,
     payee: data.payee,
+    encodedBy: userId,
   }).save();
   if (!newLoanRelease) {
     throw new CustomError("Failed to create a new loan release", 500);

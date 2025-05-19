@@ -31,6 +31,13 @@ exports.loanReleaseRules = [
       if (!exists) throw new Error("Center not found");
       return true;
     }),
+  body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 1, max: 255 }).withMessage("Name must only consist of 1 to 255 characters"),
+  body("refNumber")
+    .trim()
+    .notEmpty()
+    .withMessage("Reference number is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Reference number must only consist of 1 to 255 characters"),
   body("date")
     .trim()
     .notEmpty()

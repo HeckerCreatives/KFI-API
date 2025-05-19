@@ -4,6 +4,8 @@ const loanReleaseSchema = new mongoose.Schema(
   {
     cvNo: { type: String },
     center: { type: mongoose.Schema.Types.ObjectId, ref: "Center" },
+    name: { type: String },
+    refNumber: { type: String },
     date: { type: Date },
     acctMonth: { type: String },
     noOfWeeks: { type: String },
@@ -16,6 +18,7 @@ const loanReleaseSchema = new mongoose.Schema(
     interestRate: { type: Number },
     remarks: { type: String },
     payee: { type: String },
+    encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date },
   },
   { timestamps: true }

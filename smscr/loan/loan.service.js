@@ -1,6 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const Loan = require("./loan.schema.js");
 
+exports.get_options = async () => {
+  const filter = { deletedAt: null };
+  const options = await Loan.find(filter, { label: "$type", value: "$_id", _id: 0 }).lean().exec();
+  return {
+    success: true,
+    loans: options,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];

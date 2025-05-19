@@ -7,6 +7,7 @@ const chartOfAccountSchema = new mongoose.Schema(
     classification: { type: String },
     nature: { type: String },
     groupAccount: { type: mongoose.Schema.Types.ObjectId, ref: "GroupAccount" },
+    closeAccount: { type: String },
     fsCode: { type: String },
     mainAcctNo: { type: String },
     subAcctNo: { type: String },
