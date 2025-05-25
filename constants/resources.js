@@ -13,4 +13,7 @@ exports.ALL_RESOURCES = [
   "emergency loan",
   "damayan fund",
   "official receipt",
+  "status",
+  "nature",
+  "group account",
 ];

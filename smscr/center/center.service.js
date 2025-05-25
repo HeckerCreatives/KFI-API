@@ -1,6 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const Center = require("./center.schema.js");
 
+exports.get_selections = async keyword => {
+  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  const centers = await Center.find(filter, { code: "$centerNo", description: "$description" }).lean().exec();
+  return {
+    success: true,
+    centers,
+  };
+};
+
 exports.get_options = async () => {
   const filter = { deletedAt: null };
   const options = await Center.find(filter, { label: "$centerNo", value: "$_id", _id: 0 }).lean().exec();

@@ -2,6 +2,16 @@ const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const businessTypeService = require("./business-type.service.js");
 
+exports.getSelections = async (req, res, next) => {
+  try {
+    const { keyword } = req.query;
+    const result = await businessTypeService.get_selections(stringEscape(keyword));
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getOptions = async (req, res, next) => {
   try {
     const result = await businessTypeService.get_options();

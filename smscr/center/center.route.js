@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const centerRoutes = express.Router();
 
 centerRoutes
+  .get("/selection", centerController.getSelections)
   .get("/", isAuthorize("center", "visible"), centerController.getCenters)
   .get("/:id", isAuthorize("center", "read"), centerIdRules, validateData, centerController.getCenter)
   .post("/", isAuthorize("center", "create"), centerRules, validateData, centerController.createCenter)

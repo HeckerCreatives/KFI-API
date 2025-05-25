@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const businessTypeRoutes = express.Router();
 
 businessTypeRoutes
+  .get("/selection", businessTypeController.getSelections)
   .get("/", isAuthorize("business type", "visible"), businessTypeController.getBusinessTypes)
   .get("/:id", isAuthorize("business type", "read"), businessTypeIdRules, validateData, businessTypeController.getBusinessType)
   .post("/", isAuthorize("business type", "create"), businessTypeRules, validateData, businessTypeController.createBusinessType)
