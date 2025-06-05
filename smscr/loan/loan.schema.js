@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const loanSchema = new mongoose.Schema(
   {
     code: { type: String },
-    description: { type: String },
+    loanCodes: [{ type: mongoose.Schema.Types.ObjectId, ref: "LoanCode" }],
     deletedAt: { type: Date },
   },
   { timestamps: true }

@@ -7,6 +7,8 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const bankRoutes = express.Router();
 
 bankRoutes
+  .get("/print-all", weeklySavingController.printAll)
+  .get("/export-all", weeklySavingController.exportAll)
   .get("/", isAuthorize("weekly saving table", "visible"), weeklySavingController.getWeeklySavings)
   .get("/:id", isAuthorize("weekly saving table", "read"), weeklySavingIdRules, validateData, weeklySavingController.getWeeklySaving)
   .post("/", isAuthorize("weekly saving table", "create"), weeklySavingRules, validateData, weeklySavingController.createWeeklySaving)

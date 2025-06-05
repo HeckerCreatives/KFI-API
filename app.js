@@ -10,6 +10,7 @@ const { routers } = require("./routes");
 const globalErrorHandler = require("./middlewares/globar-err.js");
 const passport = require("passport");
 const corsConfig = require("./configs/cors");
+const path = require("path");
 
 const app = express();
 app.use(cors(corsConfig));
@@ -19,6 +20,8 @@ app.use(passport.initialize());
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+global.rootDir = path.resolve(__dirname);
 
 const server = http.createServer(app);
 

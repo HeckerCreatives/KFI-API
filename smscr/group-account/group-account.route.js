@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const groupAccountRoutes = express.Router();
 
 groupAccountRoutes
+  .get("/selection", groupAcctController.getSelections)
   .get("/", isAuthorize("group account", "visible"), groupAcctController.getGroupAccounts)
   .get("/:id", isAuthorize("group account", "read"), groupAccountIdRules, validateData, groupAcctController.getGroupAccount)
   .post("/", isAuthorize("group account", "create"), groupAccountRules, validateData, groupAcctController.createGroupAccount)

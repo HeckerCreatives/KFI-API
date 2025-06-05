@@ -24,6 +24,8 @@
     "nodemon": "^3.1.10",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "passport-local": "^1.0.0"
+    "passport-local": "^1.0.0",
+    "pdfmake": "^0.2.20",
+    "xlsx": "^0.18.5"
   }
 }

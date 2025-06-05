@@ -1,10 +1,19 @@
 const { default: CustomError } = require("../../utils/custom-error.js");
 const ChartOfAccount = require("./chart-of-account.schema.js");
 
+exports.get_selections = async keyword => {
+  const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
+  const chartOfAccounts = await ChartOfAccount.find(filter).limit(100).lean().exec();
+  return {
+    success: true,
+    chartOfAccounts,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];
-  const query = ChartOfAccount.find(filter);
+  const query = ChartOfAccount.find(filter).populate({ path: "groupOfAccount" });
   if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
   else if (sort && ["description-asc", "description-desc"].includes(sort)) query.sort({ description: sort === "description-asc" ? 1 : -1 });
   else query.sort({ createdAt: -1 });
@@ -93,4 +102,14 @@ exports.delete = async filter => {
     throw new CustomError("Failed to delete the chart of account", 500);
   }
   return { success: true, chartOfAccount: filter._id };
+};
+
+exports.link = async (filter, data) => {
+  const updatedChartOfAccount = await ChartOfAccount.findOneAndUpdate(filter, { $set: { groupOfAccount: data.groupOfAccount } }, { new: true })
+    .populate({ path: "groupOfAccount" })
+    .exec();
+  if (!updatedChartOfAccount) {
+    throw new CustomError("Failed to link the group of account", 500);
+  }
+  return { success: true, chartOfAccount: updatedChartOfAccount };
 };

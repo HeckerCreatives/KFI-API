@@ -1,5 +1,15 @@
 const CustomError = require("../../utils/custom-error.js");
 const GroupAccount = require("./group-account.schema.js");
+const PdfPrinter = require("pdfmake");
+
+exports.get_selections = async keyword => {
+  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  const groupAccounts = await GroupAccount.find(filter).lean().exec();
+  return {
+    success: true,
+    groupAccounts,
+  };
+};
 
 exports.get_options = async () => {
   const filter = { deletedAt: null };
@@ -58,7 +68,8 @@ exports.create = async data => {
 };
 
 exports.update = async (filter, data) => {
-  const updatedGroupAccount = await GroupAccount.findOneAndUpdate(filter, { $set: { code: data.code.toUpperCase() } }, { new: true }).exec();
+  const updatedGroupAccount = await GroupAccount.findOneAndUpdate(filter, { $set: { code: data.code.toUpperCase() } }, { new: true })
+  .exec();
   if (!updatedGroupAccount) {
     throw new CustomError("Failed to update the group account", 500);
   }
@@ -72,3 +83,5 @@ exports.delete = async filter => {
   }
   return { success: true, groupAccount: filter._id };
 };
+
+

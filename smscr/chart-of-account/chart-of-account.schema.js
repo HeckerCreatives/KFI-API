@@ -4,19 +4,10 @@ const chartOfAccountSchema = new mongoose.Schema(
   {
     code: { type: String },
     description: { type: String },
-    classification: { type: String },
     nature: { type: String },
-    groupAccount: { type: mongoose.Schema.Types.ObjectId, ref: "GroupAccount" },
-    closeAccount: { type: String },
-    fsCode: { type: String },
-    mainAcctNo: { type: String },
-    subAcctNo: { type: String },
-    branchCode: { type: String },
-    sequence: { type: String },
-    parent: { type: String },
-    indention: { type: String },
-    detailed: { type: Boolean },
-    deletedAt: { type: Date },
+    classification: { type: String },
+    deptStatus: { type: String },
+    groupOfAccount: { type: mongoose.Schema.Types.ObjectId, ref: "GroupAccount" },
   },
   { timestamps: true }
 );

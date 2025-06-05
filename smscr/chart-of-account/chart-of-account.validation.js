@@ -68,6 +68,20 @@ exports.chartOfAccountRules = [
   body("detailed").isBoolean().withMessage("Invalid detailed value"),
 ];
 
+exports.linkGroupOfAccountRules = [
+  body("groupOfAccount")
+    .trim()
+    .notEmpty()
+    .withMessage("Group of account is required")
+    .isMongoId()
+    .withMessage("Invalid group of account id")
+    .custom(async value => {
+      const exists = await GroupAccount.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Group of account not found");
+      return true;
+    }),
+];
+
 exports.updateChartOfAccountRules = [
   body("code")
     .trim()

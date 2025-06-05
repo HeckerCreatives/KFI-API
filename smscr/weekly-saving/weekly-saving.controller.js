@@ -1,6 +1,13 @@
+const PdfPrinter = require("pdfmake");
+const XLSX = require("xlsx");
 const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
+const WeeklySaving = require("./weekly-saving.schema.js");
 const weeklySavingService = require("./weekly-saving.service.js");
+const { pmFonts } = require("../../constants/fonts.js");
+const { generateWeeklySavingsPDF } = require("./print/print_all.js");
+const { formatNumber } = require("../../utils/number.js");
+const { completeNumberDate } = require("../../utils/date.js");
 
 exports.getWeeklySavings = async (req, res, next) => {
   try {
@@ -48,6 +55,68 @@ exports.deleteWeeklySaving = async (req, res, next) => {
     const filter = { _id: req.params.id };
     const result = await weeklySavingService.delete(filter);
     return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAll = async (req, res, next) => {
+  try {
+    const printer = new PdfPrinter(pmFonts);
+
+    const weeklySavings = await WeeklySaving.find({ deletedAt: null }).sort({ rangeAmountFrom: 1 }).lean().exec();
+
+    const docDefinition = generateWeeklySavingsPDF(weeklySavings);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAll = async (req, res, next) => {
+  try {
+    const weeklySavings = await WeeklySaving.find({ deletedAt: null }).sort({ rangeAmountFrom: 1 }).lean().exec();
+    const datas = weeklySavings.map(e => ({
+      "Range Amount From": formatNumber(e.rangeAmountFrom),
+      "Range Amount To": formatNumber(e.rangeAmountTo),
+      "Weekly Savings Fund": formatNumber(e.weeklySavingsFund),
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(datas, { origin: "A7" });
+
+    worksheet["!cols"] = [{ wch: 30 }, { wch: 30 }, { wch: 30 }];
+
+    const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
+    const headerSubtitle = "Weekly Savings Table";
+    const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
+
+    XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [dateTitle], []], { origin: "A2" });
+
+    if (!worksheet["A2"]) worksheet["A2"] = {};
+    worksheet["A2"].s = {
+      font: { bold: true, sz: 20 },
+      alignment: { horizontal: "center" },
+    };
+
+    if (!worksheet["A3"]) worksheet["A3"] = {};
+    worksheet["A3"].s = {
+      font: { italic: true, sz: 12 },
+      alignment: { horizontal: "center" },
+    };
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Weekly Savings");
+
+    const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+    res.setHeader("Content-Disposition", 'attachment; filename="weekly-savings.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    res.send(excelBuffer);
   } catch (error) {
     next(error);
   }
