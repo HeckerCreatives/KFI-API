@@ -12,7 +12,7 @@ const customerSchema = new mongoose.Schema(
     birthplace: { type: String },
     spouse: { type: String },
     memberStatus: { type: String },
-    groupNumber: { type: String },
+    groupNumber: { type: mongoose.Schema.Types.ObjectId, ref: "GroupAccount" },
     civilStatus: { type: String },
     center: { type: mongoose.Schema.Types.ObjectId, ref: "Center" },
     dateRelease: { type: Date },

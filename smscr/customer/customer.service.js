@@ -16,6 +16,7 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
     .populate({ path: "business", select: "type" })
     .populate({ path: "beneficiaries" })
     .populate({ path: "children" })
+    .populate({ path: "groupNumber" })
     .skip(offset)
     .limit(limit)
     .exec();
@@ -41,6 +42,7 @@ exports.get_single = async filter => {
     .populate({ path: "business", select: "type" })
     .populate({ path: "beneficiaries" })
     .populate({ path: "children" })
+    .populate({ path: "groupNumber" })
     .exec();
   if (!customer) {
     throw new CustomError("Customer not found", 404);
