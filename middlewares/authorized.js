@@ -11,6 +11,8 @@ exports.isAuthorize = (resource, action) => {
     if (user.role === su) return next();
 
     const permission = user.permissions.find(e => e.resource === resource);
+
+    if (!permission.actions.visible) return res.status(403).json({ msg: "Unauthorized" });
     if (!permission) return res.status(403).json({ msg: "Unauthorized" });
     if (!permission.actions[`${action}`]) return res.status(403).json({ msg: "Unauthorized" });
 
