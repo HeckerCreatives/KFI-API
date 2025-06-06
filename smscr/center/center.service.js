@@ -1,5 +1,6 @@
 const CustomError = require("../../utils/custom-error.js");
 const Center = require("./center.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_selections = async keyword => {
   const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
@@ -54,7 +55,7 @@ exports.get_single = async filter => {
   return { success: true, center };
 };
 
-exports.create = async data => {
+exports.create = async (data, author) => {
   const newCenter = await new Center({
     centerNo: data.centerNo.toUpperCase(),
     description: data.description,
@@ -67,13 +68,22 @@ exports.create = async data => {
   if (!newCenter) {
     throw new CustomError("Failed to create a new center", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `created a center`,
+    resource: `center`,
+    dataId: newCenter._id,
+  });
+
   return {
     success: true,
     center: newCenter,
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedCenter = await Center.findOneAndUpdate(
     filter,
     {
@@ -92,13 +102,30 @@ exports.update = async (filter, data) => {
   if (!updatedCenter) {
     throw new CustomError("Failed to update the center", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a center`,
+    resource: `center`,
+    dataId: updatedCenter._id,
+  });
+
   return { success: true, center: updatedCenter };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedCenter = await Center.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedCenter.acknowledged || deletedCenter.modifiedCount < 1) {
     throw new CustomError("Failed to delete the center", 500);
   }
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a center`,
+    resource: `center`,
+    dataId: filter._id,
+  });
+
   return { success: true, center: filter._id };
 };

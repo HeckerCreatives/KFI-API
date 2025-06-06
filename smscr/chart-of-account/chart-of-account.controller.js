@@ -7,6 +7,8 @@ const { generateChartOfAccountPDF } = require("./print/print_all.js");
 const ChartOfAccount = require("./chart-of-account.schema.js");
 const { pmFonts } = require("../../constants/fonts.js");
 const { completeNumberDate } = require("../../utils/date.js");
+const { getToken } = require("../../utils/get-token.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -71,8 +73,9 @@ exports.deleteChartOfAccount = async (req, res, next) => {
 
 exports.linkGroupOfAccount = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id, deleteAt: null };
-    const result = await chartOfAccountService.link(filter, req.body);
+    const result = await chartOfAccountService.link(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -88,6 +91,14 @@ exports.printAll = async (req, res, next) => {
     const docDefinition = generateChartOfAccountPDF(chartOfAccounts);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    const token = getToken(req);
+    await activityLogServ.create({
+      author: token._id,
+      username: token.username,
+      activity: `printed all chart of accounts`,
+      resource: `chart of account`,
+    });
 
     res.setHeader("Content-Type", "application/pdf");
     pdfDoc.pipe(res);
@@ -142,6 +153,14 @@ exports.exportAll = async (req, res, next) => {
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
     res.setHeader("Content-Disposition", 'attachment; filename="chart-of-accounts.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const token = getToken(req);
+    await activityLogServ.create({
+      author: token._id,
+      username: token.username,
+      activity: `exported all chart of accounts`,
+      resource: `chart of account`,
+    });
 
     res.send(excelBuffer);
   } catch (error) {

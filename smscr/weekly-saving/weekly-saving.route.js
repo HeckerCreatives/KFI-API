@@ -9,10 +9,10 @@ const bankRoutes = express.Router();
 bankRoutes
   .get("/print-all", weeklySavingController.printAll)
   .get("/export-all", weeklySavingController.exportAll)
-  .get("/", isAuthorize("weekly saving table", "visible"), weeklySavingController.getWeeklySavings)
-  .get("/:id", isAuthorize("weekly saving table", "read"), weeklySavingIdRules, validateData, weeklySavingController.getWeeklySaving)
-  .post("/", isAuthorize("weekly saving table", "create"), weeklySavingRules, validateData, weeklySavingController.createWeeklySaving)
-  .put("/:id", isAuthorize("weekly saving table", "update"), weeklySavingIdRules, weeklySavingRules, validateData, weeklySavingController.updateWeeklySaving)
-  .delete("/:id", isAuthorize("weekly saving table", "delete"), weeklySavingIdRules, validateData, weeklySavingController.deleteWeeklySaving);
+  .get("/", isAuthorize("weekly savings", "visible"), weeklySavingController.getWeeklySavings)
+  .get("/:id", isAuthorize("weekly savings", "read"), weeklySavingIdRules, validateData, weeklySavingController.getWeeklySaving)
+  .post("/", isAuthorize("weekly savings", "create"), weeklySavingRules, validateData, weeklySavingController.createWeeklySaving)
+  .put("/:id", isAuthorize("weekly savings", "update"), weeklySavingIdRules, weeklySavingRules, validateData, weeklySavingController.updateWeeklySaving)
+  .delete("/:id", isAuthorize("weekly savings", "delete"), weeklySavingIdRules, validateData, weeklySavingController.deleteWeeklySaving);
 
 module.exports = bankRoutes;

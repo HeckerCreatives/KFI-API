@@ -1,5 +1,6 @@
 const CustomError = require("../../utils/custom-error.js");
 const Supplier = require("./supplier.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
@@ -36,7 +37,7 @@ exports.get_single = async filter => {
   return { success: true, supplier };
 };
 
-exports.create = async data => {
+exports.create = async (data, author) => {
   const newSupplier = await new Supplier({
     code: data.code.toUpperCase(),
     description: data.description,
@@ -44,13 +45,22 @@ exports.create = async data => {
   if (!newSupplier) {
     throw new CustomError("Failed to create a new supplier", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `created a business supplier`,
+    resource: `business supplier`,
+    dataId: newSupplier._id,
+  });
+
   return {
     success: true,
     supplier: newSupplier,
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedSupplier = await Supplier.findOneAndUpdate(
     filter,
     {
@@ -64,13 +74,31 @@ exports.update = async (filter, data) => {
   if (!updatedSupplier) {
     throw new CustomError("Failed to update the supplier", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a business supplier`,
+    resource: `business supplier`,
+    dataId: updatedSupplier._id,
+  });
+
   return { success: true, supplier: updatedSupplier };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedSupplier = await Supplier.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedSupplier.acknowledged || deletedSupplier.modifiedCount < 1) {
     throw new CustomError("Failed to delete the supplier", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a business supplier`,
+    resource: `business supplier`,
+    dataId: filter._id,
+  });
+
   return { success: true, supplier: filter._id };
 };

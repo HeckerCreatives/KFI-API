@@ -15,6 +15,7 @@ const permissionSchema = new mongoose.Schema({
     delete: { type: Boolean, required: true, default: false },
     view: { type: Boolean, required: true, default: false },
     print: { type: Boolean, required: true, default: false },
+    export: { type: Boolean, required: true, default: false },
     visible: { type: Boolean, required: true, default: false },
   },
 });
@@ -36,6 +37,7 @@ const userSchema = new mongoose.Schema(
           delete: false,
           view: false,
           print: false,
+          export: false,
           visible: false,
         },
       })),

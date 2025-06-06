@@ -7,6 +7,8 @@ const Center = require("./center.schema.js");
 const { generateCenterPDF } = require("./print/print_all.js");
 const { pmFonts } = require("../../constants/fonts.js");
 const { completeNumberDate } = require("../../utils/date.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
+const { getToken } = require("../../utils/get-token.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -52,7 +54,8 @@ exports.getCenter = async (req, res, next) => {
 
 exports.createCenter = async (req, res, next) => {
   try {
-    const result = await centerService.create(req.body);
+    const token = getToken(req);
+    const result = await centerService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -61,8 +64,9 @@ exports.createCenter = async (req, res, next) => {
 
 exports.updateCenter = async (req, res, next) => {
   try {
-    const filter = { _id: req.params.id };
-    const result = await centerService.update(filter, req.body);
+    const token = getToken(req);
+    const filter = { _id: req.params.id, deletedAt: null };
+    const result = await centerService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -71,8 +75,9 @@ exports.updateCenter = async (req, res, next) => {
 
 exports.deleteCenter = async (req, res, next) => {
   try {
-    const filter = { _id: req.params.id };
-    const result = await centerService.delete(filter);
+    const token = getToken(req);
+    const filter = { _id: req.params.id, deletedAt: null };
+    const result = await centerService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -88,6 +93,14 @@ exports.printAll = async (req, res, next) => {
     const docDefinition = generateCenterPDF(centers);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all centers`,
+      resource: `center`,
+    });
 
     res.setHeader("Content-Type", "application/pdf");
     pdfDoc.pipe(res);
@@ -143,6 +156,14 @@ exports.exportAll = async (req, res, next) => {
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
     res.setHeader("Content-Disposition", 'attachment; filename="centers.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported all centers`,
+      resource: `center`,
+    });
 
     res.send(excelBuffer);
   } catch (error) {

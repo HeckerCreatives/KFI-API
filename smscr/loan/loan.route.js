@@ -7,13 +7,13 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const loanRoutes = express.Router();
 
 loanRoutes
-  .get("/", isAuthorize("loans", "visible"), loanController.getLoans)
-  .get("/:id", isAuthorize("loans", "read"), loanProductIdRules, validateData, loanController.getLoan)
-  .post("/", isAuthorize("loans", "create"), loanProductRules, validateData, loanController.createLoan)
-  .post("/code", isAuthorize("loans", "create"), loanCodeRules, validateData, loanController.createLoanCode)
-  .put("/:id", isAuthorize("loans", "update"), loanProductIdRules, updateLoanProductRules, validateData, loanController.updateLoan)
-  .put("/code/:id", isAuthorize("loans", "update"), loanCodeIdRules, loanCodeRules, validateData, loanController.updateLoanCode)
-  .delete("/:id", isAuthorize("loans", "delete"), loanProductIdRules, validateData, loanController.deleteLoan)
-  .delete("/code/:id", isAuthorize("loans", "update"), loanCodeIdRules, validateData, loanController.deleteLoanCode);
+  .get("/", isAuthorize("product", "visible"), loanController.getLoans)
+  .get("/:id", isAuthorize("product", "read"), loanProductIdRules, validateData, loanController.getLoan)
+  .post("/", isAuthorize("product", "create"), loanProductRules, validateData, loanController.createLoan)
+  .post("/code", isAuthorize("product", "update"), loanCodeRules, validateData, loanController.createLoanCode)
+  .put("/:id", isAuthorize("product", "update"), loanProductIdRules, updateLoanProductRules, validateData, loanController.updateLoan)
+  .put("/code/:id", isAuthorize("product", "update"), loanCodeIdRules, loanCodeRules, validateData, loanController.updateLoanCode)
+  .delete("/:id", isAuthorize("product", "delete"), loanProductIdRules, validateData, loanController.deleteLoan)
+  .delete("/code/:id", isAuthorize("product", "update"), loanCodeIdRules, validateData, loanController.deleteLoanCode);
 
 module.exports = loanRoutes;

@@ -69,6 +69,7 @@ exports.permissionRules = [
   body("permissions.*.actions.delete").isBoolean().withMessage("Delete action must be boolean"),
   body("permissions.*.actions.view").isBoolean().withMessage("View action must be boolean"),
   body("permissions.*.actions.print").isBoolean().withMessage("Print action must be boolean"),
+  body("permissions.*.actions.export").isBoolean().withMessage("Visible must be boolean"),
   body("permissions.*.actions.visible").isBoolean().withMessage("Visible must be boolean"),
 ];
 

@@ -1,5 +1,6 @@
 const { default: CustomError } = require("../../utils/custom-error.js");
 const ChartOfAccount = require("./chart-of-account.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_selections = async keyword => {
   const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
@@ -104,12 +105,21 @@ exports.delete = async filter => {
   return { success: true, chartOfAccount: filter._id };
 };
 
-exports.link = async (filter, data) => {
+exports.link = async (filter, data, author) => {
   const updatedChartOfAccount = await ChartOfAccount.findOneAndUpdate(filter, { $set: { groupOfAccount: data.groupOfAccount } }, { new: true })
     .populate({ path: "groupOfAccount" })
     .exec();
   if (!updatedChartOfAccount) {
     throw new CustomError("Failed to link the group of account", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `linked a chart of account`,
+    resource: `chart of account`,
+    dataId: updatedChartOfAccount._id,
+  });
+
   return { success: true, chartOfAccount: updatedChartOfAccount };
 };

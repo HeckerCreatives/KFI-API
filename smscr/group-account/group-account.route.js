@@ -8,10 +8,10 @@ const groupAccountRoutes = express.Router();
 
 groupAccountRoutes
   .get("/selection", groupAcctController.getSelections)
-  .get("/", isAuthorize("group account", "visible"), groupAcctController.getGroupAccounts)
-  .get("/:id", isAuthorize("group account", "read"), groupAccountIdRules, validateData, groupAcctController.getGroupAccount)
-  .post("/", isAuthorize("group account", "create"), groupAccountRules, validateData, groupAcctController.createGroupAccount)
-  .put("/:id", isAuthorize("group account", "update"), groupAccountIdRules, updateGroupAccountRules, validateData, groupAcctController.updateGroupAccount)
-  .delete("/:id", isAuthorize("group account", "delete"), groupAccountIdRules, validateData, groupAcctController.deleteGroupAccount);
+  .get("/", isAuthorize("group of account", "visible"), groupAcctController.getGroupAccounts)
+  .get("/:id", isAuthorize("group of account", "read"), groupAccountIdRules, validateData, groupAcctController.getGroupAccount)
+  .post("/", isAuthorize("group of account", "create"), groupAccountRules, validateData, groupAcctController.createGroupAccount)
+  .put("/:id", isAuthorize("group of account", "update"), groupAccountIdRules, updateGroupAccountRules, validateData, groupAcctController.updateGroupAccount)
+  .delete("/:id", isAuthorize("group of account", "delete"), groupAccountIdRules, validateData, groupAcctController.deleteGroupAccount);
 
 module.exports = groupAccountRoutes;

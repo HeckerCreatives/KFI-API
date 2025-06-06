@@ -1,5 +1,6 @@
 const Customer = require("./customer.schema.js");
 const CustomError = require("../../utils/custom-error.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
@@ -50,7 +51,7 @@ exports.get_single = async filter => {
   return { success: true, customer };
 };
 
-exports.create = async data => {
+exports.create = async (data, author) => {
   const newCustomer = await new Customer({
     name: data.name,
     address: data.address,
@@ -84,13 +85,21 @@ exports.create = async data => {
 
   const customer = await this.get_single({ _id: newCustomer._id });
 
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `created a client`,
+    resource: `clients`,
+    dataId: newCustomer._id,
+  });
+
   return {
     success: true,
     customer,
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedCustomer = await Customer.findOneAndUpdate(
     filter,
     {
@@ -129,13 +138,31 @@ exports.update = async (filter, data) => {
   if (!updatedCustomer) {
     throw new CustomError("Failed to update the customer", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a client`,
+    resource: `clients`,
+    dataId: updatedCustomer._id,
+  });
+
   return { success: true, customer: updatedCustomer };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedCustomer = await Customer.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedCustomer.acknowledged || deletedCustomer.modifiedCount < 1) {
     throw new CustomError("Failed to delete the customer", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a client`,
+    resource: `clients`,
+    dataId: filter._id,
+  });
+
   return { success: true, customer: filter._id };
 };

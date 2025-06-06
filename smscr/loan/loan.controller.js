@@ -2,6 +2,7 @@ const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const loanService = require("./loan.service.js");
 const loanCodeService = require("../loan-code/loan-code.service.js");
+const { getToken } = require("../../utils/get-token.js");
 
 exports.getOptions = async (req, res, next) => {
   try {
@@ -36,7 +37,8 @@ exports.getLoan = async (req, res, next) => {
 
 exports.createLoan = async (req, res, next) => {
   try {
-    const result = await loanService.create(req.body);
+    const token = getToken(req);
+    const result = await loanService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -45,7 +47,8 @@ exports.createLoan = async (req, res, next) => {
 
 exports.createLoanCode = async (req, res, next) => {
   try {
-    const result = await loanCodeService.create(req.body);
+    const token = getToken(req);
+    const result = await loanCodeService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -54,8 +57,9 @@ exports.createLoanCode = async (req, res, next) => {
 
 exports.updateLoan = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id, deletedAt: null };
-    const result = await loanService.update(filter, req.body);
+    const result = await loanService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -64,8 +68,9 @@ exports.updateLoan = async (req, res, next) => {
 
 exports.updateLoanCode = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id, deletedAt: null };
-    const result = await loanCodeService.update(filter, req.body);
+    const result = await loanCodeService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -74,8 +79,9 @@ exports.updateLoanCode = async (req, res, next) => {
 
 exports.deleteLoan = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id, deletedAt: null };
-    const result = await loanService.delete(filter);
+    const result = await loanService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -84,8 +90,9 @@ exports.deleteLoan = async (req, res, next) => {
 
 exports.deleteLoanCode = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id, deletedAt: null };
-    const result = await loanCodeService.delete(filter);
+    const result = await loanCodeService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

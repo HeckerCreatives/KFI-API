@@ -1,5 +1,6 @@
 const CustomError = require("../../utils/custom-error.js");
 const WeeklySaving = require("./weekly-saving.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
@@ -49,7 +50,7 @@ exports.create = async data => {
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedWeeklySaving = await WeeklySaving.findOneAndUpdate(
     filter,
     {
@@ -64,13 +65,31 @@ exports.update = async (filter, data) => {
   if (!updatedWeeklySaving) {
     throw new CustomError("Failed to update the weekly saving", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a weekly savings`,
+    resource: `weekly savings`,
+    dataId: updatedWeeklySaving._id,
+  });
+
   return { success: true, weeklySaving: updatedWeeklySaving };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedWeeklySaving = await WeeklySaving.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedWeeklySaving.acknowledged || deletedWeeklySaving.modifiedCount < 1) {
     throw new CustomError("Failed to delete the weekly saving", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a weekly savings`,
+    resource: `weekly savings`,
+    dataId: filter._id,
+  });
+
   return { success: true, weeklySaving: filter._id };
 };

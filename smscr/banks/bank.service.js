@@ -1,5 +1,6 @@
 const CustomError = require("../../utils/custom-error.js");
 const Bank = require("./bank.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
@@ -36,21 +37,31 @@ exports.get_single = async filter => {
   return { success: true, bank };
 };
 
-exports.create = async data => {
+exports.create = async (data, author) => {
   const newBank = await new Bank({
     code: data.code.toUpperCase(),
     description: data.description,
   }).save();
+
   if (!newBank) {
     throw new CustomError("Failed to create a new bank", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `created a bank`,
+    resource: `bank`,
+    dataId: newBank._id,
+  });
+
   return {
     success: true,
     bank: newBank,
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedBank = await Bank.findOneAndUpdate(
     filter,
     {
@@ -64,13 +75,31 @@ exports.update = async (filter, data) => {
   if (!updatedBank) {
     throw new CustomError("Failed to update the bank", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a bank`,
+    resource: `bank`,
+    dataId: updatedBank._id,
+  });
+
   return { success: true, bank: updatedBank };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedBank = await Bank.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedBank.acknowledged || deletedBank.modifiedCount < 1) {
     throw new CustomError("Failed to delete the bank", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a bank`,
+    resource: `bank`,
+    dataId: filter._id,
+  });
+
   return { success: true, bank: filter._id };
 };

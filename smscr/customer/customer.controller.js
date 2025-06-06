@@ -7,6 +7,8 @@ const XLSX = require("xlsx");
 const { generatePrintAllCustomers } = require("./print/print_all.js");
 const { pmFonts } = require("../../constants/fonts.js");
 const { completeNumberDate } = require("../../utils/date.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
+const { getToken } = require("../../utils/get-token.js");
 
 exports.getCustomers = async (req, res, next) => {
   try {
@@ -33,7 +35,8 @@ exports.getCustomer = async (req, res, next) => {
 
 exports.createCustomer = async (req, res, next) => {
   try {
-    const result = await customerService.create(req.body);
+    const token = getToken(req);
+    const result = await customerService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -42,8 +45,9 @@ exports.createCustomer = async (req, res, next) => {
 
 exports.updateCustomer = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await customerService.update(filter, req.body);
+    const result = await customerService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -52,8 +56,9 @@ exports.updateCustomer = async (req, res, next) => {
 
 exports.deleteCustomer = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await customerService.delete(filter);
+    const result = await customerService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -79,6 +84,15 @@ exports.printAll = async (req, res, next) => {
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
     res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all clients`,
+      resource: `clients`,
+    });
+
     pdfDoc.pipe(res);
     pdfDoc.end();
   } catch (error) {
@@ -97,6 +111,16 @@ exports.print = async (req, res, next) => {
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
       res.setHeader("Content-Type", "application/pdf");
+
+      const author = getToken(req);
+      await activityLogServ.create({
+        author: author._id,
+        username: author.username,
+        activity: `printed a client profile`,
+        resource: `clients`,
+        dataId: clients.customer._id,
+      });
+
       pdfDoc.pipe(res);
       pdfDoc.end();
       return;
@@ -122,7 +146,7 @@ exports.exportAll = async (req, res, next) => {
     const formattedClients = clients.map(client => ({
       "Account No": client.acctNumber,
       Name: client.name,
-      "Group No": client.groupNumber?.code || "", // Handle potential null
+      "Group No": client.groupNumber?.code || "",
       "Center No": client.center?.centerNo || "",
       "Business Type": client.business?.type || "",
       "Account Officer": client.acctOfficer,
@@ -133,6 +157,14 @@ exports.exportAll = async (req, res, next) => {
       "Telephone No": client.telNo,
       "Mobile No": client.mobileNo,
     }));
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported all clients`,
+      resource: `clients`,
+    });
 
     export_excel(formattedClients, res);
   } catch (error) {
@@ -159,6 +191,16 @@ exports.export = async (req, res, next) => {
         "Telephone No": client.customer.telNo,
         "Mobile No": client.customer.mobileNo,
       };
+
+      const author = getToken(req);
+      await activityLogServ.create({
+        author: author._id,
+        username: author.username,
+        activity: `exported a client`,
+        resource: `clients`,
+        dataId: client.customer._id,
+      });
+
       export_excel([formattedClients], res);
       return;
     }

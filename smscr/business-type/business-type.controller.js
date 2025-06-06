@@ -1,4 +1,5 @@
 const { stringEscape } = require("../../utils/escape-string.js");
+const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const businessTypeService = require("./business-type.service.js");
 
@@ -45,7 +46,8 @@ exports.getBusinessType = async (req, res, next) => {
 
 exports.createBusinessType = async (req, res, next) => {
   try {
-    const result = await businessTypeService.create(req.body);
+    const token = getToken(req);
+    const result = await businessTypeService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -54,8 +56,9 @@ exports.createBusinessType = async (req, res, next) => {
 
 exports.updateBusinessType = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await businessTypeService.update(filter, req.body);
+    const result = await businessTypeService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -64,8 +67,9 @@ exports.updateBusinessType = async (req, res, next) => {
 
 exports.deleteBusinessType = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await businessTypeService.delete(filter);
+    const result = await businessTypeService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

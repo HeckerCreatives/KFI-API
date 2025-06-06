@@ -1,4 +1,5 @@
 const { stringEscape } = require("../../utils/escape-string.js");
+const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const beneficiaryService = require("./beneficiary.service.js");
 
@@ -26,7 +27,8 @@ exports.getBeneficiary = async (req, res, next) => {
 
 exports.createBeneficiary = async (req, res, next) => {
   try {
-    const result = await beneficiaryService.create(req.body);
+    const token = getToken(req);
+    const result = await beneficiaryService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -35,8 +37,9 @@ exports.createBeneficiary = async (req, res, next) => {
 
 exports.updateBeneficiary = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await beneficiaryService.update(filter, req.body);
+    const result = await beneficiaryService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -45,8 +48,9 @@ exports.updateBeneficiary = async (req, res, next) => {
 
 exports.deleteBeneficiary = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await beneficiaryService.delete(filter);
+    const result = await beneficiaryService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

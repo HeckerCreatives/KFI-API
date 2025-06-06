@@ -1,4 +1,5 @@
 const { stringEscape } = require("../../utils/escape-string.js");
+const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const groupAcctService = require("./group-account.service.js");
 
@@ -45,7 +46,8 @@ exports.getGroupAccount = async (req, res, next) => {
 
 exports.createGroupAccount = async (req, res, next) => {
   try {
-    const result = await groupAcctService.create(req.body);
+    const token = getToken(req);
+    const result = await groupAcctService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -54,8 +56,9 @@ exports.createGroupAccount = async (req, res, next) => {
 
 exports.updateGroupAccount = async (req, res, next) => {
   try {
-    const filter = { _id: req.params.id };
-    const result = await groupAcctService.update(filter, req.body);
+    const token = getToken(req);
+    const filter = { _id: req.params.id, deletedAt: null };
+    const result = await groupAcctService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -64,8 +67,9 @@ exports.updateGroupAccount = async (req, res, next) => {
 
 exports.deleteGroupAccount = async (req, res, next) => {
   try {
-    const filter = { _id: req.params.id };
-    const result = await groupAcctService.delete(filter);
+    const token = getToken(req);
+    const filter = { _id: req.params.id, deletedAt: null };
+    const result = await groupAcctService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

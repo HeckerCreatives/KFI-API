@@ -1,5 +1,6 @@
 const CustomError = require("../../utils/custom-error.js");
 const BusinessType = require("./business-type.schema.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.get_selections = async keyword => {
   const filter = { deletedAt: null, type: new RegExp(keyword, "i") };
@@ -53,31 +54,58 @@ exports.get_single = async filter => {
   return { success: true, businessType };
 };
 
-exports.create = async data => {
+exports.create = async (data, author) => {
   const newBusinessType = await new BusinessType({
     type: data.type,
   }).save();
   if (!newBusinessType) {
     throw new CustomError("Failed to create a new business type", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `created a business type`,
+    resource: `business type`,
+    dataId: newBusinessType._id,
+  });
+
   return {
     success: true,
     businessType: newBusinessType,
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedBusinessType = await BusinessType.findOneAndUpdate(filter, { $set: { type: data.type } }, { new: true }).exec();
   if (!updatedBusinessType) {
     throw new CustomError("Failed to update the business type", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated a business type`,
+    resource: `business type`,
+    dataId: updatedBusinessType._id,
+  });
+
   return { success: true, businessType: updatedBusinessType };
 };
 
-exports.delete = async filter => {
+exports.delete = async (filter, author) => {
   const deletedBusinessType = await BusinessType.updateOne(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deletedBusinessType.acknowledged || deletedBusinessType.modifiedCount < 1) {
     throw new CustomError("Failed to delete the business type", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `deleted a business type`,
+    resource: `business type`,
+    dataId: filter._id,
+  });
+
   return { success: true, businessType: filter._id };
 };

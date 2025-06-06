@@ -8,6 +8,8 @@ const { pmFonts } = require("../../constants/fonts.js");
 const { generateWeeklySavingsPDF } = require("./print/print_all.js");
 const { formatNumber } = require("../../utils/number.js");
 const { completeNumberDate } = require("../../utils/date.js");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
+const { getToken } = require("../../utils/get-token.js");
 
 exports.getWeeklySavings = async (req, res, next) => {
   try {
@@ -42,8 +44,9 @@ exports.createWeeklySaving = async (req, res, next) => {
 
 exports.updateWeeklySaving = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await weeklySavingService.update(filter, req.body);
+    const result = await weeklySavingService.update(filter, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -52,8 +55,9 @@ exports.updateWeeklySaving = async (req, res, next) => {
 
 exports.deleteWeeklySaving = async (req, res, next) => {
   try {
+    const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await weeklySavingService.delete(filter);
+    const result = await weeklySavingService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -71,6 +75,15 @@ exports.printAll = async (req, res, next) => {
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
     res.setHeader("Content-Type", "application/pdf");
+
+    const token = getToken(req);
+    await activityLogServ.create({
+      author: token._id,
+      username: token.username,
+      activity: `printed all weekly savings`,
+      resource: `weekly savings`,
+    });
+
     pdfDoc.pipe(res);
     pdfDoc.end();
   } catch (error) {
@@ -115,6 +128,14 @@ exports.exportAll = async (req, res, next) => {
     const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
     res.setHeader("Content-Disposition", 'attachment; filename="weekly-savings.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const token = getToken(req);
+    await activityLogServ.create({
+      author: token._id,
+      username: token.username,
+      activity: `exported all weekly savings`,
+      resource: `weekly savings`,
+    });
 
     res.send(excelBuffer);
   } catch (error) {
