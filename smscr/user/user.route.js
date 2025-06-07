@@ -1,5 +1,6 @@
 const express = require("express");
 const userController = require("./user.controller.js");
+const activityLogCtrl = require("../activity-logs/activity-log.controller.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { userIdRules, userRules, permissionRules, banUserRules, changePasswordRules } = require("./user.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
@@ -8,6 +9,7 @@ const userRoutes = express.Router();
 
 userRoutes
   .get("/", isAuthorize("user", "visible"), userController.getUsers)
+  .get("/activity-logs/:id", isAuthorize("user", "visible"), userIdRules, validateData, activityLogCtrl.getAllByUser)
   .get("/:id", isAuthorize("user", "read"), userIdRules, validateData, userController.getUser)
   .post("/", isAuthorize("user", "create"), userRules, validateData, userController.createUser)
   .put("/change-password", isAuthorize("user", "update"), changePasswordRules, validateData, userController.changePassword)
