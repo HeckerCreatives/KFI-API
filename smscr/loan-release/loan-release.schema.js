@@ -8,6 +8,7 @@ const loanReleaseSchema = new mongoose.Schema(
     refNumber: { type: String },
     date: { type: Date },
     acctMonth: { type: String },
+    acctYear: { type: String },
     noOfWeeks: { type: String },
     typeOfLoan: { type: mongoose.Schema.Types.ObjectId, ref: "Loan" },
     checkNo: { type: String },

@@ -46,8 +46,18 @@ exports.loanReleaseRules = [
     .withMessage("Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Date must be a valid date (YYYY-MM-DD)"),
-  body("acctMonth").trim().notEmpty().withMessage("Account month is required").isLength({ min: 1, max: 255 }).withMessage("Account month must only consist of 1 to 255 characters"),
+  body("acctMonth")
+    .trim()
+    .notEmpty()
+    .withMessage("Account month is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Account month must only consist of 1 to 255 characters")
+    .isNumeric()
+    .withMessage("Account month must be a number")
+    .custom(value => value >= 1 && value <= 12)
+    .withMessage(`No. of weeks must be between 1 and 12`),
   body("noOfWeeks").trim().notEmpty().withMessage("No. of Weeks is required").isLength({ min: 1, max: 255 }).withMessage("No. of weeks must only consist of 1 to 255 characters"),
+
   body("typeOfLoan")
     .trim()
     .notEmpty()
