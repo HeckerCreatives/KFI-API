@@ -2,6 +2,28 @@ const Customer = require("./customer.schema.js");
 const CustomError = require("../../utils/custom-error.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_selections = async (keyword, center, limit, page, offset) => {
+  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  if (center) filter.center = center;
+
+  const clientsPromise = Customer.find(filter, { name: 1, acctNumber: 1 }).lean().exec();
+  const countPromise = Customer.countDocuments(filter);
+
+  const [count, clients] = await Promise.all([countPromise, clientsPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    clients,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ acctNumber: new RegExp(keyword, "i") }, { name: new RegExp(keyword, "i") }];

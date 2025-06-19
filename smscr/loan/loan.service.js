@@ -3,6 +3,15 @@ const LoanCode = require("../loan-code/loan-code.schema.js");
 const Loan = require("./loan.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_selections = async keyword => {
+  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  const loans = await Loan.find(filter, { code: "$code" }).lean().exec();
+  return {
+    success: true,
+    loans,
+  };
+};
+
 exports.get_options = async () => {
   const filter = { deletedAt: null };
   const options = await Loan.find(filter, { label: "$type", value: "$_id", _id: 0 }).lean().exec();

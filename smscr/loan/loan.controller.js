@@ -4,6 +4,16 @@ const loanService = require("./loan.service.js");
 const loanCodeService = require("../loan-code/loan-code.service.js");
 const { getToken } = require("../../utils/get-token.js");
 
+exports.getSelections = async (req, res, next) => {
+  try {
+    const { keyword } = req.query;
+    const result = await loanService.get_selections(stringEscape(keyword));
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getOptions = async (req, res, next) => {
   try {
     const result = await loanService.get_options();

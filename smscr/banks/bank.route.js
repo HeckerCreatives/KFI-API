@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const bankRoutes = express.Router();
 
 bankRoutes
+  .get("/selection", bankController.getSelections)
   .get("/", isAuthorize("bank", "visible"), bankController.getBanks)
   .get("/:id", isAuthorize("bank", "read"), bankIdRules, validateData, bankController.getBank)
   .post("/", isAuthorize("bank", "create"), bankRules, validateData, bankController.createBank)

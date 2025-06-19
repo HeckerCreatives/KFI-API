@@ -3,6 +3,16 @@ const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const bankService = require("./bank.service.js");
 
+exports.getSelections = async (req, res, next) => {
+  try {
+    const { keyword } = req.query;
+    const result = await bankService.get_selections(stringEscape(keyword));
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getBanks = async (req, res, next) => {
   try {
     const { page, limit, search, sort } = req.query;

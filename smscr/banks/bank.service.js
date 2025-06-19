@@ -2,6 +2,15 @@ const CustomError = require("../../utils/custom-error.js");
 const Bank = require("./bank.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_selections = async keyword => {
+  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  const banks = await Bank.find(filter, { code: "$code", description: "$description" }).lean().exec();
+  return {
+    success: true,
+    banks,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];

@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const loanRoutes = express.Router();
 
 loanRoutes
+  .get("/selection", loanController.getSelections)
   .get("/", isAuthorize("product", "visible"), loanController.getLoans)
   .get("/:id", isAuthorize("product", "read"), loanProductIdRules, validateData, loanController.getLoan)
   .post("/", isAuthorize("product", "create"), loanProductRules, validateData, loanController.createLoan)

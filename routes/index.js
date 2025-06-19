@@ -23,6 +23,7 @@ const authRoutes = require("../smscr/auth/auth.routes");
 const optionRoutes = require("../smscr/options/options.route");
 const statusRoutes = require("../smscr/status/status.routes");
 const activityLogRoutes = require("../smscr/activity-logs/activity-log.route");
+const transactionRoutes = require("../smscr/transactions/transaction.route");
 
 exports.routers = app => {
   app.use("/api/v1/auth", authRoutes);
@@ -49,4 +50,5 @@ exports.routers = app => {
   app.use("/api/v1/option", passport.authenticate("jwt", { session: false }), optionRoutes);
   app.use("/api/v1/status", passport.authenticate("jwt", { session: false }), statusRoutes);
   app.use("/api/v1/activity-log", passport.authenticate("jwt", { session: false }), activityLogRoutes);
+  app.use("/api/v1/transaction", passport.authenticate("jwt", { session: false }), transactionRoutes);
 };
