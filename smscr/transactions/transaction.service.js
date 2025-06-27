@@ -4,6 +4,28 @@ const LoanCode = require("../loan-code/loan-code.schema.js");
 const Entry = require("./entries/entry.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const Transaction = require("./transaction.schema.js");
+const { default: mongoose } = require("mongoose");
+
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
+
+  const transactionsPromise = Transaction.find(filter, { code: 1 }).lean().exec();
+  const countPromise = Transaction.countDocuments(filter);
+
+  const [count, transactions] = await Promise.all([countPromise, transactionsPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    transactions,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
 
 exports.get_all = async (limit, page, offset, keyword, sort, type, to, from) => {
   const filter = { deletedAt: null, type };
@@ -212,4 +234,118 @@ exports.delete_loan_release = async (filter, author) => {
   });
 
   return { success: true, transaction: filter._id };
+};
+
+exports.print_all_detailed = async (docNoFrom, docNoTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+  if (docNoFrom || docNoTo) filter.$and = [];
+  if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
+  if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $sort: { code: 1 } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+
+  pipelines.push({ $lookup: { from: "loans", localField: "loan", foreignField: "_id", as: "loan", pipeline: [{ $project: { code: 1 } }] } });
+
+  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { acctNumber: 1, name: 1 } }] } },
+        { $lookup: { from: "loans", localField: "product", foreignField: "_id", as: "product", pipeline: [{ $project: { code: 1 } }] } },
+        {
+          $addFields: {
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            center: { $arrayElemAt: ["$center", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+            product: { $arrayElemAt: ["$product", 0] },
+          },
+        },
+        { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, transaction: 0 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
+
+  const transactions = await Transaction.aggregate(pipelines).exec();
+
+  return transactions;
+};
+
+exports.print_detailed_by_id = async transactionId => {
+  const pipelines = [];
+  const filter = { deletedAt: null, _id: new mongoose.Types.ObjectId(transactionId) };
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $sort: { code: 1 } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+
+  pipelines.push({ $lookup: { from: "loans", localField: "loan", foreignField: "_id", as: "loan", pipeline: [{ $project: { code: 1 } }] } });
+
+  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { acctNumber: 1, name: 1 } }] } },
+        { $lookup: { from: "loans", localField: "product", foreignField: "_id", as: "product", pipeline: [{ $project: { code: 1 } }] } },
+        {
+          $addFields: {
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            center: { $arrayElemAt: ["$center", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+            product: { $arrayElemAt: ["$product", 0] },
+          },
+        },
+        { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, transaction: 0 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
+
+  const transactions = await Transaction.aggregate(pipelines).exec();
+
+  return transactions;
+};
+
+exports.print_all_summary = async (docNoFrom, docNoTo) => {
+  const filter = { deletedAt: null };
+  if (docNoFrom || docNoTo) filter.$and = [];
+  if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
+  if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
+  console.log(filter);
+  const transactions = await Transaction.find(filter).populate({ path: "center" }).populate({ path: "bank" }).sort({ code: 1 });
+
+  return transactions;
+};
+
+exports.print_summary_by_id = async transactionId => {
+  const filter = { deletedAt: null, _id: transactionId };
+  const transactions = await Transaction.find(filter).populate({ path: "center" }).populate({ path: "bank" }).sort({ code: 1 });
+  return transactions;
 };

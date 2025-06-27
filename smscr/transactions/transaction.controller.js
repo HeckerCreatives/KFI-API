@@ -1,8 +1,28 @@
-const { validateDateInput } = require("../../utils/date.js");
+const { pmFonts } = require("../../constants/fonts.js");
+const { validateDateInput, completeNumberDate } = require("../../utils/date.js");
 const { stringEscape } = require("../../utils/escape-string.js");
 const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
+const { loanReleaseDetailedPrintAll } = require("./print/print_all_detailed.js");
 const transactionServ = require("./transaction.service.js");
+const PdfPrinter = require("pdfmake");
+const activityLogServ = require("../activity-logs/activity-log.service.js");
+const XLSX = require("xlsx");
+const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
+const { formatNumber } = require("../../utils/number.js");
+const { isValidObjectId } = require("mongoose");
+const CustomError = require("../../utils/custom-error.js");
+
+exports.getSelections = async (req, res, next) => {
+  try {
+    const { page, limit, search, center } = req.query;
+    const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
+    const result = await transactionServ.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getLoanReleases = async (req, res, next) => {
   try {
@@ -59,4 +79,207 @@ exports.deleteLoanRelease = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.printAllSummary = async (req, res, next) => {
+  try {
+    const { docNoFrom, docNoTo } = req.query;
+    const transactions = await transactionServ.print_all_summary(docNoFrom, docNoTo);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseSummaryPrintAll(transactions, docNoFrom, docNoTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Summarized )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printSummaryById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) throw new CustomError("Invalid loan release id", 400);
+
+    const transactions = await transactionServ.print_summary_by_id(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseSummaryPrintAll(transactions);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all loan release ( Summarized )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllDetailed = async (req, res, next) => {
+  try {
+    const { docNoFrom, docNoTo } = req.query;
+
+    const transactions = await transactionServ.print_all_detailed(docNoFrom, docNoTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseDetailedPrintAll(transactions, docNoFrom, docNoTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all loan release ( Detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printDetailedById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!isValidObjectId(id)) throw new CustomError("Invalid loan release id", 400);
+    const transactions = await transactionServ.print_detailed_by_id(id);
+
+    console.log(transactions, id);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseDetailedPrintAll(transactions);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllDetailed = async (req, res, next) => {};
+
+exports.exportAllSummary = async (req, res, next) => {
+  const { docNoFrom, docNoTo } = req.query;
+  const transactions = await transactionServ.print_all_summary(docNoFrom, docNoTo);
+
+  const formattedLoanReleases = transactions.map(transaction => ({
+    "Document Number": transaction.code,
+    Date: completeNumberDate(transaction.date),
+    Supplier: transaction.center.description,
+    Particulars: transaction.remarks,
+    Bank: transaction.bank.description,
+    "Check No": transaction.checkNo,
+    "Check Date": completeNumberDate(transaction.checkDate),
+    Amount: formatNumber(transaction.amount),
+  }));
+
+  formattedLoanReleases.push({
+    "Document Number": "",
+    Date: "",
+    Supplier: "",
+    Particulars: "",
+    Bank: "",
+    "Check No": "",
+    "Check Date": "",
+    Amount: formatNumber(transactions.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
+  });
+
+  export_excel(formattedLoanReleases, res, docNoFrom, docNoTo);
+};
+
+exports.exportSummaryById = async (req, res, next) => {
+  const { id } = req.params;
+  if (!isValidObjectId(id)) throw new CustomError("Invalid loan release id", 400);
+  const transactions = await transactionServ.print_summary_by_id(id);
+
+  const formattedLoanReleases = transactions.map(transaction => ({
+    "Document Number": transaction.code,
+    Date: completeNumberDate(transaction.date),
+    Supplier: transaction.center.description,
+    Particulars: transaction.remarks,
+    Bank: transaction.bank.description,
+    "Check No": transaction.checkNo,
+    "Check Date": completeNumberDate(transaction.checkDate),
+    Amount: formatNumber(transaction.amount),
+  }));
+
+  formattedLoanReleases.push({
+    "Document Number": "",
+    Date: "",
+    Supplier: "",
+    Particulars: "",
+    Bank: "",
+    "Check No": "",
+    "Check Date": "",
+    Amount: formatNumber(transactions.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
+  });
+
+  export_excel(formattedLoanReleases, res);
+};
+
+const export_excel = (datas, res, from, to) => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.json_to_sheet(datas, { origin: "A7" });
+
+  worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
+
+  let title = "";
+  if (from && !to) title = `Doc. No. From CV#${from}`;
+  if (to && !from) title = `Doc. No. To CV#${to}`;
+  if (to && from) title = `Doc. No. From CV#${from} To CV#${to}`;
+
+  const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
+  const headerSubtitle = `Loan Release By Doc. ( Summarized )`;
+  const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
+
+  XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Loan Release");
+
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+  res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  return res.send(excelBuffer);
 };

@@ -10,6 +10,13 @@ const { entryRules, entryIdRules } = require("./entries/entry.validation.js");
 const transactionRoutes = express.Router();
 
 transactionRoutes
+  .get("/print-all/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailed)
+  .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
+  .get("/print-all/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummary)
+  .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
+  .get("/export-all/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
+  .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)
+  .get("/selection", transactionCtrl.getSelections)
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
   .get("/loan-release/entries/:id", isAuthorize("loan release", "update"), entryCtrl.getEntries)
   .post("/loan-release/entries/:id", isAuthorize("loan release", "update"), transactionIdRules, entryRules, validateData, entryCtrl.createEntry)
