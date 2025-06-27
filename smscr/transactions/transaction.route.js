@@ -16,6 +16,8 @@ transactionRoutes
   .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
   .get("/export-all/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)
+  .get("/export-all/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailed)
+  .get("/export/detailed/:id", isAuthorize("loan release", "export"), transactionCtrl.exportDetailedById)
   .get("/selection", transactionCtrl.getSelections)
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
   .get("/loan-release/entries/:id", isAuthorize("loan release", "update"), entryCtrl.getEntries)

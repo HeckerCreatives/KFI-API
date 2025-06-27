@@ -12,6 +12,7 @@ const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
+const transactionRoutes = require("./transaction.route.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -197,7 +198,85 @@ exports.printDetailedById = async (req, res, next) => {
   }
 };
 
-exports.exportAllDetailed = async (req, res, next) => {};
+exports.exportAllDetailed = async (req, res, next) => {
+  try {
+    const { docNoFrom, docNoTo } = req.query;
+    const transactions = await transactionServ.print_all_detailed(docNoFrom, docNoTo);
+    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+
+    transactions.map(transaction => {
+      data.push(
+        [
+          `CV#${transaction.code}`,
+          completeNumberDate(transaction.date),
+          transaction.center.description,
+          transaction.remarks,
+          transaction.bank.description,
+          transaction.checkNo,
+          completeNumberDate(transaction.checkDate),
+          formatNumber(transaction.amount),
+        ],
+        [],
+        ["", "Account Code", "Description", "Debit", "Credit", "Particulars"],
+        ...transaction.entries.map(entry => ["", entry.acctCode.code, entry.acctCode.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
+        [
+          "",
+          "",
+          "",
+          formatNumber(transaction.entries.reduce((acc, obj) => acc + (obj.debit || 0), 0)),
+          formatNumber(transaction.entries.reduce((acc, obj) => acc + (obj.credit || 0), 0)),
+          "",
+        ],
+        [],
+        []
+      );
+    });
+
+    export_excel_detailed(data, res, docNoFrom, docNoTo);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportDetailedById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const transactions = await transactionServ.print_detailed_by_id(id);
+    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+
+    transactions.map(transaction => {
+      data.push(
+        [
+          `CV#${transaction.code}`,
+          completeNumberDate(transaction.date),
+          transaction.center.description,
+          transaction.remarks,
+          transaction.bank.description,
+          transaction.checkNo,
+          completeNumberDate(transaction.checkDate),
+          formatNumber(transaction.amount),
+        ],
+        [],
+        ["", "Account Code", "Description", "Debit", "Credit", "Particulars"],
+        ...transaction.entries.map(entry => ["", entry.acctCode.code, entry.acctCode.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
+        [
+          "",
+          "",
+          "",
+          formatNumber(transaction.entries.reduce((acc, obj) => acc + (obj.debit || 0), 0)),
+          formatNumber(transaction.entries.reduce((acc, obj) => acc + (obj.credit || 0), 0)),
+          "",
+        ],
+        [],
+        []
+      );
+    });
+
+    export_excel_detailed(data, res);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.exportAllSummary = async (req, res, next) => {
   const { docNoFrom, docNoTo } = req.query;
@@ -271,6 +350,32 @@ const export_excel = (datas, res, from, to) => {
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
   const headerSubtitle = `Loan Release By Doc. ( Summarized )`;
+  const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
+
+  XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Loan Release");
+
+  const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+  res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  return res.send(excelBuffer);
+};
+
+const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet(data, { origin: "A7" });
+
+  worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
+
+  let title = "";
+  if (docNoFrom && !docNoTo) title = `Doc. No. From CV#${docNoFrom}`;
+  if (docNoTo && !docNoFrom) title = `Doc. No. To CV#${docNoTo}`;
+  if (docNoTo && docNoFrom) title = `Doc. No. From CV#${docNoFrom} To CV#${docNoTo}`;
+
+  const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
+  const headerSubtitle = `Loan Release By Doc. ( Detailed )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
