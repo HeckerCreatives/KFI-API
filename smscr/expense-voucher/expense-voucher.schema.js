@@ -2,13 +2,14 @@ const mongoose = require("mongoose");
 
 const expenseVoucherSchema = new mongoose.Schema(
   {
-    cvNo: { type: String },
+    code: { type: String },
     supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     date: { type: Date },
     acctMonth: { type: String },
     acctYear: { type: String },
     checkNo: { type: String },
     checkDate: { type: Date },
+    refNo: { type: String },
     bankCode: { type: mongoose.Schema.Types.ObjectId, ref: "Bank" },
     amount: { type: Number },
     remarks: { type: String },

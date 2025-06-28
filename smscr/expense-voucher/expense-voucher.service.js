@@ -33,11 +33,12 @@ exports.get_single = async filter => {
 
 exports.create = async data => {
   const newExpenseVoucher = await new ExpenseVoucher({
-    cvNo: data.cvNo,
+    code: data.cvNo,
     supplier: data.supplier,
     date: data.date,
     acctMonth: data.acctMonth,
     acctYear: data.acctYear,
+    refNo: data.refNo,
     checkNo: data.checkNo,
     checkDate: data.checkDate,
     bankCode: data.bankCode,
@@ -58,11 +59,12 @@ exports.update = async (filter, data) => {
     filter,
     {
       $set: {
-        cvNo: data.cvNo,
+        code: data.cvNo,
         supplier: data.supplier,
         date: data.date,
         acctMonth: data.acctMonth,
         acctYear: data.acctYear,
+        refNo: data.refNo,
         checkNo: data.checkNo,
         checkDate: data.checkDate,
         bankCode: data.bankCode,

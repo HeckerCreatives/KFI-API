@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const supplierRoutes = express.Router();
 
 supplierRoutes
+  .get("/selection", supplierController.getSelections)
   .get("/", isAuthorize("business supplier", "visible"), supplierController.getSuppliers)
   .get("/:id", isAuthorize("business supplier", "read"), supplierIdRules, validateData, supplierController.getSupplier)
   .post("/", isAuthorize("business supplier", "create"), supplierRules, validateData, supplierController.createSupplier)

@@ -2,6 +2,27 @@ const CustomError = require("../../utils/custom-error.js");
 const Supplier = require("./supplier.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
+
+  const suppliersPromise = Supplier.find(filter, { code: 1, description: 1 }).lean().exec();
+  const countPromise = Supplier.countDocuments(filter);
+
+  const [count, suppliers] = await Promise.all([countPromise, suppliersPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    suppliers,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];

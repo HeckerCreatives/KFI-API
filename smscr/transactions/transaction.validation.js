@@ -5,6 +5,7 @@ const Customer = require("../customer/customer.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const Transaction = require("./transaction.schema.js");
 const Bank = require("../banks/bank.schema.js");
+const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema.js");
 
 exports.transactionIdRules = [
   param("id")
@@ -48,8 +49,15 @@ exports.createTransactionRules = [
     .notEmpty()
     .withMessage("CV No. is required")
     .custom(async value => {
-      const exists = await Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
-      if (exists) throw new Error("CV No. already exists");
+      const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
+      const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
+
+      const [transaction, expense] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise]);
+
+      if (transaction || expense) {
+        throw new Error("CV No. already exists");
+      }
+
       return true;
     }),
   body("center")

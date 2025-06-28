@@ -2,6 +2,7 @@ const { param, body } = require("express-validator");
 const ExpenseVoucher = require("./expense-voucher.schema");
 const Supplier = require("../supplier/supplier.schema");
 const Bank = require("../banks/bank.schema");
+const Transaction = require("../transactions/transaction.schema");
 
 exports.expenseVoucherIdRules = [
   param("id")
@@ -18,7 +19,19 @@ exports.expenseVoucherIdRules = [
 ];
 
 exports.expenseVoucherRules = [
-  body("cvNo").trim().notEmpty().withMessage("CV No is required").isLength({ min: 1, max: 255 }).withMessage("CV No must only consist of 1 to 255 characters"),
+  body("code")
+    .trim()
+    .notEmpty()
+    .withMessage("CV No is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("CV No must only consist of 1 to 255 characters")
+    .custom(async value => {
+      const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
+      const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
+      const [transaction, expense] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise]);
+      if (transaction || expense) throw new Error("CV No. already exists");
+      return true;
+    }),
   body("supplier")
     .trim()
     .notEmpty()
@@ -38,8 +51,8 @@ exports.expenseVoucherRules = [
     .withMessage("Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Date must be a valid date (YYYY-MM-DD)"),
-  body("acctMonth").trim().notEmpty().withMessage("Account month is required").isLength({ min: 1, max: 255 }).withMessage("Account month must only consist of 1 to 255 characters"),
-  body("acctYear").trim().notEmpty().withMessage("Account year is required").isLength({ min: 1, max: 255 }).withMessage("Account year must only consist of 1 to 255 characters"),
+  body("acctMonth").trim().notEmpty().withMessage("Account Month is required").isNumeric().withMessage("Account Month must be a number"),
+  body("acctYear").trim().notEmpty().withMessage("Account Year is required").isNumeric().withMessage("Account Year must be a number"),
   body("checkNo").trim().notEmpty().withMessage("Check no. is required").isLength({ min: 1, max: 255 }).withMessage("Check no. must only consist of 1 to 255 characters"),
   body("checkDate")
     .trim()
@@ -49,6 +62,7 @@ exports.expenseVoucherRules = [
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+  body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
   body("bankCode")
     .trim()
     .notEmpty()
@@ -68,5 +82,5 @@ exports.expenseVoucherRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
-  body("remarks").trim().notEmpty().withMessage("Remarks is required").isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
 ];
