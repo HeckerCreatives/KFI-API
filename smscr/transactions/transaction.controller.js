@@ -12,7 +12,6 @@ const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
-const transactionRoutes = require("./transaction.route.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -172,8 +171,6 @@ exports.printDetailedById = async (req, res, next) => {
     const { id } = req.params;
     if (!isValidObjectId(id)) throw new CustomError("Invalid loan release id", 400);
     const transactions = await transactionServ.print_detailed_by_id(id);
-
-    console.log(transactions, id);
 
     const printer = new PdfPrinter(pmFonts);
 

@@ -20,7 +20,7 @@ transactionRoutes
   .get("/export/detailed/:id", isAuthorize("loan release", "export"), transactionCtrl.exportDetailedById)
   .get("/selection", transactionCtrl.getSelections)
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
-  .get("/loan-release/entries/:id", isAuthorize("loan release", "update"), entryCtrl.getEntries)
+  .get("/loan-release/entries/:id", isAuthorize("loan release", "visible"), entryCtrl.getEntries)
   .post("/loan-release/entries/:id", isAuthorize("loan release", "update"), transactionIdRules, entryRules, validateData, entryCtrl.createEntry)
   .put("/loan-release/entries/:id/:entryId", isAuthorize("loan release", "update"), transactionIdRules, entryIdRules, entryRules, validateData, entryCtrl.updateEntry)
   .delete("/loan-release/entries/:id/:entryId", isAuthorize("loan release", "update"), transactionIdRules, entryIdRules, validateData, entryCtrl.deleteEntry)
