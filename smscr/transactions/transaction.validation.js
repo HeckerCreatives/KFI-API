@@ -6,6 +6,7 @@ const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js")
 const Transaction = require("./transaction.schema.js");
 const Bank = require("../banks/bank.schema.js");
 const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema.js");
+const JournalVoucher = require("../journal-voucher/journal-voucher.schema.js");
 
 exports.transactionIdRules = [
   param("id")
@@ -51,8 +52,10 @@ exports.createTransactionRules = [
     .custom(async value => {
       const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
       const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
+      const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
 
-      const [transaction, expense] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise]);
+      const [transaction, expense, journal] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise, journalVoucherExistsPromise]);
+      if (transaction || expense || journal) throw new Error("JV No. already exists");
 
       if (transaction || expense) {
         throw new Error("CV No. already exists");

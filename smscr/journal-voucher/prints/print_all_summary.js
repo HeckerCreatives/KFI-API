@@ -1,9 +1,9 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber } = require("../../../utils/number");
 
-exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
+exports.journalVoucherSummaryPrintAll = (datas, from = "", to = "") => {
   const info = {
-    title: "Expense Voucher",
+    title: "Journal Voucher",
   };
 
   const loanReleases = [];
@@ -12,7 +12,7 @@ exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
   datas.map((data, i) => {
     total += data.amount;
     loanReleases.push([
-      { text: `EV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+      { text: `JV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.supplier.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -24,13 +24,13 @@ exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
   });
 
   let title = "";
-  if (from && !to) title = `Doc. No. From EV#${from}`;
-  if (to && !from) title = `Doc. No. To EV#${to}`;
-  if (to && from) title = `Doc. No. From EV#${from} To EV#${to}`;
+  if (from && !to) title = `Doc. No. From JV#${from}`;
+  if (to && !from) title = `Doc. No. To JV#${to}`;
+  if (to && from) title = `Doc. No. From JV#${from} To JV#${to}`;
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Expense Voucher By Doc. No. (Summarized)", fontSize: 9 },
+    { text: "Journal Voucher By Doc. No. (Summarized)", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {

@@ -142,7 +142,7 @@ exports.create = async (data, author) => {
   };
 };
 
-exports.update = async (filter, data) => {
+exports.update = async (filter, data, author) => {
   const updatedExpenseVoucher = await ExpenseVoucher.findOneAndUpdate(
     filter,
     {
@@ -170,6 +170,15 @@ exports.update = async (filter, data) => {
   if (!updatedExpenseVoucher) {
     throw new CustomError("Failed to update the expense voucher", 500);
   }
+
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `updated an expense voucher`,
+    resource: `expense voucher`,
+    dataId: updatedExpenseVoucher._id,
+  });
+
   return { success: true, expenseVoucher: updatedExpenseVoucher };
 };
 

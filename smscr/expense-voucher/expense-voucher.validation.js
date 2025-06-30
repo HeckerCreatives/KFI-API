@@ -5,6 +5,7 @@ const Bank = require("../banks/bank.schema");
 const Transaction = require("../transactions/transaction.schema");
 const { isValidObjectId } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
+const JournalVoucher = require("../journal-voucher/journal-voucher.schema");
 
 exports.expenseVoucherIdRules = [
   param("id")
@@ -30,8 +31,10 @@ exports.expenseVoucherRules = [
     .custom(async value => {
       const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
       const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-      const [transaction, expense] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise]);
-      if (transaction || expense) throw new Error("CV No. already exists");
+      const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
+
+      const [transaction, expense, journal] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise, journalVoucherExistsPromise]);
+      if (transaction || expense || journal) throw new Error("JV No. already exists");
       return true;
     }),
   body("supplier")
@@ -126,8 +129,10 @@ exports.updateExpenseVoucherRules = [
       if (expenseVoucher.code.toUpperCase() !== value.toUpperCase()) {
         const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
         const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-        const [transaction, expense] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise]);
-        if (transaction || expense) throw new Error("CV No. already exists");
+        const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
+
+        const [transaction, expense, journal] = await Promise.all([transactionExistsPromise, expenseVoucherExistsPromise, journalVoucherExistsPromise]);
+        if (transaction || expense || journal) throw new Error("JV No. already exists");
       }
       return true;
     }),
