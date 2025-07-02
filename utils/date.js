@@ -1,4 +1,4 @@
-const moment = require("moment");
+const { DateTime } = require("luxon");
 
 exports.completeNumberDate = date => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -8,8 +8,26 @@ exports.completeNumberDate = date => {
 };
 
 exports.validateDateInput = date => {
-  if (!moment(date, "YYYY-MM-DD", true).isValid()) {
-    return "";
-  }
+  if (!date) return "";
+
+  const parsedDate = DateTime.fromISO(dateString);
+  if (!parsedDate.isValid) return "";
+
   return date;
+};
+
+exports.getNextWednesdayDate = () => {
+  const today = DateTime.now();
+  const thisWeekWednesday = today.set({ weekday: 3 });
+
+  return today.weekday >= 3 ? thisWeekWednesday.plus({ weeks: 1 }).toISODate() : thisWeekWednesday.toISODate();
+};
+
+exports.getCoveredWednesdayDates = noOfWeeks => {
+  const startDate = DateTime.fromISO(this.getNextWednesdayDate());
+  const dates = [];
+  for (let i = 0; i < noOfWeeks; i++) {
+    dates.push(startDate.plus({ weeks: i }).toISODate());
+  }
+  return dates;
 };

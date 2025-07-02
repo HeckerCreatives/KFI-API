@@ -22,6 +22,7 @@ exports.customerRules = [
   body("address").trim().notEmpty().withMessage("Address is required").isLength({ min: 1, max: 255 }).withMessage("Address must only consist of 1 to 255 characters"),
   body("city").trim().notEmpty().withMessage("City is required").isLength({ min: 1, max: 255 }).withMessage("City must only consist of 1 to 255 characters"),
   body("telNo")
+    .if(body("refNo").notEmpty())
     .trim()
     .notEmpty()
     .withMessage("Telephone no. is required")
@@ -131,6 +132,7 @@ exports.updateCustomerRules = [
   body("address").trim().notEmpty().withMessage("Address is required").isLength({ min: 1, max: 255 }).withMessage("Address must only consist of 1 to 255 characters"),
   body("city").trim().notEmpty().withMessage("City is required").isLength({ min: 1, max: 255 }).withMessage("City must only consist of 1 to 255 characters"),
   body("telNo")
+    .if(body("refNo").notEmpty())
     .trim()
     .notEmpty()
     .withMessage("Telephone no. is required")

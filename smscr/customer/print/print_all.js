@@ -15,7 +15,7 @@ exports.generatePrintAllCustomers = datas => {
     { text: data.newStatus, fontSize: 8, margin: [0, 1, 0, 1] },
     { text: data.address, fontSize: 8, margin: [0, 1, 0, 1] },
     { text: data.city, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.zip, fontSize: 8, margin: [0, 1, 0, 1] },
+    { text: data.zipCode, fontSize: 8, margin: [0, 1, 0, 1] },
     { text: data.telNo, fontSize: 8, margin: [0, 1, 0, 1] },
     { text: data.mobileNo, fontSize: 8, margin: [0, 1, 0, 1] },
   ]);
