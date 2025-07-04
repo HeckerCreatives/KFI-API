@@ -12,7 +12,7 @@ const { upsertWallet } = require("../wallets/wallet.service.js");
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
 
-  const transactionsPromise = Transaction.find(filter, { code: 1 }).lean().exec();
+  const transactionsPromise = Transaction.find(filter, { code: 1 }).skip(offset).limit(limit).lean().exec();
   const countPromise = Transaction.countDocuments(filter);
 
   const [count, transactions] = await Promise.all([countPromise, transactionsPromise]);
