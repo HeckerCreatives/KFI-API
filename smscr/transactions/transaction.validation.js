@@ -8,6 +8,7 @@ const Bank = require("../banks/bank.schema.js");
 const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema.js");
 const JournalVoucher = require("../journal-voucher/journal-voucher.schema.js");
 const EmergencyLoan = require("../emergency-loan/emergency-loan.schema.js");
+const DamayanFund = require("../damayan-fund/damayan-fund.schema.js");
 
 exports.transactionIdRules = [
   param("id")
@@ -55,14 +56,16 @@ exports.createTransactionRules = [
       const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
       const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
       const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
+      const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
 
-      const [transaction, expense, journal, emergency] = await Promise.all([
+      const [transaction, expense, journal, emergency, damayan] = await Promise.all([
         transactionExistsPromise,
         expenseVoucherExistsPromise,
         journalVoucherExistsPromise,
         emergencyLoanExistsPromise,
+        damayanFundExistsPromise,
       ]);
-      if (transaction || expense || journal || emergency) throw new Error("JV No. already exists");
+      if (transaction || expense || journal || emergency || damayan) throw new Error("JV No. already exists");
 
       if (transaction || expense) {
         throw new Error("CV No. already exists");

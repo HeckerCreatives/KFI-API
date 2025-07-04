@@ -24,9 +24,11 @@ emergencyLoanRoutes
   .get("/export-all/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailed)
   .get("/export/detailed/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportDetailedById)
 
+  .get("/selection", emergencyLoanController.getSelections)
+
   .get("/", isAuthorize("emergency loan", "visible"), emergencyLoanController.getEmergencyLoans)
   .get("/:id", isAuthorize("emergency loan", "read"), emergencyLoanIdRules, validateData, emergencyLoanController.getEmergencyLoan)
-  .get("/entries/:id", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, validateData, entryCtrl.getEntries)
+  .get("/entries/:id", isAuthorize("emergency loan", "visible"), emergencyLoanIdRules, validateData, entryCtrl.getEntries)
   .post("/", isAuthorize("emergency loan", "create"), createEmergencyLoanCodeRules, emergencyLoanRules, validateData, emergencyLoanController.createEmergencyLoan)
   .post("/entries/:id", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, emergencyLoanEntryRules, validateData, entryCtrl.createEntry)
   .put(

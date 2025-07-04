@@ -7,6 +7,27 @@ const mongoose = require("mongoose");
 const { setPaymentDates } = require("../../utils/date.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
 
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
+
+  const emergencyLoansPromise = EmergencyLoan.find(filter, { code: 1 }).skip(offset).limit(limit).lean().exec();
+  const countPromise = EmergencyLoan.countDocuments(filter);
+
+  const [count, emergencyLoans] = await Promise.all([countPromise, emergencyLoansPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    emergencyLoans,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const filter = { deletedAt: null };
   if (keyword) filter.code = new RegExp(keyword, "i");
@@ -60,7 +81,7 @@ exports.create = async (data, author) => {
   try {
     session.startTransaction();
     const newEmergencyLoan = await new EmergencyLoan({
-      code: data.code,
+      code: data.code.toUpperCase(),
       supplier: data.supplier,
       refNo: data.refNo,
       remarks: data.remarks,
@@ -170,7 +191,7 @@ exports.update = async (filter, data, author) => {
     filter,
     {
       $set: {
-        code: data.code,
+        code: data.code.toUpperCase(),
         supplier: data.supplier,
         refNo: data.refNo,
         remarks: data.remarks,

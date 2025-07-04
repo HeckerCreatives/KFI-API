@@ -8,6 +8,7 @@ const JournalVoucher = require("../journal-voucher/journal-voucher.schema");
 const { isValidObjectId } = require("mongoose");
 const Customer = require("../customer/customer.schema");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
+const DamayanFund = require("../damayan-fund/damayan-fund.schema");
 
 exports.createEmergencyLoanCodeRules = [
   body("code")
@@ -21,14 +22,16 @@ exports.createEmergencyLoanCodeRules = [
       const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
       const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
       const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
+      const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
 
-      const [transaction, expense, journal, emergency] = await Promise.all([
+      const [transaction, expense, journal, emergency, damayan] = await Promise.all([
         transactionExistsPromise,
         expenseVoucherExistsPromise,
         journalVoucherExistsPromise,
         emergencyLoanExistsPromise,
+        damayanFundExistsPromise,
       ]);
-      if (transaction || expense || journal || emergency) throw new Error("CV No. already exists");
+      if (transaction || expense || journal || emergency || damayan) throw new Error("CV No. already exists");
 
       return true;
     }),
@@ -49,14 +52,16 @@ exports.updateEmergencyLoanCodeRules = [
         const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
         const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
         const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
+        const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
 
-        const [transaction, expense, journal, emergency] = await Promise.all([
+        const [transaction, expense, journal, emergency, damayan] = await Promise.all([
           transactionExistsPromise,
           expenseVoucherExistsPromise,
           journalVoucherExistsPromise,
           emergencyLoanExistsPromise,
+          damayanFundExistsPromise,
         ]);
-        if (transaction || expense || journal || emergency) throw new Error("CV No. already exists");
+        if (transaction || expense || journal || emergency || damayan) throw new Error("CV No. already exists");
       }
       return true;
     }),

@@ -1,9 +1,9 @@
 const { body, param } = require("express-validator");
 const ChartOfAccount = require("../../chart-of-account/chart-of-account.schema.js");
-const EmergencyLoanEntry = require("./emergency-loan-entry.schema.js");
 const Customer = require("../../customer/customer.schema.js");
+const DamayanFundEntry = require("./damayan-fund-entries.schema.js");
 
-exports.emergencyLoanEntryIdRules = [
+exports.damayanFundEntryIdRules = [
   param("entryId")
     .trim()
     .notEmpty()
@@ -11,14 +11,14 @@ exports.emergencyLoanEntryIdRules = [
     .isMongoId()
     .withMessage("Invalid entry id")
     .custom(async (value, { req }) => {
-      const emergencyLoanId = req.params.id;
-      const exists = await EmergencyLoanEntry.exists({ _id: value, emergencyLoan: emergencyLoanId, deletedAt: null });
+      const damayanFundId = req.params.id;
+      const exists = await DamayanFundEntry.exists({ _id: value, damayanFund: damayanFundId, deletedAt: null });
       if (!exists) throw new Error("Entry not found");
       return true;
     }),
 ];
 
-exports.emergencyLoanEntryRules = [
+exports.damayanFundEntryRules = [
   body("particular").if(body("particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("clientLabel")
     .if(body("clientLabel").notEmpty())

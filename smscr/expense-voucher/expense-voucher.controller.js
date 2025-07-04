@@ -12,6 +12,7 @@ const { expenseVoucherDetailedPrintAll } = require("./prints/print_all_detailed.
 const { pmFonts } = require("../../constants/fonts.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
+const CustomError = require("../../utils/custom-error.js");
 
 exports.getSelections = async (req, res, next) => {
   try {

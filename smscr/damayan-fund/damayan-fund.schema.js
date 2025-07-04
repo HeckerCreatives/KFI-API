@@ -2,17 +2,18 @@ const mongoose = require("mongoose");
 
 const damayanFundSchema = new mongoose.Schema(
   {
-    jvNo: { type: String },
-    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
-    nature: { type: mongoose.Schema.Types.ObjectId, ref: "Nature" },
+    code: { type: String, unique: true, required: true },
+    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
+    refNo: { type: String },
     remarks: { type: String },
-    date: { type: Date },
-    acctMonth: { type: String },
-    acctYear: { type: String },
-    checkNo: { type: String },
-    checkDate: { type: String },
-    bankCode: { type: mongoose.Schema.Types.ObjectId, ref: "Bank" },
-    amount: { type: Number },
+    date: { type: Date, required: true },
+    acctMonth: { type: String, required: true },
+    acctYear: { type: String, required: true },
+    checkNo: { type: String, required: true },
+    checkDate: { type: Date, required: true },
+    bankCode: { type: mongoose.Schema.Types.ObjectId, ref: "Bank", required: true },
+    amount: { type: Number, required: true },
+    encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     deletedAt: { type: Date },
   },
   { timestamps: true }

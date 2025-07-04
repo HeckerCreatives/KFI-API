@@ -7,7 +7,7 @@ const { default: mongoose } = require("mongoose");
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
 
-  const journalVouchersPromise = JournalVoucher.find(filter, { code: 1 }).lean().exec();
+  const journalVouchersPromise = JournalVoucher.find(filter, { code: 1 }).skip(offset).limit(limit).lean().exec();
   const countPromise = JournalVoucher.countDocuments(filter);
 
   const [count, journalVouchers] = await Promise.all([countPromise, journalVouchersPromise]);
