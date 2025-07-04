@@ -5,6 +5,9 @@ const Entry = require("./entries/entry.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const Transaction = require("./transaction.schema.js");
 const { default: mongoose } = require("mongoose");
+const { setPaymentDates } = require("../../utils/date.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const { upsertWallet } = require("../wallets/wallet.service.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -69,85 +72,127 @@ exports.get_all = async (limit, page, offset, keyword, sort, type, to, from) => 
 };
 
 exports.create_loan_release = async (data, author) => {
-  const newLoanRelease = await new Transaction({
-    type: "loan release",
-    code: data.cvNo.toUpperCase(),
-    center: data.center,
-    refNo: data.refNumber,
-    remarks: data.remarks,
-    date: data.date,
-    acctMonth: data.acctMonth,
-    acctYear: data.acctYear,
-    noOfWeeks: data.noOfWeeks,
-    loan: data.typeOfLoan,
-    checkNo: data.checkNo,
-    checkDate: data.checkDate,
-    bank: data.bankCode,
-    amount: data.amount,
-    cycle: data.cycle,
-    interest: data.interestRate,
-    isEduc: data.isEduc,
-    encodedBy: author._id,
-  }).save();
+  const session = await mongoose.startSession();
 
-  if (!newLoanRelease) {
-    throw new CustomError("Failed to save loan release");
+  try {
+    session.startTransaction();
+
+    const newLoanRelease = await new Transaction({
+      type: "loan release",
+      code: data.cvNo.toUpperCase(),
+      center: data.center,
+      refNo: data.refNumber,
+      remarks: data.remarks,
+      date: data.date,
+      acctMonth: data.acctMonth,
+      acctYear: data.acctYear,
+      noOfWeeks: data.noOfWeeks,
+      loan: data.typeOfLoan,
+      checkNo: data.checkNo,
+      checkDate: data.checkDate,
+      bank: data.bankCode,
+      amount: data.amount,
+      cycle: data.cycle,
+      interest: data.interestRate,
+      isEduc: data.isEduc,
+      encodedBy: author._id,
+    }).save({ session });
+
+    if (!newLoanRelease) {
+      throw new CustomError("Failed to save loan release");
+    }
+
+    const entries = data.entries.map(entry => ({
+      transaction: newLoanRelease._id,
+      client: entry.clientId,
+      center: newLoanRelease.center,
+      product: newLoanRelease.loan,
+      acctCode: entry.acctCodeId,
+      particular: entry.particular,
+      debit: entry.debit,
+      credit: entry.credit,
+      interest: entry.interest,
+      cycle: entry.cycle,
+      checkNo: entry.checkNo,
+      encodedBy: author._id,
+    }));
+
+    const addedEntries = await Entry.insertMany(entries, { session });
+
+    if (addedEntries.length !== entries.length) {
+      throw new CustomError("Failed to save loan release");
+    }
+
+    const _ids = addedEntries.map(entry => entry._id);
+
+    const currentEntries = await Entry.find({ _id: { $in: _ids }, client: { $ne: null } })
+      .populate("acctCode")
+      .session(session)
+      .lean()
+      .exec();
+
+    const transaction = await Transaction.findById(newLoanRelease._id)
+      .populate({ path: "bank", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "loan", select: "code" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .session(session)
+      .exec();
+
+    const paymentSchedules = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
+    const payments = [];
+    await Promise.all(
+      currentEntries.map(async entry => {
+        await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
+        paymentSchedules.map(schedule => {
+          payments.push({
+            loanRelease: entry.transaction,
+            loanSchemaEntry: entry._id,
+            date: schedule.date,
+            paid: schedule.paid,
+          });
+        });
+      })
+    );
+
+    const schedules = await PaymentSchedule.insertMany(payments, { session });
+    if (schedules.length !== payments.length) {
+      throw new CustomError("Failed to save loan release");
+    }
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `created a loan release`,
+      resource: `loan release`,
+      dataId: transaction._id,
+      session,
+    });
+
+    await Promise.all(
+      _ids.map(async id => {
+        await activityLogServ.create({
+          author: author._id,
+          username: author.username,
+          activity: `created a loan release entry`,
+          resource: `loan release - entry`,
+          dataId: id,
+          session,
+        });
+      })
+    );
+
+    await session.commitTransaction();
+    return {
+      transaction,
+      success: true,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to create a loan release", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  const entries = data.entries.map(entry => ({
-    transaction: newLoanRelease._id,
-    client: entry.clientId,
-    center: newLoanRelease.center,
-    product: newLoanRelease.loan,
-    acctCode: entry.acctCodeId,
-    particular: entry.particular,
-    debit: entry.debit,
-    credit: entry.credit,
-    interest: entry.interest,
-    cycle: entry.cycle,
-    checkNo: entry.checkNo,
-    encodedBy: author._id,
-  }));
-
-  const addedEntries = await Entry.insertMany(entries);
-
-  if (addedEntries.length !== entries.length) {
-    throw new CustomError("Failed to save loan release");
-  }
-
-  const _ids = addedEntries.map(entry => entry._id);
-
-  const transaction = await Transaction.findById(newLoanRelease._id)
-    .populate({ path: "bank", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "loan", select: "code" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .exec();
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `created a loan release`,
-    resource: `loan release`,
-    dataId: transaction._id,
-  });
-
-  await Promise.all(
-    _ids.map(async id => {
-      await activityLogServ.create({
-        author: author._id,
-        username: author.username,
-        activity: `created a loan release entry`,
-        resource: `loan release - entry`,
-        dataId: id,
-      });
-    })
-  );
-
-  return {
-    transaction,
-    success: true,
-  };
 };
 
 exports.update_loan_release = async (id, data, author) => {

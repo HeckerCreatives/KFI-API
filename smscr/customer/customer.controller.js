@@ -13,11 +13,11 @@ const { isValidObjectId } = require("mongoose");
 
 exports.getSelections = async (req, res, next) => {
   try {
-    const { page, limit, search, center } = req.query;
+    const { page, limit, keyword, center } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
     const validatedCenter = isValidObjectId(center) ? center : "";
 
-    const result = await customerService.get_selections(stringEscape(search), validatedCenter, validatedLimit, validatedPage, validatedOffset);
+    const result = await customerService.get_selections(stringEscape(keyword), validatedCenter, validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

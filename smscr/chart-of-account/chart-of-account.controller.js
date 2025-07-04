@@ -12,8 +12,10 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
-    const { keyword } = req.query;
-    const result = await chartOfAccountService.get_selections(stringEscape(keyword));
+    const { page, limit, keyword, center } = req.query;
+    const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
+
+    const result = await chartOfAccountService.get_selections(stringEscape(keyword), validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

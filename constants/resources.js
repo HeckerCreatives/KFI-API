@@ -20,4 +20,6 @@ exports.ALL_RESOURCES = [
   "unbalance entries",
   "login logs",
   "action logs",
+  "emergency loan",
+  "damayan fund",
 ];

@@ -2,12 +2,24 @@ const { default: CustomError } = require("../../utils/custom-error.js");
 const ChartOfAccount = require("./chart-of-account.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
+exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
-  const chartOfAccounts = await ChartOfAccount.find(filter).limit(100).lean().exec();
+
+  const chartOfAccountsPromise = ChartOfAccount.find(filter).skip(offset).limit(limit).lean().exec();
+  const countPromise = ChartOfAccount.countDocuments(filter);
+
+  const [count, chartOfAccounts] = await Promise.all([countPromise, chartOfAccountsPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
   return {
     success: true,
     chartOfAccounts,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
   };
 };
 

@@ -16,18 +16,28 @@ exports.validateDateInput = date => {
   return date;
 };
 
-exports.getNextWednesdayDate = () => {
-  const today = DateTime.now();
+exports.getNextWednesdayDate = date => {
+  const today = DateTime.fromISO(date);
   const thisWeekWednesday = today.set({ weekday: 3 });
 
   return today.weekday >= 3 ? thisWeekWednesday.plus({ weeks: 1 }).toISODate() : thisWeekWednesday.toISODate();
 };
 
-exports.getCoveredWednesdayDates = noOfWeeks => {
-  const startDate = DateTime.fromISO(this.getNextWednesdayDate());
+exports.getCoveredWednesdayDates = (noOfWeeks, date) => {
+  const startDate = DateTime.fromISO(this.getNextWednesdayDate(date));
   const dates = [];
   for (let i = 0; i < noOfWeeks; i++) {
     dates.push(startDate.plus({ weeks: i }).toISODate());
   }
   return dates;
+};
+
+exports.setPaymentDates = (noOfWeeks, date) => {
+  const startDate = DateTime.fromJSDate(new Date(date));
+  const nextWednesday = DateTime.fromISO(this.getNextWednesdayDate(startDate));
+
+  return Array.from({ length: noOfWeeks }, (_, i) => ({
+    date: nextWednesday.plus({ weeks: i }).toISODate(), // Returns JavaScript Date object
+    paid: false,
+  }));
 };

@@ -1,12 +1,15 @@
 const Customer = require("./customer.schema.js");
 const CustomError = require("../../utils/custom-error.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
+const { default: mongoose } = require("mongoose");
+const { wallets } = require("../../constants/wallets.js");
+const Wallet = require("../wallets/wallet.schema.js");
 
 exports.get_selections = async (keyword, center, limit, page, offset) => {
-  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  const filter = { deletedAt: null, name: new RegExp(keyword, "i") };
   if (center) filter.center = center;
 
-  const clientsPromise = Customer.find(filter, { name: 1, acctNumber: 1 }).lean().exec();
+  const clientsPromise = Customer.find(filter, { name: 1, acctNumber: 1, center: 1 }).populate({ path: "center", select: "-_id centerNo" }).skip(offset).limit(limit).lean().exec();
   const countPromise = Customer.countDocuments(filter);
 
   const [count, clients] = await Promise.all([countPromise, clientsPromise]);
@@ -42,6 +45,7 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
     .populate({ path: "groupNumber" })
     .skip(offset)
     .limit(limit)
+    .lean()
     .exec();
 
   const [count, customers] = await Promise.all([countPromise, customersPromise]);
@@ -74,51 +78,83 @@ exports.get_single = async filter => {
 };
 
 exports.create = async (data, author) => {
-  const newCustomer = await new Customer({
-    name: data.name,
-    address: data.address,
-    city: data.city,
-    telNo: data.telNo,
-    mobileNo: data.mobileNo,
-    zipCode: data.zipCode,
-    birthdate: data.birthdate,
-    birthplace: data.birthplace,
-    spouse: data.spouse,
-    memberStatus: data.memberStatus,
-    groupNumber: data.groupNumber,
-    civilStatus: data.civilStatus,
-    center: data.center,
-    dateRelease: data.dateRelease,
-    business: data.business,
-    position: data.position,
-    age: data.age,
-    acctNumber: data.acctNumber.toUpperCase(),
-    acctOfficer: data.acctOfficer,
-    sex: data.sex,
-    dateResigned: data.dateResigned,
-    newStatus: data.newStatus,
-    reason: data.reason,
-    parent: data.parent,
-  }).save();
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
 
-  if (!newCustomer) {
-    throw new CustomError("Failed to create a new customer", 500);
+    const newCustomer = await new Customer({
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      telNo: data.telNo,
+      mobileNo: data.mobileNo,
+      zipCode: data.zipCode,
+      birthdate: data.birthdate,
+      birthplace: data.birthplace,
+      spouse: data.spouse,
+      memberStatus: data.memberStatus,
+      groupNumber: data.groupNumber,
+      civilStatus: data.civilStatus,
+      center: data.center,
+      dateRelease: data.dateRelease,
+      business: data.business,
+      position: data.position,
+      age: data.age,
+      acctNumber: data.acctNumber.toUpperCase(),
+      acctOfficer: data.acctOfficer,
+      sex: data.sex,
+      dateResigned: data.dateResigned,
+      newStatus: data.newStatus,
+      reason: data.reason,
+      parent: data.parent,
+    }).save({ session });
+
+    if (!newCustomer) {
+      throw new CustomError("Failed to create a new customer", 500);
+    }
+
+    const clientWallets = wallets.map(wallet => ({
+      owner: newCustomer._id,
+      type: wallet,
+      amount: 0,
+    }));
+
+    const createdWallets = await Wallet.insertMany(clientWallets, { session });
+    if (createdWallets.length !== wallets.length) {
+      throw new CustomError("Failed to create a new customer", 500);
+    }
+
+    const customer = await Customer.findOne({ _id: newCustomer._id })
+      .populate({ path: "center", select: "centerNo" })
+      .populate({ path: "business", select: "type" })
+      .populate({ path: "beneficiaries" })
+      .populate({ path: "children" })
+      .populate({ path: "groupNumber" })
+      .session(session)
+      .lean()
+      .exec();
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `created a client`,
+      resource: `clients`,
+      dataId: newCustomer._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      customer,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to create a client", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  const customer = await this.get_single({ _id: newCustomer._id });
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `created a client`,
-    resource: `clients`,
-    dataId: newCustomer._id,
-  });
-
-  return {
-    success: true,
-    customer,
-  };
 };
 
 exports.update = async (filter, data, author) => {

@@ -51,9 +51,11 @@ exports.create = async (data, userId) => {
     payee: data.payee,
     encodedBy: userId,
   }).save();
+
   if (!newLoanRelease) {
     throw new CustomError("Failed to create a new loan release", 500);
   }
+
   return {
     success: true,
     loanRelease: newLoanRelease,

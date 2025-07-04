@@ -14,6 +14,7 @@ const entrySchema = new mongoose.Schema(
     cycle: { type: Number },
     checkNo: { type: String },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    status: { type: String, enum: ["open", "closed", "with overdue"] },
     deletedAt: { type: Date },
   },
   { timestamps: true }
