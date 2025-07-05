@@ -139,26 +139,26 @@ exports.create_loan_release = async (data, author) => {
       .session(session)
       .exec();
 
-    const paymentSchedules = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
-    const payments = [];
-    await Promise.all(
-      currentEntries.map(async entry => {
-        await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
-        paymentSchedules.map(schedule => {
-          payments.push({
-            loanRelease: entry.transaction,
-            loanSchemaEntry: entry._id,
-            date: schedule.date,
-            paid: schedule.paid,
-          });
-        });
-      })
-    );
+    // const paymentSchedules = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
+    // const payments = [];
+    // await Promise.all(
+    //   currentEntries.map(async entry => {
+    //     await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
+    //     paymentSchedules.map(schedule => {
+    //       payments.push({
+    //         loanRelease: entry.transaction,
+    //         loanSchemaEntry: entry._id,
+    //         date: schedule.date,
+    //         paid: schedule.paid,
+    //       });
+    //     });
+    //   })
+    // );
 
-    const schedules = await PaymentSchedule.insertMany(payments, { session });
-    if (schedules.length !== payments.length) {
-      throw new CustomError("Failed to save loan release");
-    }
+    // const schedules = await PaymentSchedule.insertMany(payments, { session });
+    // if (schedules.length !== payments.length) {
+    //   throw new CustomError("Failed to save loan release");
+    // }
 
     await activityLogServ.create({
       author: author._id,
