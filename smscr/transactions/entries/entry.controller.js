@@ -3,6 +3,27 @@ const entryService = require("./entry.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 const { validatePaginationParams } = require("../../../utils/paginate-validate.js");
 const { getToken } = require("../../../utils/get-token.js");
+const { stringEscape } = require("../../../utils/escape-string.js");
+
+exports.loadEntries = async (req, res, next) => {
+  try {
+    const result = await entryService.loan_entries(req.body.centerLabel);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getSelections = async (req, res, next) => {
+  try {
+    const { page, limit, keyword } = req.query;
+    const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
+    const result = await entryService.get_selections(stringEscape(keyword), validatedLimit, validatedPage, validatedOffset);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getEntries = async (req, res, next) => {
   try {

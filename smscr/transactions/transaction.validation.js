@@ -24,6 +24,20 @@ exports.transactionIdRules = [
     }),
 ];
 
+exports.entryLoadRules = [
+  body("centerLabel")
+    .trim()
+    .notEmpty()
+    .withMessage("Center is required")
+    .isMongoId()
+    .withMessage("Invalid center")
+    .custom(async value => {
+      const exists = await Center.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Center not found / deleted");
+      return true;
+    }),
+];
+
 exports.loadEntryRules = [
   body("typeOfLoan")
     .trim()

@@ -8,6 +8,7 @@ const { default: mongoose } = require("mongoose");
 const { setPaymentDates } = require("../../utils/date.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
+const { wallets } = require("../../constants/wallets.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -77,6 +78,8 @@ exports.create_loan_release = async (data, author) => {
   try {
     session.startTransaction();
 
+    const paymentSchedules = setPaymentDates(data.noOfWeeks, data.date);
+
     const newLoanRelease = await new Transaction({
       type: "loan release",
       code: data.cvNo.toUpperCase(),
@@ -84,6 +87,7 @@ exports.create_loan_release = async (data, author) => {
       refNo: data.refNumber,
       remarks: data.remarks,
       date: data.date,
+      dueDate: paymentSchedules[paymentSchedules.length - 1].date,
       acctMonth: data.acctMonth,
       acctYear: data.acctYear,
       noOfWeeks: data.noOfWeeks,
@@ -139,26 +143,27 @@ exports.create_loan_release = async (data, author) => {
       .session(session)
       .exec();
 
-    // const paymentSchedules = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
-    // const payments = [];
-    // await Promise.all(
-    //   currentEntries.map(async entry => {
-    //     await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
-    //     paymentSchedules.map(schedule => {
-    //       payments.push({
-    //         loanRelease: entry.transaction,
-    //         loanSchemaEntry: entry._id,
-    //         date: schedule.date,
-    //         paid: schedule.paid,
-    //       });
-    //     });
-    //   })
-    // );
+    const payments = [];
+    await Promise.all(
+      currentEntries.map(async entry => {
+        if (wallets.includes(transaction.loan.code)) {
+          await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
+        }
+        paymentSchedules.map(schedule => {
+          payments.push({
+            loanRelease: entry.transaction,
+            loanSchemaEntry: entry._id,
+            date: schedule.date,
+            paid: schedule.paid,
+          });
+        });
+      })
+    );
 
-    // const schedules = await PaymentSchedule.insertMany(payments, { session });
-    // if (schedules.length !== payments.length) {
-    //   throw new CustomError("Failed to save loan release");
-    // }
+    const schedules = await PaymentSchedule.insertMany(payments, { session });
+    if (schedules.length !== payments.length) {
+      throw new CustomError("Failed to save loan release");
+    }
 
     await activityLogServ.create({
       author: author._id,

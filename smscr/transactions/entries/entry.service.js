@@ -2,6 +2,69 @@ const CustomError = require("../../../utils/custom-error.js");
 const Entry = require("./entry.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 const Transaction = require("../transaction.schema.js");
+const { default: mongoose } = require("mongoose");
+
+exports.loan_entries = async center => {
+  const filter = {
+    deletedAt: null,
+    center: new mongoose.Types.ObjectId(center),
+    $or: [{ "transaction.status": "open" }, { "transaction.status": "past due" }],
+    "transaction.deletedAt": null,
+  };
+  const pipelines = [];
+  pipelines.push({ $lookup: { from: "transactions", localField: "transaction", foreignField: "_id", as: "transaction" } });
+  pipelines.push({ $addFields: { transaction: { $arrayElemAt: ["$transaction", 0] } } });
+  pipelines.push({ $match: filter });
+  pipelines.push({ $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+  pipelines.push({ $addFields: { center: { $arrayElemAt: ["$center", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
+  pipelines.push({
+    $project: { _id: 1, cvNo: "$transaction.code", dueDate: "$transaction.dueDate", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name", centerNo: "$center.centerNo" },
+  });
+
+  const entries = await Entry.aggregate(pipelines).exec();
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
+exports.get_selections = async (keyword, limit, page, offset) => {
+  console.log(keyword);
+
+  const filter = { deletedAt: null, $or: [{ "transaction.code": new RegExp(keyword, "i") }, { "client.name": new RegExp(keyword, "i") }] };
+
+  const pipelines = [];
+
+  pipelines.push({ $lookup: { from: "transactions", localField: "transaction", foreignField: "_id", as: "transaction" } });
+  pipelines.push({ $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } });
+  pipelines.push({ $addFields: { transaction: { $arrayElemAt: ["$transaction", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
+  pipelines.push({ $match: filter });
+
+  const countPromise = Entry.aggregate([...pipelines, { $count: "count" }]);
+
+  pipelines.push({ $skip: offset });
+  pipelines.push({ $limit: limit });
+  pipelines.push({ $project: { _id: 1, cvNo: "$transaction.code", dueDate: "$transaction.dueDate", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name" } });
+  const loanEntriesPromise = Entry.aggregate(pipelines).exec();
+
+  const [count, loanEntries] = await Promise.all([countPromise, loanEntriesPromise]);
+
+  let newCount = count && count.length > 0 ? count[0].count : 0;
+
+  const hasNextPage = newCount > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(newCount / limit);
+
+  return {
+    success: true,
+    loanEntries,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
 
 exports.get_all = async (limit, page, offset, transaction) => {
   const filter = { deletedAt: null, transaction };

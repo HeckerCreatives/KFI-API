@@ -8,6 +8,7 @@ const transactionSchema = new mongoose.Schema(
     refNo: { type: String },
     remarks: { type: String },
     date: { type: Date, required: true },
+    dueDate: { type: Date },
     acctMonth: { type: Number, required: true },
     acctYear: { type: Number, required: true },
     noOfWeeks: { type: Number, required: true },
@@ -22,6 +23,7 @@ const transactionSchema = new mongoose.Schema(
     isEduc: { type: Boolean },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date },
+    status: { type: String, enum: ["open", "closed", "past due"], default: "open" },
   },
   { timestamps: true }
 );
