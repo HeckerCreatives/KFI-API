@@ -1,9 +1,9 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber } = require("../../../utils/number");
 
-exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
+exports.releaseSummaryPrintAll = (datas, from = "", to = "") => {
   const info = {
-    title: "Expense Voucher",
+    title: "Release",
   };
 
   const loanReleases = [];
@@ -11,10 +11,10 @@ exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
 
   datas.map((data, i) => {
     total += data.amount;
+    console.log(total, data.amount);
     loanReleases.push([
       { text: `CV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-      { text: data.supplier.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -30,17 +30,16 @@ exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Expense Voucher By Doc. No. (Summarized)", fontSize: 9 },
+    { text: "Release By Doc. No. (Summarized)", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["*", "*", "*", "*", "*", "*", "*", "*"],
+        widths: ["*", "*", "*", "*", "*", "*", "*"],
         body: [
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
@@ -48,7 +47,7 @@ exports.expenseVoucherSummaryPrintAll = (datas, from = "", to = "") => {
             { text: "Amount", fontSize: 10, alignment: "right", bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
           ],
           ...loanReleases,
-          [{ text: "", border: [0, 0, 0, 0], colSpan: 7 }, {}, {}, {}, {}, {}, {}, { text: formatNumber(total), alignment: "right", fontSize: 10, border: [0, 0, 0, 1] }],
+          [{ text: "", border: [0, 0, 0, 0], colSpan: 6 }, {}, {}, {}, {}, {}, { text: formatNumber(total), alignment: "right", fontSize: 10, border: [0, 0, 0, 1] }],
         ],
       },
     },

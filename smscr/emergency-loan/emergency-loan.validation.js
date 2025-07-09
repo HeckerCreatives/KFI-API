@@ -9,6 +9,7 @@ const { isValidObjectId } = require("mongoose");
 const Customer = require("../customer/customer.schema");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const DamayanFund = require("../damayan-fund/damayan-fund.schema");
+const { isCodeUnique } = require("../../utils/code-checker");
 
 exports.createEmergencyLoanCodeRules = [
   body("code")
@@ -18,21 +19,8 @@ exports.createEmergencyLoanCodeRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("CV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
-      const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
-      const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-      const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-      const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
-      const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
-
-      const [transaction, expense, journal, emergency, damayan] = await Promise.all([
-        transactionExistsPromise,
-        expenseVoucherExistsPromise,
-        journalVoucherExistsPromise,
-        emergencyLoanExistsPromise,
-        damayanFundExistsPromise,
-      ]);
-      if (transaction || expense || journal || emergency || damayan) throw new Error("CV No. already exists");
-
+      const isUnique = await isCodeUnique(value);
+      if (!isUnique) throw new Error("CV No. already exists");
       return true;
     }),
   ,
@@ -48,20 +36,8 @@ exports.updateEmergencyLoanCodeRules = [
     .custom(async (value, { req }) => {
       const emergencyLoan = await EmergencyLoan.findById(req.params.id).lean().exec();
       if (emergencyLoan.code.toUpperCase() !== value.toUpperCase()) {
-        const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
-        const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-        const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-        const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
-        const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
-
-        const [transaction, expense, journal, emergency, damayan] = await Promise.all([
-          transactionExistsPromise,
-          expenseVoucherExistsPromise,
-          journalVoucherExistsPromise,
-          emergencyLoanExistsPromise,
-          damayanFundExistsPromise,
-        ]);
-        if (transaction || expense || journal || emergency || damayan) throw new Error("CV No. already exists");
+        const isUnique = await isCodeUnique(value);
+        if (!isUnique) throw new Error("CV No. already exists");
       }
       return true;
     }),

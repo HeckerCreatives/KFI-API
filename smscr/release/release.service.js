@@ -1,16 +1,16 @@
 const CustomError = require("../../utils/custom-error.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
-const Acknowledgement = require("./acknowlegement.schema.js");
+const Release = require("./release.schema.js");
 const { default: mongoose } = require("mongoose");
-const AcknowledgementEntry = require("./entries/acknowledgement-entries.schema.js");
+const ReleaseEntry = require("./entries/release-entries.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
 
-  const acknowledgementsPromise = Acknowledgement.find(filter, { code: 1 }).skip(offset).limit(limit).lean().exec();
-  const countPromise = Acknowledgement.countDocuments(filter);
+  const releasesPromise = Release.find(filter, { code: 1 }).skip(offset).limit(limit).lean().exec();
+  const countPromise = Release.countDocuments(filter);
 
-  const [count, acknowledgements] = await Promise.all([countPromise, acknowledgementsPromise]);
+  const [count, releases] = await Promise.all([countPromise, releasesPromise]);
 
   const hasNextPage = count > offset + limit;
   const hasPrevPage = page > 1;
@@ -18,7 +18,7 @@ exports.get_selections = async (keyword, limit, page, offset) => {
 
   return {
     success: true,
-    acknowledgements,
+    releases,
     hasNextPage,
     hasPrevPage,
     totalPages,
@@ -37,12 +37,12 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
     filter.date = { $gte: new Date(from) };
   }
 
-  const query = Acknowledgement.find(filter);
+  const query = Release.find(filter);
   if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
   else query.sort({ createdAt: -1 });
 
-  const countPromise = Acknowledgement.countDocuments(filter);
-  const acknowledgementsPromise = query
+  const countPromise = Release.countDocuments(filter);
+  const releasesPromise = query
     .populate({ path: "bankCode", select: "code description" })
     .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
@@ -50,7 +50,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
     .limit(limit)
     .exec();
 
-  const [count, acknowledgements] = await Promise.all([countPromise, acknowledgementsPromise]);
+  const [count, releases] = await Promise.all([countPromise, releasesPromise]);
 
   const hasNextPage = count > offset + limit;
   const hasPrevPage = page > 1;
@@ -58,7 +58,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
 
   return {
     success: true,
-    acknowledgements,
+    releases,
     hasNextPage,
     hasPrevPage,
     totalPages,
@@ -71,7 +71,7 @@ exports.create = async (data, author) => {
   try {
     session.startTransaction();
 
-    const newAcknowledgement = await new Acknowledgement({
+    const newRelease = await new Release({
       code: data.code.toUpperCase(),
       center: data.center,
       refNo: data.refNumber,
@@ -89,12 +89,12 @@ exports.create = async (data, author) => {
       encodedBy: author._id,
     }).save({ session });
 
-    if (!newAcknowledgement) {
-      throw new CustomError("Failed to save acknowledgement");
+    if (!newRelease) {
+      throw new CustomError("Failed to save release");
     }
 
     const entries = data.entries.map(entry => ({
-      acknowledgement: newAcknowledgement._id,
+      release: newRelease._id,
       loanReleaseEntryId: entry.loanReleaseEntryId || null,
       acctCode: entry.acctCodeId,
       particular: entry.particular,
@@ -103,15 +103,15 @@ exports.create = async (data, author) => {
       encodedBy: author._id,
     }));
 
-    const addedEntries = await AcknowledgementEntry.insertMany(entries, { session });
+    const addedEntries = await ReleaseEntry.insertMany(entries, { session });
 
     if (addedEntries.length !== entries.length) {
-      throw new CustomError("Failed to save acknowledgement");
+      throw new CustomError("Failed to save release");
     }
 
     const _ids = addedEntries.map(entry => entry._id);
 
-    const acknowledgement = await Acknowledgement.findById(newAcknowledgement._id)
+    const release = await Release.findById(newRelease._id)
       .populate({ path: "bankCode", select: "code description" })
       .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "encodedBy", select: "-_id username" })
@@ -121,9 +121,9 @@ exports.create = async (data, author) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `created an acknowledgement`,
-      resource: `acknowledgement`,
-      dataId: acknowledgement._id,
+      activity: `created an release`,
+      resource: `release`,
+      dataId: release._id,
       session,
     });
 
@@ -132,8 +132,8 @@ exports.create = async (data, author) => {
         await activityLogServ.create({
           author: author._id,
           username: author.username,
-          activity: `created a acknowledgement entry`,
-          resource: `acknowledgement - entry`,
+          activity: `created a release entry`,
+          resource: `release - entry`,
           dataId: id,
           session,
         });
@@ -142,12 +142,12 @@ exports.create = async (data, author) => {
 
     await session.commitTransaction();
     return {
-      acknowledgement,
+      release,
       success: true,
     };
   } catch (error) {
     await session.abortTransaction();
-    throw new CustomError(error.message || "Failed to create a acknowledgement", error.statusCode || 500);
+    throw new CustomError(error.message || "Failed to create a release", error.statusCode || 500);
   } finally {
     await session.endSession();
   }
@@ -174,7 +174,7 @@ exports.update = async (id, data, author) => {
     },
   };
   const options = { new: true };
-  const updated = await Acknowledgement.findOneAndUpdate(filter, updates, options)
+  const updated = await Release.findOneAndUpdate(filter, updates, options)
     .populate({ path: "bankCode", select: "code description" })
     .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
@@ -182,40 +182,40 @@ exports.update = async (id, data, author) => {
     .exec();
 
   if (!updated) {
-    throw new CustomError("Failed to update the acknowledgement", 500);
+    throw new CustomError("Failed to update the release", 500);
   }
 
   await activityLogServ.create({
     author: author._id,
     username: author.username,
-    activity: `updated an acknowledgement`,
-    resource: `acknowledgement`,
+    activity: `updated an release`,
+    resource: `release`,
     dataId: updated._id,
   });
 
   return {
     success: true,
-    acknowledgement: updated,
+    release: updated,
   };
 };
 
 exports.delete = async (filter, author) => {
-  const deleted = await Acknowledgement.findOneAndUpdate(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
+  const deleted = await Release.findOneAndUpdate(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deleted) {
-    throw new CustomError("Failed to delete the acknowledgement", 500);
+    throw new CustomError("Failed to delete the release", 500);
   }
 
-  await AcknowledgementEntry.updateMany({ acknowledgement: deleted._id }, { $set: { deletedAt: new Date().toISOString() } }).exec();
+  await ReleaseEntry.updateMany({ release: deleted._id }, { $set: { deletedAt: new Date().toISOString() } }).exec();
 
   await activityLogServ.create({
     author: author._id,
     username: author.username,
-    activity: `deleted a acknowledgement along with its linked gl entries`,
-    resource: `acknowledgement`,
+    activity: `deleted a release along with its linked gl entries`,
+    resource: `release`,
     dataId: deleted._id,
   });
 
-  return { success: true, acknowledgement: filter._id };
+  return { success: true, release: filter._id };
 };
 
 exports.print_all_detailed = async (docNoFrom, docNoTo) => {
@@ -233,10 +233,10 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({
     $lookup: {
-      from: "acknowledgemententries",
+      from: "releaseentries",
       let: { localField: "$_id" },
       pipeline: [
-        { $match: { $expr: { $eq: ["$$localField", "$acknowledgement"] }, deletedAt: null } },
+        { $match: { $expr: { $eq: ["$$localField", "$release"] }, deletedAt: null } },
         { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
         { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
         { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, acknowledgement: 0 } },
@@ -247,9 +247,9 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
 
-  const transactions = await Acknowledgement.aggregate(pipelines).exec();
+  const releases = await Release.aggregate(pipelines).exec();
 
-  return transactions;
+  return releases;
 };
 
 exports.print_detailed_by_id = async transactionId => {
@@ -266,10 +266,10 @@ exports.print_detailed_by_id = async transactionId => {
 
   pipelines.push({
     $lookup: {
-      from: "acknowledgemententries",
+      from: "releaseentries",
       let: { localField: "$_id" },
       pipeline: [
-        { $match: { $expr: { $eq: ["$$localField", "$acknowledgement"] }, deletedAt: null } },
+        { $match: { $expr: { $eq: ["$$localField", "$release"] }, deletedAt: null } },
         { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
         { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
         { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, acknowledgement: 0 } },
@@ -280,9 +280,9 @@ exports.print_detailed_by_id = async transactionId => {
 
   pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
 
-  const transactions = await Acknowledgement.aggregate(pipelines).exec();
+  const releases = await Release.aggregate(pipelines).exec();
 
-  return transactions;
+  return releases;
 };
 
 exports.print_all_summary = async (docNoFrom, docNoTo) => {
@@ -291,13 +291,13 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
 
-  const transactions = await Acknowledgement.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
+  const releases = await Release.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
 
-  return transactions;
+  return releases;
 };
 
 exports.print_summary_by_id = async transactionId => {
   const filter = { deletedAt: null, _id: transactionId };
-  const transactions = await Acknowledgement.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
-  return transactions;
+  const releases = await Release.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
+  return releases;
 };

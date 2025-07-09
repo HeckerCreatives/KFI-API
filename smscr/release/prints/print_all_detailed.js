@@ -1,9 +1,9 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber } = require("../../../utils/number");
 
-exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
+exports.releaseDetailedPrintAll = (datas, from = "", to = "") => {
   const info = {
-    title: "Expense Voucher",
+    title: "Release",
   };
 
   const expenseVouchers = [];
@@ -13,7 +13,6 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
       [
         { text: `CV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: data.supplier.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -98,9 +97,8 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
               [{ colSpan: 5, text: "", margin: [0, 3, 0, 3], border: [0, 0, 0, 0] }, {}, {}, {}, {}],
             ],
           },
-          colSpan: 8,
+          colSpan: 7,
         },
-        {},
         {},
         {},
         {},
@@ -118,17 +116,16 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Expense Voucher By Doc. No. (Detailed)", fontSize: 9 },
+    { text: "Release By Doc. No. (Detailed)", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["*", "*", "*", "*", "*", "*", "*", "*"],
+        widths: ["*", "*", "*", "*", "*", "*", "*"],
         body: [
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },

@@ -1,31 +1,30 @@
+const { pmFonts } = require("../../constants/fonts.js");
 const { validateDateInput, completeNumberDate } = require("../../utils/date.js");
 const { stringEscape } = require("../../utils/escape-string.js");
 const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
-const expenseVoucherService = require("./expense-voucher.service.js");
-
+const releaseService = require("./release.service.js");
 const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx");
-const { expenseVoucherSummaryPrintAll } = require("./prints/print_all_summary.js");
-const { expenseVoucherDetailedPrintAll } = require("./prints/print_all_detailed.js");
-const { pmFonts } = require("../../constants/fonts.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
+const { acknowledgementSummaryPrintAll, releaseSummaryPrintAll } = require("./prints/print_all_summary.js");
+const { acknowledgementDetailedPrintAll, releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
     const { page, limit, search } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await expenseVoucherService.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
+    const result = await releaseService.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 };
 
-exports.getExpenseVouchers = async (req, res, next) => {
+exports.getReleases = async (req, res, next) => {
   try {
     const { page, limit, search, sort, to, from } = req.query;
     const validatedSort = ["code-asc", "code-desc"].includes(sort) ? sort : "";
@@ -33,50 +32,40 @@ exports.getExpenseVouchers = async (req, res, next) => {
     const validatedFrom = validateDateInput(from);
     const validatedTo = validateDateInput(to);
 
-    const result = await expenseVoucherService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort, validatedTo, validatedFrom);
+    const result = await releaseService.get_all(validatedLimit, validatedPage, validatedOffset, stringEscape(search), validatedSort, validatedTo, validatedFrom);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 };
 
-exports.getExpenseVoucher = async (req, res, next) => {
-  try {
-    const filter = { _id: req.params.id, deletedAt: null };
-    const result = await expenseVoucherService.get_single(filter);
-    return res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.createExpenseVoucher = async (req, res, next) => {
+exports.createRelease = async (req, res, next) => {
   try {
     const token = getToken(req);
-    const result = await expenseVoucherService.create(req.body, token);
+    const result = await releaseService.create(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 };
 
-exports.updateExpenseVoucher = async (req, res, next) => {
+exports.updateRelease = async (req, res, next) => {
   try {
     const token = getToken(req);
-    const filter = { _id: req.params.id };
-    const result = await expenseVoucherService.update(filter, req.body, token);
+    const { id } = req.params;
+    const result = await releaseService.update(id, req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
   }
 };
 
-exports.deleteExpenseVoucher = async (req, res, next) => {
+exports.deleteRelease = async (req, res, next) => {
   try {
     const token = getToken(req);
     const { id } = req.params;
     const filter = { deletedAt: null, _id: id };
-    const result = await expenseVoucherService.delete(filter, token);
+    const result = await releaseService.delete(filter, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -86,10 +75,10 @@ exports.deleteExpenseVoucher = async (req, res, next) => {
 exports.printAllSummary = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
-    const expenseVouchers = await expenseVoucherService.print_all_summary(docNoFrom, docNoTo);
+    const releases = await releaseService.print_all_summary(docNoFrom, docNoTo);
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = expenseVoucherSummaryPrintAll(expenseVouchers, docNoFrom, docNoTo);
+    const docDefinition = releaseSummaryPrintAll(releases, docNoFrom, docNoTo);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -99,8 +88,8 @@ exports.printAllSummary = async (req, res, next) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `printed expense voucher ( Summarized )`,
-      resource: `expense voucher`,
+      activity: `printed release ( Summarized )`,
+      resource: `release`,
     });
 
     pdfDoc.pipe(res);
@@ -113,12 +102,12 @@ exports.printAllSummary = async (req, res, next) => {
 exports.printSummaryById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!isValidObjectId(id)) throw new CustomError("Invalid expense voucher id", 400);
+    if (!isValidObjectId(id)) throw new CustomError("Invalid release id", 400);
 
-    const expenseVouchers = await expenseVoucherService.print_summary_by_id(id);
+    const releases = await releaseService.print_summary_by_id(id);
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = expenseVoucherSummaryPrintAll(expenseVouchers);
+    const docDefinition = releaseSummaryPrintAll(releases);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -128,8 +117,8 @@ exports.printSummaryById = async (req, res, next) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `printed expense voucher ( Summarized )`,
-      resource: `expense voucher`,
+      activity: `printed all release ( Summarized )`,
+      resource: `release`,
     });
 
     pdfDoc.pipe(res);
@@ -143,11 +132,11 @@ exports.printAllDetailed = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
 
-    const expenseVouchers = await expenseVoucherService.print_all_detailed(docNoFrom, docNoTo);
+    const releases = await releaseService.print_all_detailed(docNoFrom, docNoTo);
 
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = expenseVoucherDetailedPrintAll(expenseVouchers, docNoFrom, docNoTo);
+    const docDefinition = releaseDetailedPrintAll(releases, docNoFrom, docNoTo);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -157,8 +146,8 @@ exports.printAllDetailed = async (req, res, next) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `printed all expense voucher ( Detailed )`,
-      resource: `expense voucher`,
+      activity: `printed all release ( Detailed )`,
+      resource: `release`,
     });
 
     pdfDoc.pipe(res);
@@ -171,12 +160,12 @@ exports.printAllDetailed = async (req, res, next) => {
 exports.printDetailedById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!isValidObjectId(id)) throw new CustomError("Invalid expense voucher id", 400);
-    const expenseVouchers = await expenseVoucherService.print_detailed_by_id(id);
+    if (!isValidObjectId(id)) throw new CustomError("Invalid release id", 400);
+    const releases = await releaseService.print_detailed_by_id(id);
 
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = expenseVoucherDetailedPrintAll(expenseVouchers);
+    const docDefinition = releaseDetailedPrintAll(releases);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -186,8 +175,8 @@ exports.printDetailedById = async (req, res, next) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `printed expense voucher ( Detailed )`,
-      resource: `expense voucher`,
+      activity: `printed release ( Detailed )`,
+      resource: `release`,
     });
 
     pdfDoc.pipe(res);
@@ -200,15 +189,14 @@ exports.printDetailedById = async (req, res, next) => {
 exports.exportAllDetailed = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
-    const expenseVouchers = await expenseVoucherService.print_all_detailed(docNoFrom, docNoTo);
-    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+    const releases = await releaseService.print_all_detailed(docNoFrom, docNoTo);
+    const data = [["Doc No", "Date", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
-    expenseVouchers.map(transaction => {
+    releases.map(transaction => {
       data.push(
         [
           `CV#${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -240,15 +228,14 @@ exports.exportAllDetailed = async (req, res, next) => {
 exports.exportDetailedById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const expenseVouchers = await expenseVoucherService.print_detailed_by_id(id);
-    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+    const releases = await releaseService.print_detailed_by_id(id);
+    const data = [["Doc No", "Date", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
-    expenseVouchers.map(transaction => {
+    releases.map(transaction => {
       data.push(
         [
           `CV#${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -279,12 +266,11 @@ exports.exportDetailedById = async (req, res, next) => {
 
 exports.exportAllSummary = async (req, res, next) => {
   const { docNoFrom, docNoTo } = req.query;
-  const expenseVouchers = await expenseVoucherService.print_all_summary(docNoFrom, docNoTo);
+  const releases = await releaseService.print_all_summary(docNoFrom, docNoTo);
 
-  const formattedLoanReleases = expenseVouchers.map(transaction => ({
+  const formattedLoanReleases = releases.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -295,12 +281,11 @@ exports.exportAllSummary = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
     Particulars: "",
     Bank: "",
     "Check No": "",
     "Check Date": "",
-    Amount: formatNumber(expenseVouchers.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
+    Amount: formatNumber(releases.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
   });
 
   export_excel(formattedLoanReleases, res, docNoFrom, docNoTo);
@@ -308,13 +293,12 @@ exports.exportAllSummary = async (req, res, next) => {
 
 exports.exportSummaryById = async (req, res, next) => {
   const { id } = req.params;
-  if (!isValidObjectId(id)) throw new CustomError("Invalid expense voucher id", 400);
-  const expenseVouchers = await expenseVoucherService.print_summary_by_id(id);
+  if (!isValidObjectId(id)) throw new CustomError("Invalid acknowledgement id", 400);
+  const releases = await releaseService.print_summary_by_id(id);
 
-  const formattedLoanReleases = expenseVouchers.map(transaction => ({
+  const formattedLoanReleases = releases.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -325,12 +309,11 @@ exports.exportSummaryById = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
     Particulars: "",
     Bank: "",
     "Check No": "",
     "Check Date": "",
-    Amount: formatNumber(expenseVouchers.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
+    Amount: formatNumber(releases.reduce((acc, obj) => acc + (obj.amount || 0), 0)),
   });
 
   export_excel(formattedLoanReleases, res);
@@ -348,15 +331,15 @@ const export_excel = (datas, res, from, to) => {
   if (to && from) title = `Doc. No. From CV#${from} To CV#${to}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Expense Voucher By Doc. ( Summarized )`;
+  const headerSubtitle = `Release By Doc. ( Summarized )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Expense Voucher");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Release");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="expense-vouchers.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="releases.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
@@ -374,15 +357,15 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   if (docNoTo && docNoFrom) title = `Doc. No. From CV#${docNoFrom} To CV#${docNoTo}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Expense Voucher By Doc. ( Detailed )`;
+  const headerSubtitle = `Release By Doc. ( Detailed )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Expense Voucher");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Release");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="expense-vouchers.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="releases.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);

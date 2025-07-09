@@ -1,9 +1,10 @@
-const Acknowledgement = require("../smscr/acknowledgement/acknowlegement.schema");
-const DamayanFund = require("../smscr/damayan-fund/damayan-fund.schema");
-const EmergencyLoan = require("../smscr/emergency-loan/emergency-loan.schema");
-const ExpenseVoucher = require("../smscr/expense-voucher/expense-voucher.schema");
-const JournalVoucher = require("../smscr/journal-voucher/journal-voucher.schema");
-const Transaction = require("../smscr/transactions/transaction.schema");
+const Acknowledgement = require("../smscr/acknowledgement/acknowlegement.schema.js");
+const DamayanFund = require("../smscr/damayan-fund/damayan-fund.schema.js");
+const EmergencyLoan = require("../smscr/emergency-loan/emergency-loan.schema.js");
+const ExpenseVoucher = require("../smscr/expense-voucher/expense-voucher.schema.js");
+const JournalVoucher = require("../smscr/journal-voucher/journal-voucher.schema.js");
+const Release = require("../smscr/release/release.schema.js");
+const Transaction = require("../smscr/transactions/transaction.schema.js");
 
 exports.isCodeUnique = async value => {
   const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
@@ -12,17 +13,19 @@ exports.isCodeUnique = async value => {
   const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
   const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
   const acknowledgementExistsPromise = Acknowledgement.exists({ code: value.toUpperCase(), deletedAt: null });
+  const releaseExistsPromise = Release.exists({ code: value.toUpperCase(), deletedAt: null });
 
-  const [transaction, expense, journal, emergency, damayan, acknowledgement] = await Promise.all([
+  const [transaction, expense, journal, emergency, damayan, acknowledgement, release] = await Promise.all([
     transactionExistsPromise,
     expenseVoucherExistsPromise,
     journalVoucherExistsPromise,
     emergencyLoanExistsPromise,
     damayanFundExistsPromise,
     acknowledgementExistsPromise,
+    releaseExistsPromise,
   ]);
 
-  if (transaction || expense || journal || emergency || damayan || acknowledgement) return false;
+  if (transaction || expense || journal || emergency || damayan || acknowledgement || release) return false;
 
   return true;
 };
