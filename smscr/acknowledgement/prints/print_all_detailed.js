@@ -8,8 +8,6 @@ exports.acknowledgementDetailedPrintAll = (datas, from = "", to = "") => {
 
   const expenseVouchers = [];
 
-  console.log(datas);
-
   datas.map(data => {
     expenseVouchers.push(
       [

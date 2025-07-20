@@ -81,7 +81,7 @@ exports.expenseVoucherRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("entries")
     .isArray()
     .withMessage("Entries must be an array")
@@ -177,5 +177,5 @@ exports.updateExpenseVoucherRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
 ];

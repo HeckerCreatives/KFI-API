@@ -106,6 +106,6 @@ exports.loanReleaseRules = [
     .withMessage("Interest rate must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Interest rate must be a number"),
-  body("remarks").trim().notEmpty().withMessage("Remarks is required").isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").trim().notEmpty().withMessage("Particular is required").isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("payee").trim().notEmpty().withMessage("Payee is required").isLength({ min: 1, max: 255 }).withMessage("Payee must only consist of 1 to 255 characters"),
 ];

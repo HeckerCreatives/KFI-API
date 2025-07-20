@@ -31,8 +31,6 @@ exports.loan_entries = async center => {
 };
 
 exports.get_selections = async (keyword, limit, page, offset) => {
-  console.log(keyword);
-
   const filter = { deletedAt: null, $or: [{ "transaction.code": new RegExp(keyword, "i") }, { "client.name": new RegExp(keyword, "i") }] };
 
   const pipelines = [];

@@ -73,7 +73,7 @@ exports.damayanFundRules = [
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("date")
     .trim()
     .notEmpty()
@@ -169,7 +169,7 @@ exports.updateDamayanFundRules = [
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("date")
     .trim()
     .notEmpty()

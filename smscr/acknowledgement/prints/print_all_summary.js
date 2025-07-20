@@ -11,7 +11,6 @@ exports.acknowledgementSummaryPrintAll = (datas, from = "", to = "") => {
 
   datas.map((data, i) => {
     total += data.amount;
-    console.log(total, data.amount);
     loanReleases.push([
       { text: `CV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },

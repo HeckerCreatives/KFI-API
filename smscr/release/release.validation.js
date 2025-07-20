@@ -45,7 +45,7 @@ exports.releaseRules = [
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("type").trim().notEmpty().withMessage("Cash type is required").isLength({ min: 1, max: 255 }).withMessage("Cash type must only consist of 1 to 255 characters"),
   body("acctOfficer")
     .trim()
@@ -167,7 +167,7 @@ exports.updateReleaseRules = [
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
-  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Remarks must only consist of 1 to 255 characters"),
+  body("remarks").if(body("remarks").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only consist of 1 to 255 characters"),
   body("type").trim().notEmpty().withMessage("Cash type is required").isLength({ min: 1, max: 255 }).withMessage("Cash type must only consist of 1 to 255 characters"),
   body("acctOfficer")
     .trim()
