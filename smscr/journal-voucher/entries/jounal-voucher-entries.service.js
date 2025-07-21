@@ -5,7 +5,10 @@ const activityLogServ = require("../../activity-logs/activity-log.service.js");
 exports.get_all = async (limit, page, offset, journalVoucher) => {
   const filter = { deletedAt: null, journalVoucher };
 
-  const query = JournalVoucherEntry.find(filter).sort("-createdAt").populate({ path: "acctCode", select: "code description" });
+  const query = JournalVoucherEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } });
 
   const countPromise = JournalVoucherEntry.countDocuments(filter);
   const entriesPromise = query.skip(offset).limit(limit).lean().exec();
@@ -30,8 +33,9 @@ exports.create = async (journalVoucherId, data, author) => {
 
   const newEntry = await new JournalVoucherEntry({
     journalVoucher: journalVoucher._id,
+    client: data.client || null,
     acctCode: data.acctCodeId,
-    particular: data.particular,
+    particular: data.particular || null,
     debit: data.debit,
     credit: data.credit,
     cvForRecompute: data.cvForRecompute,
@@ -64,7 +68,8 @@ exports.update = async (journalVoucherId, entryId, data, author) => {
     {
       $set: {
         acctCode: data.acctCodeId,
-        particular: data.particular,
+        client: data.client || null,
+        particular: data.particular || null,
         debit: data.debit,
         credit: data.credit,
         cvForRecompute: data.cvForRecompute,
@@ -73,6 +78,7 @@ exports.update = async (journalVoucherId, entryId, data, author) => {
     { new: true }
   )
     .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } })
     .lean()
     .exec();
 

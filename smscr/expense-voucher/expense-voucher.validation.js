@@ -5,6 +5,8 @@ const Bank = require("../banks/bank.schema");
 const { isValidObjectId } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
+const CustomError = require("../../utils/custom-error");
+const Customer = require("../customer/customer.schema");
 
 exports.expenseVoucherIdRules = [
   param("id")
@@ -88,6 +90,23 @@ exports.expenseVoucherRules = [
     .custom(value => {
       if (!Array.isArray(value)) throw new Error("Invalid entries");
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
+      return true;
+    }),
+  body("entries.*.clientLabel")
+    .if(body("entries.*.clientLabel").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Name is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Name must only contain 1 to 255 characters")
+    .custom(async (value, { req, path }) => {
+      const index = path.match(/entries\[(\d+)\]\.clientLabel/)[1];
+      const entries = req.body.entries;
+
+      if (!Array.isArray(entries)) throw new Error("Invalid entries");
+      const clientId = entries[index].client;
+      const exists = await Customer.exists({ _id: clientId, deletedAt: null });
+      if (!exists) throw new Error("Client not found / deleted");
       return true;
     }),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),

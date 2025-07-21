@@ -1,6 +1,7 @@
 const { body, param } = require("express-validator");
 const ChartOfAccount = require("../../chart-of-account/chart-of-account.schema.js");
 const ExpenseVoucherEntry = require("./expense-voucher-entries.schema.js");
+const Customer = require("../../customer/customer.schema.js");
 
 exports.expenseVoucherEntryIdRules = [
   param("entryId")
@@ -18,6 +19,19 @@ exports.expenseVoucherEntryIdRules = [
 ];
 
 exports.expenseVoucherEntryRules = [
+  body("clientLabel")
+    .if(body("clientLabel").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Name is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Name must only contain 1 to 255 characters")
+    .custom(async (value, { req, path }) => {
+      const clientId = req.body.client;
+      const exists = await Customer.exists({ _id: clientId, deletedAt: null });
+      if (!exists) throw new Error("Client not found / deleted");
+      return true;
+    }),
   body("particular").if(body("particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("acctCode")
     .trim()

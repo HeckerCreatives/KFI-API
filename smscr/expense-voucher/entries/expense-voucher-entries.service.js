@@ -5,7 +5,10 @@ const activityLogServ = require("../../activity-logs/activity-log.service.js");
 exports.get_all = async (limit, page, offset, expenseVoucher) => {
   const filter = { deletedAt: null, expenseVoucher };
 
-  const query = ExpenseVoucherEntry.find(filter).sort("-createdAt").populate({ path: "acctCode", select: "code description" });
+  const query = ExpenseVoucherEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } });
 
   const countPromise = ExpenseVoucherEntry.countDocuments(filter);
   const entriesPromise = query.skip(offset).limit(limit).exec();
@@ -31,7 +34,8 @@ exports.create = async (expenseVoucherId, data, author) => {
   const newEntry = await new ExpenseVoucherEntry({
     expenseVoucher: expenseVoucher._id,
     acctCode: data.acctCodeId,
-    particular: data.particular,
+    client: data.client || null,
+    particular: data.particular || null,
     debit: data.debit,
     credit: data.credit,
     cvForRecompute: data.cvForRecompute,
@@ -64,7 +68,8 @@ exports.update = async (expenseVoucherId, entryId, data, author) => {
     {
       $set: {
         acctCode: data.acctCodeId,
-        particular: data.particular,
+        client: data.client || null,
+        particular: data.particular || null,
         debit: data.debit,
         credit: data.credit,
         cvForRecompute: data.cvForRecompute,
@@ -73,6 +78,7 @@ exports.update = async (expenseVoucherId, entryId, data, author) => {
     { new: true }
   )
     .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } })
     .lean()
     .exec();
 

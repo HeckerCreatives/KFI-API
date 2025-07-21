@@ -94,7 +94,8 @@ exports.create = async (data, author) => {
 
   const entries = data.entries.map(entry => ({
     journalVoucher: newJournalVoucher._id,
-    particular: entry.particular,
+    client: entry.client || null,
+    particular: entry.particular || null,
     acctCode: entry.acctCodeId,
     debit: entry.debit,
     credit: entry.credit,

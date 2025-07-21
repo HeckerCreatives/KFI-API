@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const expenseVoucherEntriesSchema = new mongoose.Schema(
   {
     expenseVoucher: { type: mongoose.Schema.Types.ObjectId, ref: "ExpenseVoucher", required: true },
+    client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     acctCode: { type: mongoose.Schema.Types.ObjectId, ref: "ChartOfAccount", required: true },
     debit: { type: Number, required: true },
     credit: { type: Number, required: true },
