@@ -113,6 +113,7 @@ exports.customerRules = [
     .withMessage("Account officer must only consist of 1 to 255 characters"),
   body("sex").trim().notEmpty().withMessage("Sex is required").isLength({ min: 1, max: 255 }).withMessage("Sex must only consist of 1 to 255 characters"),
   body("dateResigned")
+    .if(body("dateResigned").notEmpty())
     .trim()
     .notEmpty()
     .withMessage("Date resigned is required")
@@ -123,8 +124,20 @@ exports.customerRules = [
     .toDate(),
   ,
   body("newStatus").trim().notEmpty().withMessage("New status is required").isLength({ min: 1, max: 255 }).withMessage("New status must only consist of 1 to 255 characters"),
-  body("reason").trim().notEmpty().withMessage("Reason is required").isLength({ min: 1, max: 255 }).withMessage("Reason must only consist of 1 to 255 characters"),
-  body("parent").trim().notEmpty().withMessage("Parent is required").isLength({ min: 1, max: 255 }).withMessage("Parent must only consist of 1 to 255 characters"),
+  body("reason")
+    .if(body("reason").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Reason is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Reason must only consist of 1 to 255 characters"),
+  body("parent")
+    .if(body("parent").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Parent is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Parent must only consist of 1 to 255 characters"),
 ];
 
 exports.updateCustomerRules = [
