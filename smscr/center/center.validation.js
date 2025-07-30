@@ -29,7 +29,13 @@ exports.centerRules = [
       if (exists) throw new Error("Center no already exists.");
       return true;
     }),
-  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 255 characters"),
+  body("description")
+    .if(body("description").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Description is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Description must only consist of 255 characters"),
   body("location").trim().notEmpty().withMessage("Location is required").isLength({ min: 1, max: 255 }).withMessage("Location must only consist of 255 characters"),
   body("centerChief").trim().notEmpty().withMessage("Center Chief is required").isLength({ min: 1, max: 255 }).withMessage("Center Chief must only consist of 255 characters"),
   body("treasurer").trim().notEmpty().withMessage("Treasurer is required").isLength({ min: 1, max: 255 }).withMessage("Treasurer must only consist of 255 characters"),
@@ -56,7 +62,13 @@ exports.updateCenterRules = [
       }
       return true;
     }),
-  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 255 characters"),
+  body("description")
+    .if(body("description").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Description is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Description must only consist of 255 characters"),
   body("location").trim().notEmpty().withMessage("Location is required").isLength({ min: 1, max: 255 }).withMessage("Location must only consist of 255 characters"),
   body("centerChief").trim().notEmpty().withMessage("Center Chief is required").isLength({ min: 1, max: 255 }).withMessage("Center Chief must only consist of 255 characters"),
   body("treasurer").trim().notEmpty().withMessage("Treasurer is required").isLength({ min: 1, max: 255 }).withMessage("Treasurer must only consist of 255 characters"),

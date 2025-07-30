@@ -33,8 +33,8 @@ exports.customerRules = [
     .trim()
     .notEmpty()
     .withMessage("Mobile no. is required")
-    .matches(/^(?:\+63|0)9\d{9}$/) // +639 or 09 followed by 9 digits
-    .withMessage("Invalid mobile number (e.g., 09171234567 or +639171234567)")
+    .matches(/^(?:63|0)9\d{9}$/) // +639 or 09 followed by 9 digits
+    .withMessage("Invalid mobile number (e.g., 09171234567 or 639171234567)")
     .customSanitizer(value => value.replace(/[^\d]/g, "")),
   body("zipCode").trim().notEmpty().withMessage("Zip code  is required").isLength({ min: 1, max: 255 }).withMessage("Zip code must only consist of 1 to 255 characters"),
   body("birthdate")
@@ -156,8 +156,8 @@ exports.updateCustomerRules = [
     .trim()
     .notEmpty()
     .withMessage("Mobile no. is required")
-    .matches(/^(?:\+63|0)9\d{9}$/) // +639 or 09 followed by 9 digits
-    .withMessage("Invalid mobile number (e.g., 09171234567 or +639171234567)")
+    .matches(/^(?:63|0)9\d{9}$/) // 639 or 09 followed by 9 digits
+    .withMessage("Invalid mobile number (e.g., 09171234567 or 639171234567)")
     .customSanitizer(value => value.replace(/[^\d]/g, "")),
   body("zipCode").trim().notEmpty().withMessage("Zip code  is required").isLength({ min: 1, max: 255 }).withMessage("Zip code must only consist of 1 to 255 characters"),
   body("birthdate")
