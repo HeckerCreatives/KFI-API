@@ -47,7 +47,13 @@ exports.customerRules = [
     .withMessage("Birthdate must be a valid date (YYYY-MM-DD)")
     .toDate(),
   body("birthplace").trim().notEmpty().withMessage("Birthplace is required").isLength({ min: 1, max: 255 }).withMessage("Birthplace must only consist of 1 to 255 characters"),
-  body("spouse").trim().notEmpty().withMessage("Spouse is required").isLength({ min: 1, max: 255 }).withMessage("Spouse must only consist of 1 to 255 characters"),
+  body("spouse")
+    .if(body("spouse").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Spouse is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Spouse must only consist of 1 to 255 characters"),
   body("memberStatus")
     .trim()
     .notEmpty()
@@ -170,7 +176,13 @@ exports.updateCustomerRules = [
     .withMessage("Birthdate must be a valid date (YYYY-MM-DD)")
     .toDate(),
   body("birthplace").trim().notEmpty().withMessage("Birthplace is required").isLength({ min: 1, max: 255 }).withMessage("Birthplace must only consist of 1 to 255 characters"),
-  body("spouse").trim().notEmpty().withMessage("Spouse is required").isLength({ min: 1, max: 255 }).withMessage("Spouse must only consist of 1 to 255 characters"),
+  body("spouse")
+    .if(body("spouse").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Spouse is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Spouse must only consist of 1 to 255 characters"),
   body("memberStatus")
     .trim()
     .notEmpty()
