@@ -60,7 +60,6 @@ exports.customerRules = [
     .withMessage("Member status is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Member status must only consist of 1 to 255 characters"),
-  body("groupNumber").trim().notEmpty().withMessage("Group number is required").isLength({ min: 1, max: 255 }).withMessage("Group number must only consist of 1 to 255 characters"),
   body("civilStatus").trim().notEmpty().withMessage("Civil status is required").isLength({ min: 1, max: 255 }).withMessage("Civil status must only consist of 1 to 255 characters"),
   body("center")
     .trim()
@@ -189,7 +188,6 @@ exports.updateCustomerRules = [
     .withMessage("Member status is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Member status must only consist of 1 to 255 characters"),
-  body("groupNumber").trim().notEmpty().withMessage("Group number is required").isLength({ min: 1, max: 255 }).withMessage("Group number must only consist of 1 to 255 characters"),
   body("civilStatus").trim().notEmpty().withMessage("Civil status is required").isLength({ min: 1, max: 255 }).withMessage("Civil status must only consist of 1 to 255 characters"),
   body("center")
     .trim()

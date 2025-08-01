@@ -42,7 +42,6 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
     .populate({ path: "business", select: "type" })
     .populate({ path: "beneficiaries" })
     .populate({ path: "children" })
-    .populate({ path: "groupNumber" })
     .skip(offset)
     .limit(limit)
     .lean()
@@ -69,7 +68,6 @@ exports.get_single = async filter => {
     .populate({ path: "business", select: "type" })
     .populate({ path: "beneficiaries" })
     .populate({ path: "children" })
-    .populate({ path: "groupNumber" })
     .exec();
   if (!customer) {
     throw new CustomError("Customer not found", 404);
@@ -93,7 +91,6 @@ exports.create = async (data, author) => {
       birthplace: data.birthplace,
       spouse: data.spouse,
       memberStatus: data.memberStatus,
-      groupNumber: data.groupNumber,
       civilStatus: data.civilStatus,
       center: data.center,
       dateRelease: data.dateRelease,
@@ -129,7 +126,6 @@ exports.create = async (data, author) => {
       .populate({ path: "business", select: "type" })
       .populate({ path: "beneficiaries" })
       .populate({ path: "children" })
-      .populate({ path: "groupNumber" })
       .session(session)
       .lean()
       .exec();
@@ -172,7 +168,6 @@ exports.update = async (filter, data, author) => {
         birthplace: data.birthplace,
         spouse: data.spouse,
         memberStatus: data.memberStatus,
-        groupNumber: data.groupNumber,
         civilStatus: data.civilStatus,
         center: data.center,
         dateRelease: data.dateRelease,
