@@ -2,6 +2,7 @@ const Center = require("../center/center.schema.js");
 const BusinessType = require("../business-type/business-type.schema.js");
 const Customer = require("./customer.schema.js");
 const { body, param } = require("express-validator");
+const { memberStatuses } = require("../../constants/member-status.js");
 
 exports.customerIdRules = [
   param("id")
@@ -54,12 +55,18 @@ exports.customerRules = [
     .withMessage("Spouse is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Spouse must only consist of 1 to 255 characters"),
-  body("memberStatus")
+  body("memberStatusLabel")
     .trim()
     .notEmpty()
     .withMessage("Member status is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("Member status must only consist of 1 to 255 characters"),
+    .withMessage("Member status must only consist of 1 to 255 characters")
+    .custom((value, { req }) => {
+      if (!memberStatuses.includes(value) || !memberStatuses.includes(req.body.memberStatus)) {
+        throw new Error("Please select a valid member status");
+      }
+      return true;
+    }),
   body("civilStatus").trim().notEmpty().withMessage("Civil status is required").isLength({ min: 1, max: 255 }).withMessage("Civil status must only consist of 1 to 255 characters"),
   body("center")
     .trim()
@@ -128,7 +135,6 @@ exports.customerRules = [
     .withMessage("Date resigned must be a valid date (YYYY-MM-DD)")
     .toDate(),
   ,
-  body("newStatus").trim().notEmpty().withMessage("New status is required").isLength({ min: 1, max: 255 }).withMessage("New status must only consist of 1 to 255 characters"),
   body("reason")
     .if(body("reason").notEmpty())
     .trim()
@@ -143,6 +149,26 @@ exports.customerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
+  body("beneficiary").isArray().withMessage("Beneficiaries must be an array"),
+  body("beneficiary.*.name")
+    .if(body("beneficiary").notEmpty())
+    .custom((value, { req, path }) => {
+      const index = path.match(/beneficiary\[(\d+)\]\.name/)[1];
+      const beneficiary = req.body.beneficiary;
+      const hasRelationship = !!beneficiary[index].relationship;
+      if (!value && hasRelationship) throw new Error("Name is required");
+      return true;
+    }),
+  body("beneficiary.*.relationship")
+    .if(body("beneficiary").notEmpty())
+    .custom((value, { req, path }) => {
+      const index = path.match(/beneficiary\[(\d+)\]\.relationship/)[1];
+      const beneficiary = req.body.beneficiary;
+      const hasName = !!beneficiary[index].name;
+      if (!value && hasName) throw new Error("Relationship is required");
+      return true;
+    }),
+  body("children").optional().isArray(),
 ];
 
 exports.updateCustomerRules = [
@@ -182,12 +208,18 @@ exports.updateCustomerRules = [
     .withMessage("Spouse is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Spouse must only consist of 1 to 255 characters"),
-  body("memberStatus")
+  body("memberStatusLabel")
     .trim()
     .notEmpty()
     .withMessage("Member status is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("Member status must only consist of 1 to 255 characters"),
+    .withMessage("Member status must only consist of 1 to 255 characters")
+    .custom((value, { req }) => {
+      if (!memberStatuses.includes(value) || !memberStatuses.includes(req.body.memberStatus)) {
+        throw new Error("Please select a valid member status");
+      }
+      return true;
+    }),
   body("civilStatus").trim().notEmpty().withMessage("Civil status is required").isLength({ min: 1, max: 255 }).withMessage("Civil status must only consist of 1 to 255 characters"),
   body("center")
     .trim()
@@ -259,7 +291,6 @@ exports.updateCustomerRules = [
     .withMessage("Date resigned must be a valid date (YYYY-MM-DD)")
     .toDate(),
   ,
-  body("newStatus").trim().notEmpty().withMessage("New status is required").isLength({ min: 1, max: 255 }).withMessage("New status must only consist of 1 to 255 characters"),
   body("reason")
     .if(body("reason").notEmpty())
     .trim()
@@ -274,4 +305,24 @@ exports.updateCustomerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
+  body("beneficiary").isArray().withMessage("Beneficiaries must be an array"),
+  body("beneficiary.*.name")
+    .if(body("beneficiary").notEmpty())
+    .custom((value, { req, path }) => {
+      const index = path.match(/beneficiary\[(\d+)\]\.name/)[1];
+      const beneficiary = req.body.beneficiary;
+      const hasRelationship = !!beneficiary[index].relationship;
+      if (!value && hasRelationship) throw new Error("Name is required");
+      return true;
+    }),
+  body("beneficiary.*.relationship")
+    .if(body("beneficiary").notEmpty())
+    .custom((value, { req, path }) => {
+      const index = path.match(/beneficiary\[(\d+)\]\.relationship/)[1];
+      const beneficiary = req.body.beneficiary;
+      const hasName = !!beneficiary[index].name;
+      if (!value && hasName) throw new Error("Relationship is required");
+      return true;
+    }),
+  body("children").optional().isArray(),
 ];

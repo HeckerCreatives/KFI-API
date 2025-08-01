@@ -101,9 +101,10 @@ exports.create = async (data, author) => {
       acctOfficer: data.acctOfficer,
       sex: data.sex,
       dateResigned: data.dateResigned,
-      newStatus: data.newStatus,
       reason: data.reason,
       parent: data.parent,
+      beneficiaries: data.beneficiary,
+      children: data.children,
     }).save({ session });
 
     if (!newCustomer) {
@@ -178,9 +179,10 @@ exports.update = async (filter, data, author) => {
         acctOfficer: data.acctOfficer,
         sex: data.sex,
         dateResigned: data.dateResigned,
-        newStatus: data.newStatus,
         reason: data.reason,
         parent: data.parent,
+        beneficiaries: data.beneficiary,
+        children: data.children,
       },
     },
     { new: true }

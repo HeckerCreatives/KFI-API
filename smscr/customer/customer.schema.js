@@ -27,8 +27,8 @@ const customerSchema = new mongoose.Schema(
     reason: { type: String },
     parent: { type: String },
     deletedAt: { type: Date },
-    beneficiaries: [{ type: mongoose.Schema.Types.ObjectId, ref: "Beneficiary" }],
-    children: [{ type: mongoose.Schema.Types.ObjectId, ref: "Children" }],
+    beneficiaries: [{ name: { type: String }, relationship: { type: String } }],
+    children: [{ name: { type: String } }],
   },
   { timestamps: true }
 );

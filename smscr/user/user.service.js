@@ -129,3 +129,21 @@ exports.delete = async filter => {
   }
   return { success: true, user: filter._id };
 };
+
+exports.change_own_password = async (data, token) => {
+  const user = await User.findOne({ username: token.username }).exec();
+
+  if (!user) {
+    throw new CustomError("User not found", 404);
+  }
+
+  user.password = data.password;
+  user.markModified("password");
+  await user.savePassword(data.password);
+  await user.save();
+
+  return {
+    success: true,
+    msg: "Password successfully changed.",
+  };
+};

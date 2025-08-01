@@ -13,6 +13,7 @@ userRoutes
   .get("/:id", isAuthorize("user", "read"), userIdRules, validateData, userController.getUser)
   .post("/", isAuthorize("user", "create"), userRules, validateData, userController.createUser)
   .put("/change-password", isAuthorize("user", "update"), changePasswordRules, validateData, userController.changePassword)
+  .put("/change-own-password", changePasswordRules, validateData, userController.changeOwnPassword)
   .put("/permissions/:id", isAuthorize("user", "update"), userIdRules, permissionRules, validateData, userController.updatePermissions)
   .put("/ban", isAuthorize("user", "update"), banUserRules, validateData, userController.banUsers)
   .put("/unbanned", isAuthorize("user", "update"), banUserRules, validateData, userController.unbannedUsers)

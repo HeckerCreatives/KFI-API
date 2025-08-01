@@ -26,6 +26,7 @@ const activityLogRoutes = require("../smscr/activity-logs/activity-log.route");
 const transactionRoutes = require("../smscr/transactions/transaction.route");
 const acknowledgementRoutes = require("../smscr/acknowledgement/acknowledgement.route");
 const releaseRoutes = require("../smscr/release/release.route");
+const statsRoutes = require("../smscr/statistics/statistics.route");
 
 exports.routers = app => {
   app.use("/api/v1/auth", authRoutes);
@@ -55,4 +56,5 @@ exports.routers = app => {
   app.use("/api/v1/transaction", passport.authenticate("jwt", { session: false }), transactionRoutes);
   app.use("/api/v1/acknowledgement", passport.authenticate("jwt", { session: false }), acknowledgementRoutes);
   app.use("/api/v1/release", passport.authenticate("jwt", { session: false }), releaseRoutes);
+  app.use("/api/v1/statistics", passport.authenticate("jwt", { session: false }), statsRoutes);
 };

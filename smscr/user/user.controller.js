@@ -1,4 +1,5 @@
 const { stringEscape } = require("../../utils/escape-string.js");
+const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const userService = require("./user.service.js");
 
@@ -73,6 +74,16 @@ exports.deleteUser = async (req, res, next) => {
   try {
     const filter = { _id: req.params.id };
     const result = await userService.delete(filter);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.changeOwnPassword = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await userService.change_own_password(req.body, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
