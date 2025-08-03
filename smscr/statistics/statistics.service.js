@@ -22,7 +22,7 @@ exports.dashboard_card_statistics = async () => {
 
 exports.loans_per_account_officer = async (limit, page, offset, search) => {
   const pipelines = [];
-  const filter = { deletedAt: null, acctOfficer: new RegExp(search, "i") };
+  const filter = { deletedAt: null, $or: [{ acctOfficer: new RegExp(search, "i") }, { description: new RegExp(search, "i") }] };
 
   pipelines.push({ $match: filter });
 
@@ -66,47 +66,52 @@ exports.loans_per_account_officer = async (limit, page, offset, search) => {
   };
 };
 
-exports.recent_loan = async (limit, page, offset) => {
+exports.recent_loan = async () => {
   const filter = { deletedAt: null, client: { $ne: null } };
 
-  const query = Entry.find(filter).sort("-createdAt").populate({ path: "client", select: "name" }).select({ client: 1, debit: 1 });
+  const query = Entry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "client", select: "name" })
+    .populate({ path: "center", select: "centerNo description" })
+    .populate({ path: "acctCode", select: "code description" });
 
-  const countPromise = Entry.countDocuments(filter);
-  const entriesPromise = query.skip(offset).limit(limit).exec();
+  // const countPromise = Entry.countDocuments(filter);
+  const entriesPromise = query.limit(20).lean().exec();
+  const [entries] = await Promise.all([entriesPromise]);
 
-  const [count, entries] = await Promise.all([countPromise, entriesPromise]);
-
-  const hasNextPage = count > offset + limit;
-  const hasPrevPage = page > 1;
-  const totalPages = Math.ceil(count / limit);
+  // const hasNextPage = count > offset + limit;
+  // const hasPrevPage = page > 1;
+  // const totalPages = Math.ceil(count / limit);
 
   return {
     success: true,
     entries,
-    hasNextPage,
-    hasPrevPage,
-    totalPages,
   };
 };
 
-exports.recent_member = async (limit, page, offset) => {
+exports.recent_member = async () => {
   const filter = { deletedAt: null };
 
-  const query = Customer.find(filter).sort({ createdAt: -1 });
-  const countPromise = Customer.countDocuments(filter);
-  const customersPromise = query.populate({ path: "center", select: "centerNo description" }).select({ name: 1, center: 1 }).skip(offset).limit(limit).lean().exec();
+  const query = Customer.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "center", select: "centerNo description" })
+    .populate({ path: "business", select: "type" })
+    .populate({ path: "beneficiaries" })
+    .populate({ path: "children" });
+  // const countPromise = Customer.countDocuments(filter);
+  const customersPromise = query.limit(20).lean().exec();
 
-  const [count, customers] = await Promise.all([countPromise, customersPromise]);
+  const [customers] = await Promise.all([customersPromise]);
 
-  const hasNextPage = count > offset + limit;
-  const hasPrevPage = page > 1;
-  const totalPages = Math.ceil(count / limit);
+  // const hasNextPage = count > offset + limit;
+  // const hasPrevPage = page > 1;
+  // const totalPages = Math.ceil(count / limit);
 
   return {
     success: true,
     customers,
-    hasNextPage,
-    hasPrevPage,
-    totalPages,
+    // hasNextPage,
+    // hasPrevPage,
+    // totalPages,
   };
 };

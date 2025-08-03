@@ -13,9 +13,7 @@ exports.getDashboardCardStatistics = async (req, res, next) => {
 
 exports.getRecentMembers = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await statService.recent_member(validatedLimit, validatedPage, validatedOffset);
+    const result = await statService.recent_member();
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -24,9 +22,7 @@ exports.getRecentMembers = async (req, res, next) => {
 
 exports.getRecentLoans = async (req, res, next) => {
   try {
-    const { page, limit } = req.query;
-    const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
-    const result = await statService.recent_loan(validatedLimit, validatedPage, validatedOffset);
+    const result = await statService.recent_loan();
     return res.status(200).json(result);
   } catch (error) {
     next(error);

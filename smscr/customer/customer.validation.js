@@ -149,25 +149,7 @@ exports.customerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
-  body("beneficiary").isArray().withMessage("Beneficiaries must be an array"),
-  body("beneficiary.*.name")
-    .if(body("beneficiary").notEmpty())
-    .custom((value, { req, path }) => {
-      const index = path.match(/beneficiary\[(\d+)\]\.name/)[1];
-      const beneficiary = req.body.beneficiary;
-      const hasRelationship = !!beneficiary[index].relationship;
-      if (!value && hasRelationship) throw new Error("Name is required");
-      return true;
-    }),
-  body("beneficiary.*.relationship")
-    .if(body("beneficiary").notEmpty())
-    .custom((value, { req, path }) => {
-      const index = path.match(/beneficiary\[(\d+)\]\.relationship/)[1];
-      const beneficiary = req.body.beneficiary;
-      const hasName = !!beneficiary[index].name;
-      if (!value && hasName) throw new Error("Relationship is required");
-      return true;
-    }),
+  body("beneficiary").optional().isArray(),
   body("children").optional().isArray(),
 ];
 
@@ -305,24 +287,6 @@ exports.updateCustomerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
-  body("beneficiary").isArray().withMessage("Beneficiaries must be an array"),
-  body("beneficiary.*.name")
-    .if(body("beneficiary").notEmpty())
-    .custom((value, { req, path }) => {
-      const index = path.match(/beneficiary\[(\d+)\]\.name/)[1];
-      const beneficiary = req.body.beneficiary;
-      const hasRelationship = !!beneficiary[index].relationship;
-      if (!value && hasRelationship) throw new Error("Name is required");
-      return true;
-    }),
-  body("beneficiary.*.relationship")
-    .if(body("beneficiary").notEmpty())
-    .custom((value, { req, path }) => {
-      const index = path.match(/beneficiary\[(\d+)\]\.relationship/)[1];
-      const beneficiary = req.body.beneficiary;
-      const hasName = !!beneficiary[index].name;
-      if (!value && hasName) throw new Error("Relationship is required");
-      return true;
-    }),
+  body("beneficiary").optional().isArray(),
   body("children").optional().isArray(),
 ];

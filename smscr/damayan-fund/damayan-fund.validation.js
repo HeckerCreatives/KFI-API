@@ -35,8 +35,8 @@ exports.updateDamayanFundCodeRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("CV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
-      const emergencyLoan = await EmergencyLoan.findById(req.params.id).lean().exec();
-      if (emergencyLoan.code.toUpperCase() !== value.toUpperCase()) {
+      const damayanFund = await DamayanFund.findById(req.params.id).lean().exec();
+      if (damayanFund.code.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
         if (!isUnique) throw new Error("JV No. already exists");
       }
