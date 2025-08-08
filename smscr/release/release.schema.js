@@ -19,7 +19,7 @@ const releaseSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { new: true }
+  { timestamps: true }
 );
 
 releaseSchema.set("toJSON", {

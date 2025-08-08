@@ -6,12 +6,19 @@ exports.generateCenterPDF = datas => {
   };
 
   const centers = datas.map(data => [
-    { text: data.centerNo, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.description, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.location, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.centerChief, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.treasurer, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.acctOfficer, fontSize: 8, margin: [0, 1, 0, 1] },
+    { text: data.centerNo, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.description, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.location, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.centerChief, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.treasurer, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.acctOfficer, fontSize: 7, margin: [0, 1, 0, 1] },
+    { text: data.activeNew, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.activeReturnee, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.activeExisting, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.activePastdue, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.resigned, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.others, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
+    { text: data.total, fontSize: 7, margin: [0, 1, 0, 1], alignment: "center" },
   ]);
 
   const contents = [
@@ -20,15 +27,22 @@ exports.generateCenterPDF = datas => {
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["10%", "22.5%", "22.5%", "15%", "15%", "15%"],
+        widths: ["6%", "15%", "19%", "8%", "8%", "8%", "5%", "5.5%", "5%", "5%", "5.5%", "5%", "5%"],
         body: [
           [
-            { text: "Center No.", fontSize: 9, bold: true },
-            { text: "Center Name", fontSize: 9, bold: true },
-            { text: "Location", fontSize: 9, bold: true },
-            { text: "Center Chief", fontSize: 9, bold: true },
-            { text: "Treasurer", fontSize: 9, bold: true },
-            { text: "Account Officer", fontSize: 9, bold: true },
+            { text: "Center No.", fontSize: 8, bold: true, margin: [0, 5, 0, 0] },
+            { text: "Center Name", fontSize: 8, bold: true, margin: [0, 5, 0, 0] },
+            { text: "Location", fontSize: 8, bold: true, margin: [0, 5, 0, 0] },
+            { text: "Center Chief", fontSize: 8, bold: true, margin: [0, 5, 0, 0] },
+            { text: "Treasurer", fontSize: 8, bold: true, margin: [0, 5, 0, 0] },
+            { text: "Account Officer", fontSize: 8, bold: true },
+            { text: "Active New", fontSize: 8, bold: true, alignment: "center" },
+            { text: "Active Returnee", fontSize: 8, bold: true, alignment: "center" },
+            { text: "Active Existing", fontSize: 8, bold: true, alignment: "center" },
+            { text: "Active PastDue", fontSize: 8, bold: true, alignment: "center" },
+            { text: "Resigned", fontSize: 8, bold: true, alignment: "center", margin: [0, 5, 0, 0] },
+            { text: "Others", fontSize: 8, bold: true, alignment: "center", margin: [0, 5, 0, 0] },
+            { text: "Total", fontSize: 8, bold: true, alignment: "center", margin: [0, 5, 0, 0] },
           ],
           ...centers,
         ],
@@ -49,6 +63,7 @@ exports.generateCenterPDF = datas => {
 
   return {
     info: info,
+    pageOrientation: "landscape",
     footer: footer,
     pageMargins: [20, 25, 20, 25],
     content: contents,

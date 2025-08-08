@@ -16,7 +16,7 @@ const expenseVoucherSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { new: true }
+  { timestamps: true }
 );
 
 expenseVoucherSchema.set("toJSON", {

@@ -6,14 +6,29 @@ const JournalVoucher = require("../smscr/journal-voucher/journal-voucher.schema.
 const Release = require("../smscr/release/release.schema.js");
 const Transaction = require("../smscr/transactions/transaction.schema.js");
 
-exports.isCodeUnique = async value => {
-  const transactionExistsPromise = Transaction.exists({ code: value.toUpperCase(), deletedAt: null });
-  const expenseVoucherExistsPromise = ExpenseVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-  const journalVoucherExistsPromise = JournalVoucher.exists({ code: value.toUpperCase(), deletedAt: null });
-  const emergencyLoanExistsPromise = EmergencyLoan.exists({ code: value.toUpperCase(), deletedAt: null });
-  const damayanFundExistsPromise = DamayanFund.exists({ code: value.toUpperCase(), deletedAt: null });
-  const acknowledgementExistsPromise = Acknowledgement.exists({ code: value.toUpperCase(), deletedAt: null });
-  const releaseExistsPromise = Release.exists({ code: value.toUpperCase(), deletedAt: null });
+const units = ["CV#", "JV#", "OR#", "AR#"];
+
+const removeUnitPrefix = value => {
+  for (const unit of units) {
+    if (value.toUpperCase().startsWith(unit)) {
+      return value.slice(unit.length); // Remove the unit prefix
+    }
+  }
+  return value;
+};
+
+exports.isCodeUnique = async code => {
+  const value = removeUnitPrefix(code);
+
+  const filter = { code: new RegExp(`^(CV|JV|OR|AR)#${value}$`), deletedAt: null };
+
+  const transactionExistsPromise = Transaction.exists(filter);
+  const expenseVoucherExistsPromise = ExpenseVoucher.exists(filter);
+  const journalVoucherExistsPromise = JournalVoucher.exists(filter);
+  const emergencyLoanExistsPromise = EmergencyLoan.exists(filter);
+  const damayanFundExistsPromise = DamayanFund.exists(filter);
+  const acknowledgementExistsPromise = Acknowledgement.exists(filter);
+  const releaseExistsPromise = Release.exists(filter);
 
   const [transaction, expense, journal, emergency, damayan, acknowledgement, release] = await Promise.all([
     transactionExistsPromise,

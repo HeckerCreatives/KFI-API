@@ -98,9 +98,9 @@ exports.printAll = async (req, res, next) => {
   try {
     const printer = new PdfPrinter(pmFonts);
 
-    const centers = await Center.find({ deletedAt: null }).sort({ createdAt: -1 }).lean().exec();
+    const centers = await centerService.print_all();
 
-    const docDefinition = generateCenterPDF(centers);
+    const docDefinition = generateCenterPDF(centers.centers);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -122,26 +122,42 @@ exports.printAll = async (req, res, next) => {
 
 exports.exportAll = async (req, res, next) => {
   try {
-    const centers = await Center.find(
-      { deletedAt: null },
-      {
-        "Center Number": "$centerNo",
-        "Center Name": "$description",
-        Location: "$location",
-        "Center Chief": "$centerChief",
-        Treasurer: "$treasurer",
-        "Account Officer": "$acctOfficer",
-        _id: 0,
-      }
-    )
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+    const centers = await centerService.print_all();
+
+    const toExports = centers.centers.map(center => ({
+      "Center Number": center.centerNo,
+      "Center Name": center.description,
+      Location: center.location,
+      "Center Chief": center.centerChief,
+      Treasurer: center.treasurer,
+      "Account Officer": center.acctOfficer,
+      "Active New": center.activeNew,
+      "Active Returnee": center.activeReturnee,
+      "Active Existing": center.activeExisting,
+      "Active PastDue": center.activePastdue,
+      Resigned: center.resigned,
+      Others: center.others,
+      Total: center.total,
+    }));
 
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(centers, { origin: "A7" });
+    const worksheet = XLSX.utils.json_to_sheet(toExports, { origin: "A7" });
 
-    worksheet["!cols"] = [{ wch: 15 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 15 }, { wch: 15 }];
+    worksheet["!cols"] = [
+      { wch: 15 },
+      { wch: 30 },
+      { wch: 30 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 13 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 12 },
+    ];
 
     const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
     const headerSubtitle = "Centers";

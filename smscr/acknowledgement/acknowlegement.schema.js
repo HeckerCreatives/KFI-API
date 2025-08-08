@@ -19,7 +19,7 @@ const acknowledgementSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { new: true }
+  { timestamps: true }
 );
 
 acknowledgementSchema.set("toJSON", {

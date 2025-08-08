@@ -202,14 +202,14 @@ exports.exportAllDetailed = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
     const damayanFunds = await damayanFundService.print_all_detailed(docNoFrom, docNoTo);
-    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+    const data = [["Doc No", "Date", "Center Code", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
     damayanFunds.map(transaction => {
       data.push(
         [
-          `JV#${transaction.code}`,
+          `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
+          transaction.center.centerNo,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -242,14 +242,14 @@ exports.exportDetailedById = async (req, res, next) => {
   try {
     const { id } = req.params;
     const damayanFunds = await damayanFundService.print_detailed_by_id(id);
-    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+    const data = [["Doc No", "Date", "Center Code", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
     damayanFunds.map(transaction => {
       data.push(
         [
-          `JV#${transaction.code}`,
+          `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
+          transaction.center.centerNo,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -285,7 +285,7 @@ exports.exportAllSummary = async (req, res, next) => {
   const formattedLoanReleases = damayanFunds.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
+    "Center Code": transaction.center.centerNo,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -296,7 +296,7 @@ exports.exportAllSummary = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
+    "Center Code": "",
     Particulars: "",
     Bank: "",
     "Check No": "",
@@ -315,7 +315,7 @@ exports.exportSummaryById = async (req, res, next) => {
   const formattedLoanReleases = damayanFunds.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
+    "Center Code": transaction.center.centerNo,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -326,7 +326,7 @@ exports.exportSummaryById = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
+    "Center Code": "",
     Particulars: "",
     Bank: "",
     "Check No": "",
@@ -344,9 +344,9 @@ const export_excel = (datas, res, from, to) => {
   worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
 
   let title = "";
-  if (from && !to) title = `Doc. No. From JV#${from}`;
-  if (to && !from) title = `Doc. No. To JV#${to}`;
-  if (to && from) title = `Doc. No. From JV#${from} To JV#${to}`;
+  if (from && !to) title = `Doc. No. From ${from}`;
+  if (to && !from) title = `Doc. No. To ${to}`;
+  if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
   const headerSubtitle = `Damayan Fund By Doc. ( Summarized )`;
@@ -370,9 +370,9 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
 
   let title = "";
-  if (docNoFrom && !docNoTo) title = `Doc. No. From JV#${docNoFrom}`;
-  if (docNoTo && !docNoFrom) title = `Doc. No. To JV#${docNoTo}`;
-  if (docNoTo && docNoFrom) title = `Doc. No. From JV#${docNoFrom} To JV#${docNoTo}`;
+  if (docNoFrom && !docNoTo) title = `Doc. No. From ${docNoFrom}`;
+  if (docNoTo && !docNoFrom) title = `Doc. No. To ${docNoTo}`;
+  if (docNoTo && docNoFrom) title = `Doc. No. From ${docNoFrom} To ${docNoTo}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
   const headerSubtitle = `Damayan Fund By Doc. ( Detailed )`;

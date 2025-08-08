@@ -31,14 +31,16 @@ exports.acknowledgementRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("OR No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("OR No must only consist of 1 to 255 characters")
     .custom(async value => {
       const isUnique = await isCodeUnique(value);
-      if (!isUnique) throw new Error("CV No. already exists");
+      if (!isUnique) throw new Error("OR No. already exists");
       return true;
-    }),
+    })
+    .matches(/^OR#[\d-]+$/i)
+    .withMessage("OR# must start with OR# followed by numbers or hyphens"),
   body("centerLabel")
     .trim()
     .notEmpty()
@@ -120,7 +122,7 @@ exports.acknowledgementRules = [
     .notEmpty()
     .withMessage("CV# is required")
     .custom(async (value, { req, path }) => {
-      const index = path.match(/entries\[(\d+)\]\.loanReleaseEntryId/)[1];
+      const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
       const entryId = entries[index].loanReleaseEntryId;
@@ -134,6 +136,7 @@ exports.acknowledgementRules = [
     .notEmpty()
     .withMessage("Account code is required")
     .custom(async (value, { req, path }) => {
+      console.log(path.match(/entries\[(\d+)\]\.acctCode/));
       const index = path.match(/entries\[(\d+)\]\.acctCode/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
@@ -150,17 +153,20 @@ exports.updateAcknowledgementRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("OR No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("OR No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const acknowledgement = await Acknowledgement.findById(req.params.id).lean().exec();
-      if (acknowledgement.code.toUpperCase() !== value.toUpperCase()) {
+      const newValue = acknowledgement.code.toUpperCase().startsWith("OR#") ? acknowledgement.code : `OR#${acknowledgement.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
-        if (!isUnique) throw new Error("CV No. already exists");
+        if (!isUnique) throw new Error("OR No. already exists");
       }
       return true;
-    }),
+    })
+    .matches(/^OR#[\d-]+$/i)
+    .withMessage("OR# must start with OR# followed by numbers or hyphens"),
   body("centerLabel")
     .trim()
     .notEmpty()

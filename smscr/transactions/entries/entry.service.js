@@ -143,7 +143,7 @@ exports.update = async (transactionId, entryId, data, author) => {
       $set: {
         client: data.clientId || null,
         product: data.typeOfLoan,
-        acctCode: data.acctCodeId,
+        acctCode: data.acctCodeId || null,
         particular: data.particular,
         debit: data.debit,
         credit: data.credit,

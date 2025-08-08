@@ -11,7 +11,7 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
   datas.map(data => {
     loanReleases.push(
       [
-        { text: `CV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.center.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -112,9 +112,9 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
   });
 
   let title = "";
-  if (from && !to) title = `Doc. No. From CV#${from}`;
-  if (to && !from) title = `Doc. No. To CV#${to}`;
-  if (to && from) title = `Doc. No. From CV#${from} To CV#${to}`;
+  if (from && !to) title = `Doc. No. From ${from}`;
+  if (to && !from) title = `Doc. No. To ${to}`;
+  if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },

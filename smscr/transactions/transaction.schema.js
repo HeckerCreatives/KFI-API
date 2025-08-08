@@ -17,7 +17,7 @@ const transactionSchema = new mongoose.Schema(
     checkDate: { type: Date, required: true },
     bank: { type: mongoose.Schema.Types.ObjectId, ref: "Bank", required: true },
     amount: { type: Number, required: true },
-    cycle: { type: Number, required: true },
+    cycle: { type: String, required: true },
     interest: { type: Number, required: true },
     entries: [{ type: mongoose.Schema.Types.ObjectId, ref: "Entry" }],
     isEduc: { type: Boolean },

@@ -38,8 +38,11 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   }
 
   const query = ExpenseVoucher.find(filter);
-  if (sort && ["code-asc", "code-desc"].includes(sort)) query.sort({ code: sort === "code-asc" ? 1 : -1 });
-  else query.sort({ createdAt: -1 });
+  if (sort && ["code-asc", "code-desc"].includes(sort)) {
+    query.sort({ code: sort === "code-asc" ? 1 : -1 });
+  } else {
+    query.sort({ createdAt: -1 });
+  }
 
   const countPromise = ExpenseVoucher.countDocuments(filter);
   const expenseVouchersPromise = query
@@ -94,7 +97,7 @@ exports.create = async (data, author) => {
 
   const entries = data.entries.map(entry => ({
     expenseVoucher: newExpenseVoucher._id,
-    client: entry.client,
+    client: entry.client || null,
     particular: entry.particular,
     acctCode: entry.acctCodeId,
     debit: entry.debit,

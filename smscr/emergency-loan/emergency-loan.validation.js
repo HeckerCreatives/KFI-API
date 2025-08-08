@@ -1,15 +1,11 @@
 const { param, body } = require("express-validator");
 const EmergencyLoan = require("./emergency-loan.schema");
-const Supplier = require("../supplier/supplier.schema");
 const Bank = require("../banks/bank.schema");
-const Transaction = require("../transactions/transaction.schema");
-const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema");
-const JournalVoucher = require("../journal-voucher/journal-voucher.schema");
 const { isValidObjectId } = require("mongoose");
 const Customer = require("../customer/customer.schema");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
-const DamayanFund = require("../damayan-fund/damayan-fund.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
+const Center = require("../center/center.schema");
 
 exports.createEmergencyLoanCodeRules = [
   body("code")
@@ -22,7 +18,9 @@ exports.createEmergencyLoanCodeRules = [
       const isUnique = await isCodeUnique(value);
       if (!isUnique) throw new Error("CV No. already exists");
       return true;
-    }),
+    })
+    .matches(/^CV#[\d-]+$/i)
+    .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   ,
 ];
 
@@ -35,12 +33,15 @@ exports.updateEmergencyLoanCodeRules = [
     .withMessage("CV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const emergencyLoan = await EmergencyLoan.findById(req.params.id).lean().exec();
-      if (emergencyLoan.code.toUpperCase() !== value.toUpperCase()) {
+      const newValue = emergencyLoan.code.toUpperCase().startsWith("CV#") ? emergencyLoan.code : `CV#${emergencyLoan.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
         if (!isUnique) throw new Error("CV No. already exists");
       }
       return true;
-    }),
+    })
+    .matches(/^CV#[\d-]+$/i)
+    .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   ,
 ];
 
@@ -59,16 +60,28 @@ exports.emergencyLoanIdRules = [
 ];
 
 exports.emergencyLoanRules = [
-  body("supplierLabel")
+  // body("supplierLabel")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplier;
+  //     if (!supplierId) throw new Error("Supplier is required");
+  //     if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
+  body("centerLabel")
     .trim()
     .notEmpty()
-    .withMessage("Supplier is required")
+    .withMessage("Center is required")
     .custom(async (value, { req }) => {
-      const supplierId = req.body.supplier;
-      if (!supplierId) throw new Error("Supplier is required");
-      if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
+      const centerId = req.body.centerValue;
+      if (!centerId) throw new Error("Center is required");
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
@@ -154,16 +167,28 @@ exports.emergencyLoanRules = [
 ];
 
 exports.updateEmergencyLoanRules = [
-  body("supplierLabel")
+  // body("supplierLabel")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplier;
+  //     if (!supplierId) throw new Error("Supplier is required");
+  //     if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
+  body("centerLabel")
     .trim()
     .notEmpty()
-    .withMessage("Supplier is required")
+    .withMessage("Center is required")
     .custom(async (value, { req }) => {
-      const supplierId = req.body.supplier;
-      if (!supplierId) throw new Error("Supplier is required");
-      if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
+      const centerId = req.body.centerValue;
+      if (!centerId) throw new Error("Center is required");
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),

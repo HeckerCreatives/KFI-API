@@ -44,7 +44,6 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = JournalVoucher.countDocuments(filter);
   const journalVoucherPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .skip(offset)
     .limit(limit)
@@ -76,7 +75,7 @@ exports.get_single = async filter => {
 exports.create = async (data, author) => {
   const newJournalVoucher = await new JournalVoucher({
     code: data.code.toUpperCase(),
-    supplier: data.supplierId,
+    nature: data.nature,
     date: data.date,
     acctMonth: data.acctMonth,
     acctYear: data.acctYear,
@@ -113,7 +112,6 @@ exports.create = async (data, author) => {
 
   const journalVoucher = await JournalVoucher.findById(newJournalVoucher._id)
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .exec();
 
@@ -149,7 +147,7 @@ exports.update = async (filter, data, author) => {
     {
       $set: {
         code: data.code.toUpperCase(),
-        supplier: data.supplierId,
+        nature: data.nature,
         date: data.date,
         acctMonth: data.acctMonth,
         acctYear: data.acctYear,
@@ -164,7 +162,6 @@ exports.update = async (filter, data, author) => {
     { new: true }
   )
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
     .exec();
@@ -214,7 +211,7 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
   pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
 
@@ -279,12 +276,12 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom || docNoTo) filter.$and = [];
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
-  const journalVouchers = await JournalVoucher.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const journalVouchers = await JournalVoucher.find(filter).populate({ path: "bankCode" }).sort({ code: 1 });
   return journalVouchers;
 };
 
 exports.print_summary_by_id = async journalVoucherId => {
   const filter = { deletedAt: null, _id: journalVoucherId };
-  const journalVouchers = await JournalVoucher.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const journalVouchers = await JournalVoucher.find(filter).populate({ path: "bankCode" }).sort({ code: 1 });
   return journalVouchers;
 };

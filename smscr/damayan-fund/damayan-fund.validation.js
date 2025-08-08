@@ -1,29 +1,27 @@
 const { param, body } = require("express-validator");
-
 const Supplier = require("../supplier/supplier.schema");
 const Bank = require("../banks/bank.schema");
-const Transaction = require("../transactions/transaction.schema");
-const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema");
-const JournalVoucher = require("../journal-voucher/journal-voucher.schema");
 const { isValidObjectId } = require("mongoose");
 const Customer = require("../customer/customer.schema");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
-const EmergencyLoan = require("../emergency-loan/emergency-loan.schema");
 const DamayanFund = require("./damayan-fund.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
+const Center = require("../center/center.schema");
 
 exports.damayanFundCodeRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("JV No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("JV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const isUnique = await isCodeUnique(value);
       if (!isUnique) throw new Error("JV No. already exists");
       return true;
-    }),
+    })
+    .matches(/^JV#[\d-]+$/i)
+    .withMessage("JV# must start with JV# followed by numbers or hyphens"),
   ,
 ];
 
@@ -31,18 +29,20 @@ exports.updateDamayanFundCodeRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("JV No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("JV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const damayanFund = await DamayanFund.findById(req.params.id).lean().exec();
-      if (damayanFund.code.toUpperCase() !== value.toUpperCase()) {
+      const newValue = damayanFund.code.toUpperCase().startsWith("JV#") ? damayanFund.code : `JV#${damayanFund.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
         if (!isUnique) throw new Error("JV No. already exists");
       }
       return true;
-    }),
-  ,
+    })
+    .matches(/^JV#[\d-]+$/i)
+    .withMessage("JV# must start with JV# followed by numbers or hyphens"),
 ];
 
 exports.damayanFundIdRules = [
@@ -60,16 +60,28 @@ exports.damayanFundIdRules = [
 ];
 
 exports.damayanFundRules = [
-  body("supplierLabel")
+  // body("supplierLabel")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplier;
+  //     if (!supplierId) throw new Error("Supplier is required");
+  //     if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
+  body("centerLabel")
     .trim()
     .notEmpty()
-    .withMessage("Supplier is required")
+    .withMessage("Center is required")
     .custom(async (value, { req }) => {
-      const supplierId = req.body.supplier;
-      if (!supplierId) throw new Error("Supplier is required");
-      if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
+      const centerId = req.body.centerValue;
+      if (!centerId) throw new Error("Center is required");
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
@@ -156,16 +168,28 @@ exports.damayanFundRules = [
 ];
 
 exports.updateDamayanFundRules = [
-  body("supplierLabel")
+  // body("supplierLabel")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplier;
+  //     if (!supplierId) throw new Error("Supplier is required");
+  //     if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
+  body("centerLabel")
     .trim()
     .notEmpty()
-    .withMessage("Supplier is required")
+    .withMessage("Center is required")
     .custom(async (value, { req }) => {
-      const supplierId = req.body.supplier;
-      if (!supplierId) throw new Error("Supplier is required");
-      if (!isValidObjectId(supplierId)) throw new Error("Invalid supplier");
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
+      const centerId = req.body.centerValue;
+      if (!centerId) throw new Error("Center is required");
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
       return true;
     }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),

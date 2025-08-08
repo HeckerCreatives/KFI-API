@@ -33,7 +33,9 @@ exports.expenseVoucherRules = [
       const isUnique = await isCodeUnique(value);
       if (!isUnique) throw new Error("CV No. already exists");
       return true;
-    }),
+    })
+    .matches(/^CV#[\d-]+$/i)
+    .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   body("supplier")
     .trim()
     .notEmpty()
@@ -140,13 +142,16 @@ exports.updateExpenseVoucherRules = [
     .withMessage("CV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const expenseVoucher = await ExpenseVoucher.findById(req.params.id).lean().exec();
-      if (expenseVoucher.code.toUpperCase() !== value.toUpperCase()) {
+      const newValue = expenseVoucher.code.toUpperCase().startsWith("CV#") ? expenseVoucher.code : `CV#${expenseVoucher.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
         if (!isUnique) throw new Error("CV No. already exists");
         return true;
       }
       return true;
-    }),
+    })
+    .matches(/^CV#[\d-]+$/i)
+    .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   body("supplier")
     .trim()
     .notEmpty()

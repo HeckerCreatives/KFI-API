@@ -2,8 +2,10 @@ const Acknowledgement = require("../acknowlegement.schema.js");
 const AcknowledgementEntry = require("./acknowledgement-entries.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 
-exports.get_all = async (limit, page, offset, expenseVoucher) => {
-  const filter = { deletedAt: null, expenseVoucher };
+exports.get_all = async (limit, page, offset, acknowledgement) => {
+  const filter = { deletedAt: null, acknowledgement };
+
+  console.log(filter);
 
   const query = AcknowledgementEntry.find(filter)
     .sort("-createdAt")

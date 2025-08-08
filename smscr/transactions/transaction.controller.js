@@ -204,7 +204,7 @@ exports.exportAllDetailed = async (req, res, next) => {
     transactions.map(transaction => {
       data.push(
         [
-          `CV#${transaction.code}`,
+          `${transaction.code}`,
           completeNumberDate(transaction.date),
           transaction.center.description,
           transaction.remarks,
@@ -215,7 +215,7 @@ exports.exportAllDetailed = async (req, res, next) => {
         ],
         [],
         ["", "Account Code", "Description", "Debit", "Credit", "Particulars"],
-        ...transaction.entries.map(entry => ["", entry.acctCode.code, entry.acctCode.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
+        ...transaction.entries.map(entry => ["", entry?.acctCode?.code, entry?.acctCode?.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
         [
           "",
           "",
@@ -244,7 +244,7 @@ exports.exportDetailedById = async (req, res, next) => {
     transactions.map(transaction => {
       data.push(
         [
-          `CV#${transaction.code}`,
+          `${transaction.code}`,
           completeNumberDate(transaction.date),
           transaction.center.description,
           transaction.remarks,
@@ -341,9 +341,9 @@ const export_excel = (datas, res, from, to) => {
   worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
 
   let title = "";
-  if (from && !to) title = `Doc. No. From CV#${from}`;
-  if (to && !from) title = `Doc. No. To CV#${to}`;
-  if (to && from) title = `Doc. No. From CV#${from} To CV#${to}`;
+  if (from && !to) title = `Doc. No. From ${from}`;
+  if (to && !from) title = `Doc. No. To ${to}`;
+  if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
   const headerSubtitle = `Loan Release By Doc. ( Summarized )`;
@@ -367,9 +367,9 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
 
   let title = "";
-  if (docNoFrom && !docNoTo) title = `Doc. No. From CV#${docNoFrom}`;
-  if (docNoTo && !docNoFrom) title = `Doc. No. To CV#${docNoTo}`;
-  if (docNoTo && docNoFrom) title = `Doc. No. From CV#${docNoFrom} To CV#${docNoTo}`;
+  if (docNoFrom && !docNoTo) title = `Doc. No. From ${docNoFrom}`;
+  if (docNoTo && !docNoFrom) title = `Doc. No. To ${docNoTo}`;
+  if (docNoTo && docNoFrom) title = `Doc. No. From ${docNoFrom} To ${docNoTo}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
   const headerSubtitle = `Loan Release By Doc. ( Detailed )`;

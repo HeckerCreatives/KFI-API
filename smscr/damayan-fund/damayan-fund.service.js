@@ -47,7 +47,8 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = DamayanFund.countDocuments(filter);
   const damayanFundsPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+    // .populate({ path: "supplier", select: "code description" })
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
     .skip(offset)
@@ -72,7 +73,8 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
 exports.get_single = async filter => {
   const damayanFund = await DamayanFund.findOne(filter)
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+    // .populate({ path: "supplier", select: "code description" })
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
     .exec();
@@ -88,7 +90,8 @@ exports.create = async (data, author) => {
     session.startTransaction();
     const newDamayanFund = await new DamayanFund({
       code: data.code.toUpperCase(),
-      supplier: data.supplier,
+      // supplier: data.supplier,
+      center: data.centerValue,
       refNo: data.refNo,
       remarks: data.remarks,
       date: data.date,
@@ -130,7 +133,8 @@ exports.create = async (data, author) => {
 
     const damayanFund = await DamayanFund.findById(newDamayanFund._id)
       .populate({ path: "bankCode", select: "code description" })
-      .populate({ path: "supplier", select: "code description" })
+      // .populate({ path: "supplier", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .exec();
@@ -198,7 +202,8 @@ exports.update = async (filter, data, author) => {
     {
       $set: {
         code: data.code.toUpperCase(),
-        supplier: data.supplier,
+        // supplier: data.supplier,
+        center: data.centerValue,
         refNo: data.refNo,
         remarks: data.remarks,
         date: data.date,
@@ -213,7 +218,8 @@ exports.update = async (filter, data, author) => {
     { new: true }
   )
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+    // .populate({ path: "supplier", select: "code description" })
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .exec();
   if (!updated) {
@@ -261,9 +267,11 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -305,9 +313,11 @@ exports.print_detailed_by_id = async damayanFundId => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -344,12 +354,12 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom || docNoTo) filter.$and = [];
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
-  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return damayanFunds;
 };
 
 exports.print_summary_by_id = async damayanFundId => {
   const filter = { deletedAt: null, _id: damayanFundId };
-  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return damayanFunds;
 };

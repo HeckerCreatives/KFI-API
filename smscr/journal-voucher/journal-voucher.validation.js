@@ -1,13 +1,8 @@
 const { param, body } = require("express-validator");
 const JournalVoucher = require("./journal-voucher.schema");
-const Supplier = require("../supplier/supplier.schema");
 const Bank = require("../banks/bank.schema");
-const Transaction = require("../transactions/transaction.schema");
-const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema");
 const { isValidObjectId } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
-const EmergencyLoan = require("../emergency-loan/emergency-loan.schema");
-const DamayanFund = require("../damayan-fund/damayan-fund.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
 
 exports.journalVoucherIdRules = [
@@ -35,17 +30,10 @@ exports.journalVoucherRules = [
       const isUnique = await isCodeUnique(value);
       if (!isUnique) throw new Error("JV No. already exists");
       return true;
-    }),
-  body("supplier")
-    .trim()
-    .notEmpty()
-    .withMessage("Supplier is required")
-    .custom(async (value, { req }) => {
-      const supplierId = req.body.supplierId;
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
-      return true;
-    }),
+    })
+    .matches(/^JV#[\d-]+$/i)
+    .withMessage("JV# must start with JV# followed by numbers or hyphens"),
+  body("nature").if(body("nature").notEmpty()).trim().notEmpty().withMessage("Nature is required").withMessage("Nature must only consist of 1 to 255 characters"),
   body("date")
     .trim()
     .notEmpty()
@@ -125,22 +113,16 @@ exports.updateJournalVoucherRules = [
     .withMessage("JV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const journalVoucher = await JournalVoucher.findById(req.params.id).lean().exec();
-      if (journalVoucher.code.toUpperCase() !== value.toUpperCase()) {
+      const newValue = journalVoucher.code.toUpperCase().startsWith("JV#") ? journalVoucher.code : `JV#${journalVoucher.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
         if (!isUnique) throw new Error("JV No. already exists");
       }
       return true;
-    }),
-  body("supplier")
-    .trim()
-    .notEmpty()
-    .withMessage("Supplier is required")
-    .custom(async (value, { req }) => {
-      const supplierId = req.body.supplierId;
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
-      return true;
-    }),
+    })
+    .matches(/^JV#[\d-]+$/i)
+    .withMessage("JV# must start with JV# followed by numbers or hyphens"),
+  body("nature").if(body("nature").notEmpty()).trim().notEmpty().withMessage("Nature is required").withMessage("Nature must only consist of 1 to 255 characters"),
   body("date")
     .trim()
     .notEmpty()

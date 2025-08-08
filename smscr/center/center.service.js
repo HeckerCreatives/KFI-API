@@ -129,3 +129,38 @@ exports.delete = async (filter, author) => {
 
   return { success: true, center: filter._id };
 };
+
+exports.print_all = async () => {
+  const centers = await Center.aggregate([
+    { $match: { deletedAt: null } },
+    {
+      $lookup: {
+        from: "customers",
+        let: { centerId: "$_id" },
+        pipeline: [
+          { $match: { $expr: { $and: [{ $eq: ["$center", "$$centerId"] }, { $or: [{ $eq: ["$deletedAt", null] }, { $eq: [{ $ifNull: ["$deletedAt", null] }, null] }] }] } } },
+        ],
+        as: "clients",
+      },
+    },
+    {
+      $project: {
+        centerNo: 1,
+        description: 1,
+        location: 1,
+        centerChief: 1,
+        treasurer: 1,
+        acctOfficer: 1,
+        activeNew: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Active-New"] } } } },
+        activeReturnee: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Active-Returnee"] } } } },
+        activeExisting: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Active-Existing"] } } } },
+        activePastdue: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Active-PastDue"] } } } },
+        resigned: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Active-Resigned"] } } } },
+        others: { $size: { $filter: { input: "$clients", as: "user", cond: { $eq: ["$$user.memberStatus", "Others"] } } } },
+        total: { $size: "$clients" },
+      },
+    },
+  ]).exec();
+
+  return { success: true, centers };
+};

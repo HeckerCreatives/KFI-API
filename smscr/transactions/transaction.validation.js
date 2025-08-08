@@ -5,10 +5,7 @@ const Customer = require("../customer/customer.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const Transaction = require("./transaction.schema.js");
 const Bank = require("../banks/bank.schema.js");
-const ExpenseVoucher = require("../expense-voucher/expense-voucher.schema.js");
-const JournalVoucher = require("../journal-voucher/journal-voucher.schema.js");
-const EmergencyLoan = require("../emergency-loan/emergency-loan.schema.js");
-const DamayanFund = require("../damayan-fund/damayan-fund.schema.js");
+const { isCodeUnique } = require("../../utils/code-checker.js");
 
 exports.transactionIdRules = [
   param("id")
@@ -69,7 +66,9 @@ exports.createTransactionRules = [
       const isUnique = await isCodeUnique(value);
       if (!isUnique) throw new Error("CV No. already exists");
       return true;
-    }),
+    })
+    .matches(/^CV#[\d-]+$/i)
+    .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   body("center")
     .trim()
     .notEmpty()
@@ -126,7 +125,7 @@ exports.createTransactionRules = [
       return true;
     }),
   body("amount").trim().notEmpty().withMessage("Amount is required").isNumeric().withMessage("Amount must be a number"),
-  body("cycle").trim().notEmpty().withMessage("Cycle is required").isNumeric().withMessage("Cycle must be a number"),
+  body("cycle").trim().notEmpty().withMessage("Cycle is required").isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("interestRate").trim().notEmpty().withMessage("Interest rate is required").isNumeric().withMessage("Interest rate must be a number"),
   body("isEduc").isBoolean().withMessage("EDUC must be a boolean"),
   body("entries")
@@ -159,12 +158,12 @@ exports.createTransactionRules = [
   body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
   body("entries.*.interest").if(body("entries.*.interest").notEmpty()).isNumeric().withMessage("Interest must be a number"),
-  body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isNumeric().withMessage("Cycle must be a number"),
+  body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("entries.*.checkNo").if(body("entries.*.checkNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Check no. must only contain 1 to 255 characters"),
 ];
 
 exports.updateTransactionRules = [
   body("amount").trim().notEmpty().withMessage("Amount is required").isNumeric().withMessage("Amount must be a number"),
-  body("cycle").trim().notEmpty().withMessage("Cycle is required").isNumeric().withMessage("Cycle must be a number"),
+  body("cycle").trim().notEmpty().withMessage("Cycle is required").isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("interestRate").trim().notEmpty().withMessage("Interest rate is required").isNumeric().withMessage("Interest rate must be a number"),
 ];

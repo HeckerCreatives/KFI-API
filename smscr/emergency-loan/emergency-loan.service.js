@@ -47,7 +47,8 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = EmergencyLoan.countDocuments(filter);
   const emergencyLoansPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+    // .populate({ path: "supplier", select: "code description" })
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .skip(offset)
     .limit(limit)
@@ -82,7 +83,8 @@ exports.create = async (data, author) => {
     session.startTransaction();
     const newEmergencyLoan = await new EmergencyLoan({
       code: data.code.toUpperCase(),
-      supplier: data.supplier,
+      // supplier: data.supplier,
+      center: data.centerValue,
       refNo: data.refNo,
       remarks: data.remarks,
       date: data.date,
@@ -124,7 +126,8 @@ exports.create = async (data, author) => {
 
     const emergencyLoan = await EmergencyLoan.findById(newEmergencyLoan._id)
       .populate({ path: "bankCode", select: "code description" })
-      .populate({ path: "supplier", select: "code description" })
+      // .populate({ path: "supplier", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .exec();
@@ -192,7 +195,8 @@ exports.update = async (filter, data, author) => {
     {
       $set: {
         code: data.code.toUpperCase(),
-        supplier: data.supplier,
+        // supplier: data.supplier,
+        center: data.centerValue,
         refNo: data.refNo,
         remarks: data.remarks,
         date: data.date,
@@ -207,7 +211,8 @@ exports.update = async (filter, data, author) => {
     { new: true }
   )
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+    // .populate({ path: "supplier", select: "code description" })
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .exec();
   if (!updatedEmergencyLoan) {
@@ -255,9 +260,11 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$center", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -299,9 +306,10 @@ exports.print_detailed_by_id = async emergencyLoanId => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -338,12 +346,12 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom || docNoTo) filter.$and = [];
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
-  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return emergencyLoans;
 };
 
 exports.print_summary_by_id = async emergencyLoanId => {
   const filter = { deletedAt: null, _id: emergencyLoanId };
-  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
+  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return emergencyLoans;
 };

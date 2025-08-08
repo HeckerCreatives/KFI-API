@@ -6,14 +6,16 @@ exports.emergencyLoanDetailedPrintAll = (datas, from = "", to = "") => {
     title: "Emergency Loan",
   };
 
+  console.log(datas[0].center);
+
   const expenseVouchers = [];
 
   datas.map(data => {
     expenseVouchers.push(
       [
-        { text: `CV#${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: data.supplier.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: data.center.centerNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -112,9 +114,9 @@ exports.emergencyLoanDetailedPrintAll = (datas, from = "", to = "") => {
   });
 
   let title = "";
-  if (from && !to) title = `Doc. No. From CV#${from}`;
-  if (to && !from) title = `Doc. No. To CV#${to}`;
-  if (to && from) title = `Doc. No. From CV#${from} To CV#${to}`;
+  if (from && !to) title = `Doc. No. From ${from}`;
+  if (to && !from) title = `Doc. No. To ${to}`;
+  if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
@@ -128,7 +130,7 @@ exports.emergencyLoanDetailedPrintAll = (datas, from = "", to = "") => {
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Center Code", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
