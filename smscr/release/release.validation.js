@@ -6,6 +6,7 @@ const Acknowledgement = require("./release.schema.js");
 const { isCodeUnique } = require("../../utils/code-checker.js");
 const Entry = require("../transactions/entries/entry.schema.js");
 const Center = require("../center/center.schema.js");
+const Release = require("./release.schema.js");
 
 exports.releaseIdRules = [
   param("id")
@@ -25,14 +26,17 @@ exports.releaseRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("AR No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("AR No must only consist of 1 to 255 characters")
     .custom(async value => {
       const isUnique = await isCodeUnique(value);
-      if (!isUnique) throw new Error("CV No. already exists");
+      if (!isUnique) throw new Error("AR No. already exists");
       return true;
-    }),
+    })
+    .matches(/^AR#[\d-]+$/i)
+    .withMessage("AR# must start with AR# followed by numbers or hyphens"),
+  ,
   body("centerLabel")
     .trim()
     .notEmpty()
@@ -114,7 +118,7 @@ exports.releaseRules = [
     .notEmpty()
     .withMessage("CV# is required")
     .custom(async (value, { req, path }) => {
-      const index = path.match(/entries\[(\d+)\]\.loanReleaseEntryId/)[1];
+      const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
       const entryId = entries[index].loanReleaseEntryId;
@@ -144,17 +148,21 @@ exports.updateReleaseRules = [
   body("code")
     .trim()
     .notEmpty()
-    .withMessage("CV No is required")
+    .withMessage("AR No is required")
     .isLength({ min: 1, max: 255 })
-    .withMessage("CV No must only consist of 1 to 255 characters")
+    .withMessage("AR No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
-      const acknowledgement = await Acknowledgement.findById(req.params.id).lean().exec();
-      if (acknowledgement.code.toUpperCase() !== value.toUpperCase()) {
+      const release = await Release.findById(req.params.id).lean().exec();
+      const newValue = release.code.toUpperCase().startsWith("AR#") ? release.code : `AR#${release.code}`;
+      if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
-        if (!isUnique) throw new Error("CV No. already exists");
+        if (!isUnique) throw new Error("AR No. already exists");
       }
       return true;
-    }),
+    })
+    .matches(/^AR#[\d-]+$/i)
+    .withMessage("AR# must start with AR# followed by numbers or hyphens"),
+  ,
   body("centerLabel")
     .trim()
     .notEmpty()

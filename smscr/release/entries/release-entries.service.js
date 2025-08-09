@@ -2,8 +2,8 @@ const Release = require("../release.schema.js");
 const ReleaseEntry = require("./release-entries.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 
-exports.get_all = async (limit, page, offset, expenseVoucher) => {
-  const filter = { deletedAt: null, expenseVoucher };
+exports.get_all = async (limit, page, offset, release) => {
+  const filter = { deletedAt: null, release };
 
   const query = ReleaseEntry.find(filter)
     .sort("-createdAt")

@@ -3,7 +3,7 @@ const { formatNumber } = require("../../../utils/number");
 
 exports.releaseSummaryPrintAll = (datas, from = "", to = "") => {
   const info = {
-    title: "Release",
+    title: "Acknowledgement",
   };
 
   const loanReleases = [];
@@ -29,7 +29,7 @@ exports.releaseSummaryPrintAll = (datas, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Release By Doc. No. (Summarized)", fontSize: 9 },
+    { text: "Acknowledgement By Doc. No. (Summarized)", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {

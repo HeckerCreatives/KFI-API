@@ -331,15 +331,15 @@ const export_excel = (datas, res, from, to) => {
   if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Release By Doc. ( Summarized )`;
+  const headerSubtitle = `Acknowledgement By Doc. ( Summarized )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Release");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Acknowledgement");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="releases.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
@@ -357,15 +357,15 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   if (docNoTo && docNoFrom) title = `Doc. No. From ${docNoFrom} To ${docNoTo}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Release By Doc. ( Detailed )`;
+  const headerSubtitle = `Acknowledgement By Doc. ( Detailed )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Release");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Acknowledgement");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="releases.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);

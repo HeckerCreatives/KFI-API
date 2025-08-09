@@ -331,15 +331,15 @@ const export_excel = (datas, res, from, to) => {
   if (to && from) title = `Doc. No. From ${from} To ${to}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Acknowledgements By Doc. ( Summarized )`;
+  const headerSubtitle = `Official Receipt By Doc. ( Summarized )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Acknowledgement");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Official Receipt");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="official-receipt.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
@@ -357,15 +357,15 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   if (docNoTo && docNoFrom) title = `Doc. No. From ${docNoFrom} To ${docNoTo}`;
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = `Acknowledgements By Doc. ( Detailed )`;
+  const headerSubtitle = `Official Receipt By Doc. ( Detailed )`;
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [title], [dateTitle], []], { origin: "A2" });
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Acknowledgements");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Official Receipt");
 
   const excelBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
-  res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements.xlsx"');
+  res.setHeader("Content-Disposition", 'attachment; filename="official-receipt.xlsx"');
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
