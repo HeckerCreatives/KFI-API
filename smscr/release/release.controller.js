@@ -10,12 +10,12 @@ const XLSX = require("xlsx");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
-const { acknowledgementSummaryPrintAll, releaseSummaryPrintAll } = require("./prints/print_all_summary.js");
-const { acknowledgementDetailedPrintAll, releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
+const { releaseSummaryPrintAll } = require("./prints/print_all_summary.js");
+const { releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, keyword: search } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
     const result = await releaseService.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);

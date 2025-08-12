@@ -15,7 +15,7 @@ const CustomError = require("../../utils/custom-error.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
-    const { page, limit, search, center } = req.query;
+    const { page, limit, keyword: search, center } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
     const result = await transactionServ.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);

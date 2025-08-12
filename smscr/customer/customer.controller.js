@@ -152,7 +152,6 @@ exports.exportAll = async (req, res, next) => {
       .populate({ path: "business", select: "type" })
       .populate({ path: "beneficiaries" })
       .populate({ path: "children" })
-      .populate({ path: "groupNumber" })
       .sort({ createdAt: -1 })
       .lean()
       .exec();
@@ -160,7 +159,6 @@ exports.exportAll = async (req, res, next) => {
     const formattedClients = clients.map(client => ({
       "Account No": client.acctNumber,
       Name: client.name,
-      "Group No": client.groupNumber?.code || "",
       "Center No": client.center?.centerNo || "",
       "Business Type": client.business?.type || "",
       "Account Officer": client.acctOfficer,

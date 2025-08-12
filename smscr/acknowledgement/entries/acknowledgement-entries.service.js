@@ -5,8 +5,6 @@ const activityLogServ = require("../../activity-logs/activity-log.service.js");
 exports.get_all = async (limit, page, offset, acknowledgement) => {
   const filter = { deletedAt: null, acknowledgement };
 
-  console.log(filter);
-
   const query = AcknowledgementEntry.find(filter)
     .sort("-createdAt")
     .populate({ path: "acctCode", select: "code description" })

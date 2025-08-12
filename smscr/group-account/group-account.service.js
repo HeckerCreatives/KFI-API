@@ -2,12 +2,30 @@ const CustomError = require("../../utils/custom-error.js");
 const GroupAccount = require("./group-account.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
-  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
-  const groupAccounts = await GroupAccount.find(filter).lean().exec();
+exports.get_selections = async (keyword, limit, page, offset) => {
+  // const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
+  // const groupAccounts = await GroupAccount.find(filter).lean().exec();
+  // return {
+  //   success: true,
+  //   groupAccounts,
+  // };
+
+  const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
+
+  const groupAccountsPromise = GroupAccount.find(filter, { code: "$code", description: "$description" }).skip(offset).limit(limit).lean().exec();
+  const countPromise = GroupAccount.countDocuments(filter);
+
+  const [count, groupAccounts] = await Promise.all([countPromise, groupAccountsPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
   return {
     success: true,
     groupAccounts,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
   };
 };
 

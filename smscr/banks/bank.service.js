@@ -2,12 +2,23 @@ const CustomError = require("../../utils/custom-error.js");
 const Bank = require("./bank.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
-  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
-  const banks = await Bank.find(filter, { code: "$code", description: "$description" }).lean().exec();
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
+
+  const banksPromise = Bank.find(filter, { code: "$code", description: "$description" }).skip(offset).limit(limit).lean().exec();
+  const countPromise = Bank.countDocuments(filter);
+
+  const [count, banks] = await Promise.all([countPromise, banksPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
   return {
     success: true,
     banks,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
   };
 };
 

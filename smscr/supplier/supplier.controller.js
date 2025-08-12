@@ -5,7 +5,7 @@ const supplierService = require("./supplier.service.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
-    const { page, limit, search } = req.query;
+    const { page, limit, keyword: search } = req.query;
     const { validatedLimit, validatedOffset, validatedPage } = validatePaginationParams(limit, page);
     const result = await supplierService.get_selections(stringEscape(search), validatedLimit, validatedPage, validatedOffset);
     return res.status(200).json(result);

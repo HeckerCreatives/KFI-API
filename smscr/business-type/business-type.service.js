@@ -2,12 +2,24 @@ const CustomError = require("../../utils/custom-error.js");
 const BusinessType = require("./business-type.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
+exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, type: new RegExp(keyword, "i") };
-  const businessTypes = await BusinessType.find(filter).lean().exec();
+
+  const businessTypesPromise = BusinessType.find(filter).skip(offset).limit(limit).lean().exec();
+  const countPromise = BusinessType.countDocuments(filter);
+
+  const [count, businessTypes] = await Promise.all([countPromise, businessTypesPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
   return {
     success: true,
     businessTypes,
+    hasPrevPage,
+    hasNextPage,
+    totalPages,
   };
 };
 

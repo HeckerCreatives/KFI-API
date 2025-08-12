@@ -136,7 +136,6 @@ exports.acknowledgementRules = [
     .notEmpty()
     .withMessage("Account code is required")
     .custom(async (value, { req, path }) => {
-      console.log(path.match(/entries\[(\d+)\]\.acctCode/));
       const index = path.match(/entries\[(\d+)\]\.acctCode/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");

@@ -7,7 +7,7 @@ exports.get_all = async (limit, page, offset, keyword, sort) => {
   const query = WeeklySaving.find(filter);
   if (sort && ["from-asc", "from-desc"].includes(sort)) query.sort({ rangeAmountFrom: sort === "from-asc" ? 1 : -1 });
   else if (sort && ["to-asc", "to-desc"].includes(sort)) query.sort({ rangeAmountTo: sort === "description-asc" ? 1 : -1 });
-  else query.sort({ createdAt: -1 });
+  else query.sort({ rangeAmountFrom: 1 });
 
   const countPromise = WeeklySaving.countDocuments(filter);
   const weeklySavingsPromise = query.skip(offset).limit(limit).exec();

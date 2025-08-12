@@ -160,6 +160,22 @@ exports.createTransactionRules = [
   body("entries.*.interest").if(body("entries.*.interest").notEmpty()).isNumeric().withMessage("Interest must be a number"),
   body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("entries.*.checkNo").if(body("entries.*.checkNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Check no. must only contain 1 to 255 characters"),
+  body("root").custom((value, { req }) => {
+    const entries = req.body.entries;
+    const amount = Number(req.body.amount);
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    entries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+
+    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
+    if (totalCredit + totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    return true;
+  }),
 ];
 
 exports.updateTransactionRules = [

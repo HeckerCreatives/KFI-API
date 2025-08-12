@@ -3,12 +3,24 @@ const LoanCode = require("../loan-code/loan-code.schema.js");
 const Loan = require("./loan.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
-  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
-  const loans = await Loan.find(filter, { code: "$code" }).lean().exec();
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
+
+  const loansPromise = Loan.find(filter, { code: "$code", description: "$description" }).skip(offset).limit(limit).lean().exec();
+  const countPromise = Loan.countDocuments(filter);
+
+  const [count, loans] = await Promise.all([countPromise, loansPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
   return {
     success: true,
     loans,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
   };
 };
 

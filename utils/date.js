@@ -10,7 +10,7 @@ exports.completeNumberDate = date => {
 exports.validateDateInput = date => {
   if (!date) return "";
 
-  const parsedDate = DateTime.fromISO(dateString);
+  const parsedDate = DateTime.fromISO(date);
   if (!parsedDate.isValid) return "";
 
   return date;

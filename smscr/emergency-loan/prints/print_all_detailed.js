@@ -6,8 +6,6 @@ exports.emergencyLoanDetailedPrintAll = (datas, from = "", to = "") => {
     title: "Emergency Loan",
   };
 
-  console.log(datas[0].center);
-
   const expenseVouchers = [];
 
   datas.map(data => {

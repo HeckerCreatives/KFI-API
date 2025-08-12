@@ -2,12 +2,23 @@ const CustomError = require("../../utils/custom-error.js");
 const Center = require("./center.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
-exports.get_selections = async keyword => {
-  const filter = { deletedAt: null, centerNo: new RegExp(keyword, "i") };
-  const centers = await Center.find(filter, { code: "$centerNo", description: "$description" }).lean().exec();
+exports.get_selections = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, $or: [{ centerNo: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
+
+  const centersPromise = Center.find(filter, { code: "$centerNo", description: "$description" }).skip(offset).limit(limit).lean().exec();
+  const countPromise = Center.countDocuments(filter);
+
+  const [count, centers] = await Promise.all([countPromise, centersPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
   return {
     success: true,
     centers,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
   };
 };
 
