@@ -68,10 +68,11 @@ exports.get_single = async filter => {
 };
 
 exports.create = async (data, author) => {
-  const { code, loanCodes } = data;
+  const { code, loanCodes, description } = data;
 
   const newProductLoan = await new Loan({
     code: code.toUpperCase(),
+    description: description,
   }).save();
   if (!newProductLoan) throw new CustomError("Failed to create product loan");
 
@@ -117,7 +118,7 @@ exports.create = async (data, author) => {
 };
 
 exports.update = async (filter, data, author) => {
-  const updatedLoan = await Loan.findOneAndUpdate(filter, { $set: { code: data.code.toUpperCase() } }, { new: true })
+  const updatedLoan = await Loan.findOneAndUpdate(filter, { $set: { code: data.code.toUpperCase(), description: data.description } }, { new: true })
     .populate({ path: "loanCodes", select: "-createdAt", match: { deletedAt: null }, populate: { path: "acctCode", select: "-createdAt", match: { deletedAt: null } } })
     .exec();
   if (!updatedLoan) {

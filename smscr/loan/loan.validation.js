@@ -49,6 +49,7 @@ exports.loanProductRules = [
 
       return true;
     }),
+  body("description").if(body("description").notEmpty()).trim().isLength({ min: 1, max: 255 }).withMessage("Description must only consist of 1 to 255 characters"),
   body("loanCodes").isArray({ min: 1 }).withMessage("At least one loan code is required per module"),
   body("loanCodes.*.module").notEmpty().withMessage("Module name is required"),
   body("loanCodes.*.loanType").notEmpty().withMessage("Loan type is required"),
