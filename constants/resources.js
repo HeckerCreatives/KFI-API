@@ -1,4 +1,5 @@
 exports.ALL_RESOURCES = [
+  "dashboard",
   "admin",
   "clients",
   "loan release",
