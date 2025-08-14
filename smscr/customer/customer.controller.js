@@ -11,6 +11,15 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { getToken } = require("../../utils/get-token.js");
 const { isValidObjectId } = require("mongoose");
 
+exports.getClientStats = async (req, res, next) => {
+  try {
+    const result = await customerService.get_client_stats();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getSelections = async (req, res, next) => {
   try {
     const { page, limit, keyword, center } = req.query;

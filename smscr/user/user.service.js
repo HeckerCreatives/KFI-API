@@ -2,6 +2,21 @@ const { default: mongoose } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const User = require("./user.schema.js");
 
+exports.get_user_stats = async () => {
+  const bannedPromise = User.countDocuments({ deletedAt: null, status: "banned", role: "user" }).exec();
+  const activePromise = User.countDocuments({ deletedAt: null, status: "active", role: "user" }).exec();
+  const inactivePromise = User.countDocuments({ deletedAt: null, status: "inactive", role: "user" }).exec();
+
+  const [banned, active, inactive] = await Promise.all([bannedPromise, activePromise, inactivePromise]);
+
+  return {
+    success: true,
+    banned,
+    active,
+    inactive,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null, role: "user" };
   if (keyword) filter.$or = [{ name: new RegExp(keyword, "i") }, { username: new RegExp(keyword, "i") }];

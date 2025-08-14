@@ -7,6 +7,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const customerRoutes = express.Router();
 
 customerRoutes
+  .get("/statistics", customerController.getClientStats)
   .get("/selection", customerController.getSelections)
   .get("/print-all", isAuthorize("clients", "print"), customerController.printAll)
   .get("/print/:id", isAuthorize("clients", "print"), customerIdRules, validateData, customerController.print)

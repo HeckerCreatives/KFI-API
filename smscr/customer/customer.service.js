@@ -5,6 +5,37 @@ const { default: mongoose } = require("mongoose");
 const { wallets } = require("../../constants/wallets.js");
 const Wallet = require("../wallets/wallet.schema.js");
 
+exports.get_client_stats = async () => {
+  const totalPromise = Customer.countDocuments({ deletedAt: null }).exec();
+  const resignedPromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Resigned" }).exec();
+  const onLeavePromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Active On-Leave" }).exec();
+  const existingPromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Active-Existing" }).exec();
+  const newPromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Active-New" }).exec();
+  const pastDuePromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Active-PastDue" }).exec();
+  const returneePromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Active-Returnee" }).exec();
+
+  const [totalClient, resigned, activeOnLeave, activeExisting, activeNew, activePastDue, activeReturnee] = await Promise.all([
+    totalPromise,
+    resignedPromise,
+    onLeavePromise,
+    existingPromise,
+    newPromise,
+    pastDuePromise,
+    returneePromise,
+  ]);
+
+  return {
+    success: true,
+    totalClient,
+    resigned,
+    activeOnLeave,
+    activeExisting,
+    activeNew,
+    activePastDue,
+    activeReturnee,
+  };
+};
+
 exports.get_selections = async (keyword, center, limit, page, offset) => {
   const filter = { deletedAt: null, name: new RegExp(keyword, "i") };
   if (center) filter.center = center;

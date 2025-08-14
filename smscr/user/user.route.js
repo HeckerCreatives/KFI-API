@@ -8,6 +8,7 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const userRoutes = express.Router();
 
 userRoutes
+  .get("/statistics", userController.getUserStats)
   .get("/", isAuthorize("user", "visible"), userController.getUsers)
   .get("/activity-logs/:id", isAuthorize("user", "visible"), userIdRules, validateData, activityLogCtrl.getAllByUser)
   .get("/:id", isAuthorize("user", "read"), userIdRules, validateData, userController.getUser)

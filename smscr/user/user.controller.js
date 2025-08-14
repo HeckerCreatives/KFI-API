@@ -3,6 +3,15 @@ const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const userService = require("./user.service.js");
 
+exports.getUserStats = async (req, res, next) => {
+  try {
+    const result = await userService.get_user_stats();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUsers = async (req, res, next) => {
   try {
     const { page, limit, search, sort } = req.query;
