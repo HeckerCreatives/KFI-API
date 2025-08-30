@@ -4,6 +4,17 @@ const entryService = require("./damayan-fund-entries.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 const { getToken } = require("../../../utils/get-token.js");
 
+exports.getAllEntries = async (req, res, next) => {
+  try {
+    const { id: damayanFundId } = req.params;
+    if (!isValidObjectId(damayanFundId)) throw new CustomError("Invalid damayan fund id");
+    const result = await entryService.get_all_no_pagination(damayanFundId);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getEntries = async (req, res, next) => {
   try {
     const { page, limit } = req.query;

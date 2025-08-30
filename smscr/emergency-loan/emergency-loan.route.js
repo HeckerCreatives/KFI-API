@@ -19,6 +19,7 @@ emergencyLoanRoutes
   .get("/print/detailed/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printDetailedById)
   .get("/print-all/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
+
   .get("/export-all/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailed)
@@ -29,8 +30,9 @@ emergencyLoanRoutes
   .get("/", isAuthorize("emergency loan", "visible"), emergencyLoanController.getEmergencyLoans)
   .get("/:id", isAuthorize("emergency loan", "read"), emergencyLoanIdRules, validateData, emergencyLoanController.getEmergencyLoan)
   .get("/entries/:id", isAuthorize("emergency loan", "visible"), emergencyLoanIdRules, validateData, entryCtrl.getEntries)
+  .get("/entries/all/:id", isAuthorize("emergency loan", "visible"), emergencyLoanIdRules, validateData, entryCtrl.getAllEntries)
   .post("/", isAuthorize("emergency loan", "create"), createEmergencyLoanCodeRules, emergencyLoanRules, validateData, emergencyLoanController.createEmergencyLoan)
-  .post("/entries/:id", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, emergencyLoanEntryRules, validateData, entryCtrl.createEntry)
+
   .put(
     "/:id",
     isAuthorize("emergency loan", "update"),
@@ -40,16 +42,18 @@ emergencyLoanRoutes
     validateData,
     emergencyLoanController.updateEmergencyLoan
   )
-  .put(
-    "/entries/:id/:entryId",
-    isAuthorize("emergency loan", "update"),
-    emergencyLoanIdRules,
-    emergencyLoanEntryIdRules,
-    emergencyLoanEntryRules,
-    validateData,
-    entryCtrl.updateEntry
-  )
-  .delete("/:id", isAuthorize("emergency loan", "delete"), emergencyLoanIdRules, validateData, emergencyLoanController.deleteEmergencyLoan)
-  .delete("/entries/:id/:entryId", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, emergencyLoanEntryIdRules, validateData, entryCtrl.deleteEntry);
+
+  .delete("/:id", isAuthorize("emergency loan", "delete"), emergencyLoanIdRules, validateData, emergencyLoanController.deleteEmergencyLoan);
+// .delete("/entries/:id/:entryId", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, emergencyLoanEntryIdRules, validateData, entryCtrl.deleteEntry);
+// .post("/entries/:id", isAuthorize("emergency loan", "update"), emergencyLoanIdRules, emergencyLoanEntryRules, validateData, entryCtrl.createEntry)
+// .put(
+//   "/entries/:id/:entryId",
+//   isAuthorize("emergency loan", "update"),
+//   emergencyLoanIdRules,
+//   emergencyLoanEntryIdRules,
+//   emergencyLoanEntryRules,
+//   validateData,
+//   entryCtrl.updateEntry
+// )
 
 module.exports = emergencyLoanRoutes;

@@ -147,43 +147,126 @@ exports.create = async (data, author) => {
 };
 
 exports.update = async (filter, data, author) => {
-  const updatedExpenseVoucher = await ExpenseVoucher.findOneAndUpdate(
-    filter,
-    {
-      $set: {
-        code: data.code.toUpperCase(),
-        supplier: data.supplierId,
-        date: data.date,
-        acctMonth: data.acctMonth,
-        acctYear: data.acctYear,
-        refNo: data.refNo,
-        checkNo: data.checkNo,
-        checkDate: data.checkDate,
-        bankCode: data.bank,
-        amount: data.amount,
-        remarks: data.remarks,
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updatedExpenseVoucher = await ExpenseVoucher.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          code: data.code.toUpperCase(),
+          supplier: data.supplierId,
+          date: data.date,
+          acctMonth: data.acctMonth,
+          acctYear: data.acctYear,
+          refNo: data.refNo,
+          checkNo: data.checkNo,
+          checkDate: data.checkDate,
+          bankCode: data.bank,
+          amount: data.amount,
+          remarks: data.remarks,
+        },
       },
-    },
-    { new: true }
-  )
-    .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .lean()
-    .exec();
-  if (!updatedExpenseVoucher) {
-    throw new CustomError("Failed to update the expense voucher", 500);
+      { new: true }
+    )
+      .populate({ path: "bankCode", select: "code description" })
+      .populate({ path: "supplier", select: "code description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .session(session)
+      .lean()
+      .exec();
+
+    if (!updatedExpenseVoucher) {
+      throw new CustomError("Failed to update the expense voucher", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        expenseVoucher: updatedExpenseVoucher._id,
+        client: entry.client || null,
+        particular: entry.particular,
+        acctCode: entry.acctCodeId,
+        debit: entry.debit,
+        credit: entry.credit,
+        cvForRecompute: entry.cvForRecompute,
+        encodedBy: author._id,
+      }));
+
+      const added = await ExpenseVoucherEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the expense voucher", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await ExpenseVoucherEntry.updateMany(
+        { _id: { $in: data.deletedIds }, deletedAt: { $exists: false } },
+        { deletedAt: new Date().toISOString() },
+        { session }
+      ).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the expense voucher", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              client: entry.client || null,
+              particular: entry.particular,
+              acctCode: entry.acctCodeId,
+              debit: entry.debit,
+              credit: entry.credit,
+              cvForRecompute: entry.cvForRecompute,
+            },
+          },
+        },
+      }));
+      const updated = await ExpenseVoucherEntry.bulkWrite(updates, { session });
+      if (updated.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the expense voucher", 500);
+      }
+    }
+
+    const latestEntries = await ExpenseVoucherEntry.find({ expenseVoucher: updatedExpenseVoucher._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updatedExpenseVoucher.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated an expense voucher and its entries`,
+      resource: `expense voucher`,
+      dataId: updatedExpenseVoucher._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      expenseVoucher: updatedExpenseVoucher,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update expense voucher", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated an expense voucher`,
-    resource: `expense voucher`,
-    dataId: updatedExpenseVoucher._id,
-  });
-
-  return { success: true, expenseVoucher: updatedExpenseVoucher };
 };
 
 exports.delete = async (filter, author) => {

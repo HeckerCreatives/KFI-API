@@ -202,38 +202,115 @@ exports.create_loan_release = async (data, author) => {
 
 exports.update_loan_release = async (id, data, author) => {
   const filter = { deletedAt: null, _id: id };
-  const updates = {
-    $set: {
-      amount: data.amount,
-      interest: data.interestRate,
-      cycle: data.cycle,
-    },
-  };
-  const options = { new: true };
-  const updatedLoanRelease = await Transaction.findOneAndUpdate(filter, updates, options)
-    .populate({ path: "bank", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "loan", select: "code" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .lean()
-    .exec();
 
-  if (!updatedLoanRelease) {
-    throw new CustomError("Failed to update the loan release", 500);
+  const entryToUpdate = data.entries.filter(entry => entry._id !== "");
+  const entryToCreate = data.entries.filter(entry => entry._id === "");
+
+  const lrUpdates = { $set: { amount: data.amount, interest: data.interestRate, cycle: data.cycle } };
+  const lrOptions = { new: true };
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updatedLoanRelease = await Transaction.findOneAndUpdate(filter, lrUpdates, lrOptions)
+      .populate({ path: "bank", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "loan", select: "code" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .session(session)
+      .lean()
+      .exec();
+
+    if (!updatedLoanRelease) {
+      throw new CustomError("Failed to update the loan release", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        transaction: updatedLoanRelease._id,
+        client: entry.clientId || null,
+        center: updatedLoanRelease.center,
+        product: updatedLoanRelease.loan,
+        acctCode: entry.acctCodeId,
+        particular: entry.particular,
+        debit: entry.debit,
+        credit: entry.credit,
+        interest: entry.interest,
+        cycle: entry.cycle,
+        checkNo: entry.checkNo,
+        encodedBy: author._id,
+      }));
+
+      const added = await Entry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the loan release", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await Entry.updateMany({ _id: { $in: data.deletedIds }, deletedAt: { $exists: false } }, { deletedAt: new Date().toISOString() }, { session }).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the loan release", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              client: entry.clientId || null,
+              acctCode: entry.acctCodeId || null,
+              particular: entry.particular,
+              debit: entry.debit,
+              credit: entry.credit,
+              interest: entry.interest,
+              cycle: entry.cycle,
+              checkNo: entry.checkNo,
+            },
+          },
+        },
+      }));
+      const updated = await Entry.bulkWrite(updates, { session });
+      if (updated.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the loan release", 500);
+      }
+    }
+
+    const latestEntries = await Entry.find({ transaction: updatedLoanRelease._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updatedLoanRelease.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated a loan release along with its entries`,
+      resource: `loan release`,
+      dataId: updatedLoanRelease._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      transaction: updatedLoanRelease,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update the loan release", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated a loan release`,
-    resource: `loan release`,
-    dataId: updatedLoanRelease._id,
-  });
-
-  return {
-    success: true,
-    transaction: updatedLoanRelease,
-  };
 };
 
 exports.load_entries = async data => {

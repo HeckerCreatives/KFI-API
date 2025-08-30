@@ -3,7 +3,6 @@ const acknowledgementCtrl = require("./acknowledgement.controller.js");
 const entryCtrl = require("./entries/acknowledgement-entries.contoller.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { acknowledgementIdRules, acknowledgementRules, updateAcknowledgementRules } = require("./acknowledgement.validation.js");
-const { acknowledgementEntryIdRules, acknowledgementEntryRules } = require("./entries/acknowledgement-entries.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
 
 const acknowledgementRoutes = express.Router();
@@ -21,22 +20,22 @@ acknowledgementRoutes
   .get("/selection", acknowledgementCtrl.getSelections)
   .get("/", isAuthorize("acknowledgement", "visible"), acknowledgementCtrl.getAcknowledgements)
   .get("/entries/:id", isAuthorize("acknowledgement", "visible"), entryCtrl.getEntries)
+  .get("/entries/all/:id", isAuthorize("acknowledgement", "visible"), entryCtrl.getAllEntries)
 
   .post("/", isAuthorize("acknowledgement", "create"), acknowledgementRules, validateData, acknowledgementCtrl.createAcknowledgement)
-  .post("/entries/:id", isAuthorize("acknowledgement", "update"), acknowledgementIdRules, acknowledgementEntryRules, validateData, entryCtrl.createEntry)
-
   .put("/:id", isAuthorize("acknowledgement", "update"), acknowledgementIdRules, updateAcknowledgementRules, validateData, acknowledgementCtrl.updateAcknowledgement)
-  .put(
-    "/entries/:id/:entryId",
-    isAuthorize("acknowledgement", "update"),
-    acknowledgementIdRules,
-    acknowledgementEntryIdRules,
-    acknowledgementEntryRules,
-    validateData,
-    entryCtrl.updateEntry
-  )
+  .delete("/:id", isAuthorize("acknowledgement", "delete"), acknowledgementIdRules, validateData, acknowledgementCtrl.deleteAcknowledgement);
 
-  .delete("/:id", isAuthorize("acknowledgement", "delete"), acknowledgementIdRules, validateData, acknowledgementCtrl.deleteAcknowledgement)
-  .delete("/entries/:id/:entryId", isAuthorize("acknowledgement", "update"), acknowledgementIdRules, acknowledgementEntryIdRules, validateData, entryCtrl.deleteEntry);
+// .post("/entries/:id", isAuthorize("acknowledgement", "update"), acknowledgementIdRules, acknowledgementEntryRules, validateData, entryCtrl.createEntry)
+// .put(
+//   "/entries/:id/:entryId",
+//   isAuthorize("acknowledgement", "update"),
+//   acknowledgementIdRules,
+//   acknowledgementEntryIdRules,
+//   acknowledgementEntryRules,
+//   validateData,
+//   entryCtrl.updateEntry
+// )
+// .delete("/entries/:id/:entryId", isAuthorize("acknowledgement", "update"), acknowledgementIdRules, acknowledgementEntryIdRules, validateData, entryCtrl.deleteEntry);
 
 module.exports = acknowledgementRoutes;

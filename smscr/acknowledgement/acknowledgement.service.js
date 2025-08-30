@@ -90,7 +90,7 @@ exports.create = async (data, author) => {
     }).save({ session });
 
     if (!newAcknowledgement) {
-      throw new CustomError("Failed to save acknowledgement");
+      throw new CustomError("Failed to save official receipt");
     }
 
     const entries = data.entries.map(entry => ({
@@ -106,7 +106,7 @@ exports.create = async (data, author) => {
     const addedEntries = await AcknowledgementEntry.insertMany(entries, { session });
 
     if (addedEntries.length !== entries.length) {
-      throw new CustomError("Failed to save acknowledgement");
+      throw new CustomError("Failed to save official receipt");
     }
 
     const _ids = addedEntries.map(entry => entry._id);
@@ -121,8 +121,8 @@ exports.create = async (data, author) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `created an acknowledgement`,
-      resource: `acknowledgement`,
+      activity: `created an official receipt`,
+      resource: `official receipt`,
       dataId: acknowledgement._id,
       session,
     });
@@ -132,8 +132,8 @@ exports.create = async (data, author) => {
         await activityLogServ.create({
           author: author._id,
           username: author.username,
-          activity: `created a acknowledgement entry`,
-          resource: `acknowledgement - entry`,
+          activity: `created a official receipt entry`,
+          resource: `official receipt - entry`,
           dataId: id,
           session,
         });
@@ -147,7 +147,7 @@ exports.create = async (data, author) => {
     };
   } catch (error) {
     await session.abortTransaction();
-    throw new CustomError(error.message || "Failed to create a acknowledgement", error.statusCode || 500);
+    throw new CustomError(error.message || "Failed to create an official receipt", error.statusCode || 500);
   } finally {
     await session.endSession();
   }
@@ -155,54 +155,130 @@ exports.create = async (data, author) => {
 
 exports.update = async (id, data, author) => {
   const filter = { deletedAt: null, _id: id };
-  const updates = {
-    $set: {
-      code: data.code.toUpperCase(),
-      center: data.center,
-      refNo: data.refNumber,
-      remarks: data.remarks,
-      type: data.type,
-      acctOfficer: data.acctOfficer,
-      date: data.date,
-      acctMonth: data.acctMonth,
-      acctYear: data.acctYear,
-      checkNo: data.checkNo,
-      checkDate: data.checkDate,
-      bank: data.bankCode,
-      amount: data.amount,
-      cashCollectionAmount: data.cashCollection,
-    },
-  };
-  const options = { new: true };
-  const updated = await Acknowledgement.findOneAndUpdate(filter, updates, options)
-    .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .lean()
-    .exec();
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
 
-  if (!updated) {
-    throw new CustomError("Failed to update the acknowledgement", 500);
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updates = {
+      $set: {
+        code: data.code.toUpperCase(),
+        center: data.center,
+        refNo: data.refNumber,
+        remarks: data.remarks,
+        type: data.type,
+        acctOfficer: data.acctOfficer,
+        date: data.date,
+        acctMonth: data.acctMonth,
+        acctYear: data.acctYear,
+        checkNo: data.checkNo,
+        checkDate: data.checkDate,
+        bank: data.bankCode,
+        amount: data.amount,
+        cashCollectionAmount: data.cashCollection,
+      },
+    };
+    const options = { new: true };
+    const updated = await Acknowledgement.findOneAndUpdate(filter, updates, options)
+      .populate({ path: "bankCode", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new CustomError("Failed to update the official receipt", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        acknowledgement: updated._id,
+        loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        acctCode: entry.acctCodeId,
+        particular: entry.particular,
+        debit: entry.debit,
+        credit: entry.credit,
+        encodedBy: author._id,
+      }));
+
+      const added = await AcknowledgementEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the official receipt", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await AcknowledgementEntry.updateMany(
+        { _id: { $in: data.deletedIds }, deletedAt: { $exists: false } },
+        { deletedAt: new Date().toISOString() },
+        { session }
+      ).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the official receipt", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              acctCode: entry.acctCodeId,
+              particular: entry.particular,
+              debit: entry.debit,
+              credit: entry.credit,
+            },
+          },
+        },
+      }));
+      const updateds = await AcknowledgementEntry.bulkWrite(updates, { session });
+      if (updateds.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the official receipt", 500);
+      }
+    }
+
+    const latestEntries = await AcknowledgementEntry.find({ acknowledgement: updated._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated an official receipt`,
+      resource: `official receipt`,
+      dataId: updated._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      acknowledgement: updated,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update official receipt", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated an acknowledgement`,
-    resource: `acknowledgement`,
-    dataId: updated._id,
-  });
-
-  return {
-    success: true,
-    acknowledgement: updated,
-  };
 };
 
 exports.delete = async (filter, author) => {
   const deleted = await Acknowledgement.findOneAndUpdate(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deleted) {
-    throw new CustomError("Failed to delete the acknowledgement", 500);
+    throw new CustomError("Failed to delete the official receipt", 500);
   }
 
   await AcknowledgementEntry.updateMany({ acknowledgement: deleted._id }, { $set: { deletedAt: new Date().toISOString() } }).exec();
@@ -210,8 +286,8 @@ exports.delete = async (filter, author) => {
   await activityLogServ.create({
     author: author._id,
     username: author.username,
-    activity: `deleted a acknowledgement along with its linked gl entries`,
-    resource: `acknowledgement`,
+    activity: `deleted a official receipt along with its linked gl entries`,
+    resource: `official receipt`,
     dataId: deleted._id,
   });
 

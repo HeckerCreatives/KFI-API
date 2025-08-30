@@ -13,6 +13,7 @@ releaseRoutes
   .get("/print/detailed/:id", isAuthorize("release", "print"), releaseCtrl.printDetailedById)
   .get("/print-all/summary", isAuthorize("release", "print"), releaseCtrl.printAllSummary)
   .get("/print/summary/:id", isAuthorize("release", "print"), releaseCtrl.printSummaryById)
+
   .get("/export-all/summary", isAuthorize("release", "export"), releaseCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("release", "export"), releaseCtrl.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("release", "export"), releaseCtrl.exportAllDetailed)
@@ -21,14 +22,16 @@ releaseRoutes
   .get("/selection", releaseCtrl.getSelections)
   .get("/", isAuthorize("release", "visible"), releaseCtrl.getReleases)
   .get("/entries/:id", isAuthorize("release", "visible"), entryCtrl.getEntries)
+  .get("/entries/all/:id", isAuthorize("release", "visible"), entryCtrl.getAllEntries)
 
   .post("/", isAuthorize("release", "create"), releaseRules, validateData, releaseCtrl.createRelease)
-  .post("/entries/:id", isAuthorize("release", "update"), releaseIdRules, releaseEntryRules, validateData, entryCtrl.createEntry)
 
   .put("/:id", isAuthorize("release", "update"), releaseIdRules, updateReleaseRules, validateData, releaseCtrl.updateRelease)
-  .put("/entries/:id/:entryId", isAuthorize("release", "update"), releaseIdRules, releaseEntryIdRules, releaseEntryRules, validateData, entryCtrl.updateEntry)
 
-  .delete("/:id", isAuthorize("release", "delete"), releaseIdRules, validateData, releaseCtrl.deleteRelease)
-  .delete("/entries/:id/:entryId", isAuthorize("release", "update"), releaseIdRules, releaseEntryIdRules, validateData, entryCtrl.deleteEntry);
+  .delete("/:id", isAuthorize("release", "delete"), releaseIdRules, validateData, releaseCtrl.deleteRelease);
+
+// .post("/entries/:id", isAuthorize("release", "update"), releaseIdRules, releaseEntryRules, validateData, entryCtrl.createEntry)
+// .put("/entries/:id/:entryId", isAuthorize("release", "update"), releaseIdRules, releaseEntryIdRules, releaseEntryRules, validateData, entryCtrl.updateEntry)
+// .delete("/entries/:id/:entryId", isAuthorize("release", "update"), releaseIdRules, releaseEntryIdRules, validateData, entryCtrl.deleteEntry);
 
 module.exports = releaseRoutes;

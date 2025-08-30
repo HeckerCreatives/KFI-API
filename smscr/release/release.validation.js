@@ -1,12 +1,13 @@
 const { param, body } = require("express-validator");
 const Bank = require("../banks/bank.schema.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const Acknowledgement = require("./release.schema.js");
 const { isCodeUnique } = require("../../utils/code-checker.js");
 const Entry = require("../transactions/entries/entry.schema.js");
 const Center = require("../center/center.schema.js");
 const Release = require("./release.schema.js");
+const ReleaseEntry = require("./entries/release-entries.schema.js");
 
 exports.releaseIdRules = [
   param("id")
@@ -230,4 +231,79 @@ exports.updateReleaseRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
+  body("entries")
+    .isArray()
+    .withMessage("Entries must be an array")
+    .custom(value => {
+      if (!Array.isArray(value)) throw new Error("Invalid entries");
+      if (value.length < 1) throw new Error("Atleast 1 entry is required");
+      return true;
+    }),
+  body("entries.*.cvNo")
+    .if(body("entries.*.cvNo").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("CV# is required")
+    .custom(async (value, { req, path }) => {
+      const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
+      const entries = req.body.entries;
+      if (!Array.isArray(entries)) throw new Error("Invalid entries");
+      const entryId = entries[index].loanReleaseEntryId;
+      const exists = await Entry.exists({ _id: entryId, deletedAt: null });
+      if (!exists) throw new Error("CV# not found / deleted");
+      return true;
+    }),
+  body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.acctCode")
+    .trim()
+    .notEmpty()
+    .withMessage("Account code is required")
+    .custom(async (value, { req, path }) => {
+      const index = path.match(/entries\[(\d+)\]\.acctCode/)[1];
+      const entries = req.body.entries;
+      if (!Array.isArray(entries)) throw new Error("Invalid entries");
+      const acctCodeId = entries[index].acctCodeId;
+      const exists = await ChartOfAccount.exists({ _id: acctCodeId, deletedAt: null });
+      if (!exists) throw new Error("Account code not found / deleted");
+      return true;
+    }),
+  body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
+  body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
+  body("root").custom((value, { req }) => {
+    const entries = req.body.entries;
+    const amount = Number(req.body.amount);
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    entries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+
+    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
+    if (totalCredit + totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    return true;
+  }),
+  body("deletedIds")
+    .if(body("deletedIds").notEmpty())
+    .isArray()
+    .withMessage("Invalid deleted ids")
+    .custom(async value => {
+      if (!Array.isArray(value)) {
+        throw new Error("Invalid entries");
+      }
+
+      const validIds = value.filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length !== value.length) {
+        throw new Error("Invalid Id format detected");
+      }
+
+      const deletedIds = await ReleaseEntry.countDocuments({ _id: { $in: value } }).exec();
+      if (deletedIds !== value.length) {
+        throw new Error("Please check all the deleted values");
+      }
+
+      return true;
+    }),
 ];

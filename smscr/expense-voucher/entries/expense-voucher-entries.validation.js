@@ -2,6 +2,7 @@ const { body, param } = require("express-validator");
 const ChartOfAccount = require("../../chart-of-account/chart-of-account.schema.js");
 const ExpenseVoucherEntry = require("./expense-voucher-entries.schema.js");
 const Customer = require("../../customer/customer.schema.js");
+const ExpenseVoucher = require("../expense-voucher.schema.js");
 
 exports.expenseVoucherEntryIdRules = [
   param("entryId")
@@ -46,4 +47,36 @@ exports.expenseVoucherEntryRules = [
   body("debit").if(body("debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("credit").if(body("credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
   body("cvForRecompute").if(body("cvForRecompute").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("CV for recompute must only contain 1 to 255 characters"),
+  body("root").custom(async (value, { req }) => {
+    const { credit, debit, checkNo, cycle } = req.body;
+    if (debit === "" && credit === "" && checkNo === "" && cycle === "") {
+      throw new Error("No data to save. Please fill necessary fields.");
+    }
+
+    const expenseVoucherPromise = ExpenseVoucher.findOne({ _id: req.params.id, deletedAt: null }).lean().exec();
+    const entriesPromise = ExpenseVoucherEntry.find({ expenseVoucher: req.params.id, deletedAt: null }).lean().exec();
+
+    const [expenseVoucher, entries] = await Promise.all([expenseVoucherPromise, entriesPromise]);
+
+    let totalDebit = Number(req.body.debit);
+    let totalCredit = Number(req.body.credit);
+
+    entries.map(item => {
+      if (req.params.entryId) {
+        if (!item._id.equals(req.params.entryId)) {
+          totalDebit += Number(item.debit);
+          totalCredit += Number(item.credit);
+        }
+      } else {
+        totalDebit += Number(item.debit);
+        totalCredit += Number(item.credit);
+      }
+    });
+
+    if (totalDebit + totalCredit !== Number(expenseVoucher.amount)) {
+      throw new Error("Total of debit and credit must be balanced with the amount. Please update the amount first in the expense voucher details.");
+    }
+
+    return true;
+  }),
 ];

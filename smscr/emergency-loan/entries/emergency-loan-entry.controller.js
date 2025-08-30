@@ -4,6 +4,17 @@ const entryService = require("./emergency-loan-entry.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 const { getToken } = require("../../../utils/get-token.js");
 
+exports.getAllEntries = async (req, res, next) => {
+  try {
+    const { id: emergencyLoanId } = req.params;
+    if (!isValidObjectId(emergencyLoanId)) throw new CustomError("Invalid emergency loan id");
+    const result = await entryService.get_all_no_pagination(emergencyLoanId);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getEntries = async (req, res, next) => {
   try {
     const { page, limit } = req.query;

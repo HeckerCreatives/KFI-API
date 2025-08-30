@@ -197,44 +197,124 @@ exports.create = async (data, author) => {
 };
 
 exports.update = async (filter, data, author) => {
-  const updated = await DamayanFund.findOneAndUpdate(
-    filter,
-    {
-      $set: {
-        code: data.code.toUpperCase(),
-        // supplier: data.supplier,
-        center: data.centerValue,
-        refNo: data.refNo,
-        remarks: data.remarks,
-        date: data.date,
-        acctMonth: data.acctMonth,
-        acctYear: data.acctYear,
-        checkNo: data.checkNo,
-        checkDate: data.checkDate,
-        bankCode: data.bankCode,
-        amount: data.amount,
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updated = await DamayanFund.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          code: data.code.toUpperCase(),
+          // supplier: data.supplier,
+          center: data.centerValue,
+          refNo: data.refNo,
+          remarks: data.remarks,
+          date: data.date,
+          acctMonth: data.acctMonth,
+          acctYear: data.acctYear,
+          checkNo: data.checkNo,
+          checkDate: data.checkDate,
+          bankCode: data.bankCode,
+          amount: data.amount,
+        },
       },
-    },
-    { new: true }
-  )
-    .populate({ path: "bankCode", select: "code description" })
-    // .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .exec();
-  if (!updated) {
-    throw new CustomError("Failed to update the damayan fund", 500);
+      { new: true }
+    )
+      .populate({ path: "bankCode", select: "code description" })
+      // .populate({ path: "supplier", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .exec();
+
+    if (!updated) {
+      throw new CustomError("Failed to update the damayan fund", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        damayanFund: updated._id,
+        client: entry.client || null,
+        particular: entry.particular || null,
+        acctCode: entry.acctCodeId,
+        debit: entry.debit,
+        credit: entry.credit,
+        encodedBy: author._id,
+      }));
+
+      const added = await DamayanFundEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the damayan fund", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await DamayanFundEntry.updateMany(
+        { _id: { $in: data.deletedIds }, deletedAt: { $exists: false } },
+        { deletedAt: new Date().toISOString() },
+        { session }
+      ).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the damayan fund", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              client: entry.client || null,
+              particular: entry.particular || null,
+              acctCode: entry.acctCodeId,
+              debit: entry.debit,
+              credit: entry.credit,
+            },
+          },
+        },
+      }));
+      const updated = await DamayanFundEntry.bulkWrite(updates, { session });
+      if (updated.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the damayan fund", 500);
+      }
+    }
+
+    const latestEntries = await DamayanFundEntry.find({ damayanFund: updated._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated an damayan fund`,
+      resource: `damayan fund`,
+      dataId: updated._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      damayanFund: updated,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update damayan fund", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated an damayan fund`,
-    resource: `damayan fund`,
-    dataId: updated._id,
-  });
-
-  return { success: true, damayanFund: updated };
 };
 
 exports.delete = async (filter, author) => {

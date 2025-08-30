@@ -1,7 +1,6 @@
 const customerService = require("./customer.service.js");
 const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
-const Customer = require("./customer.schema.js");
 const PdfPrinter = require("pdfmake");
 const XLSX = require("xlsx");
 const { generatePrintAllCustomers } = require("./print/print_all.js");
@@ -9,7 +8,9 @@ const { pmFonts } = require("../../constants/fonts.js");
 const { completeNumberDate } = require("../../utils/date.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { getToken } = require("../../utils/get-token.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
+const { formatNumber } = require("../../utils/number.js");
+const { capitalize } = require("../../utils/letters.js");
 
 exports.getClientStats = async (req, res, next) => {
   try {
@@ -51,7 +52,6 @@ exports.getCustomer = async (req, res, next) => {
     const result = await customerService.get_single(filter);
     return res.status(200).json(result);
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };
@@ -92,15 +92,7 @@ exports.printAll = async (req, res, next) => {
   try {
     const printer = new PdfPrinter(pmFonts);
 
-    const clients = await Customer.find({ deletedAt: null })
-      .populate({ path: "center", select: "centerNo" })
-      .populate({ path: "business", select: "type" })
-      .populate({ path: "beneficiaries" })
-      .populate({ path: "children" })
-      .populate({ path: "groupNumber" })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+    const clients = await customerService.printAll({ deletedAt: null });
 
     const docDefinition = generatePrintAllCustomers(clients);
 
@@ -127,21 +119,22 @@ exports.print = async (req, res, next) => {
   try {
     const printer = new PdfPrinter(pmFonts);
 
-    const clients = await customerService.get_single({ _id: req.params.id, deletedAt: null });
+    const clients = await customerService.printAll({ deletedAt: null, _id: new mongoose.Types.ObjectId(req.params.id) });
 
-    if (clients.success) {
-      const docDefinition = generatePrintAllCustomers([clients.customer]);
+    if (clients) {
+      const docDefinition = generatePrintAllCustomers(clients);
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
       res.setHeader("Content-Type", "application/pdf");
 
       const author = getToken(req);
+
       await activityLogServ.create({
         author: author._id,
         username: author.username,
         activity: `printed a client profile`,
         resource: `clients`,
-        dataId: clients.customer._id,
+        dataId: clients[0].clients[0]._id,
       });
 
       pdfDoc.pipe(res);
@@ -156,28 +149,52 @@ exports.print = async (req, res, next) => {
 
 exports.exportAll = async (req, res, next) => {
   try {
-    const clients = await Customer.find({ deletedAt: null })
-      .populate({ path: "center", select: "centerNo" })
-      .populate({ path: "business", select: "type" })
-      .populate({ path: "beneficiaries" })
-      .populate({ path: "children" })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+    const clients = await customerService.printAll({ deletedAt: null });
 
-    const formattedClients = clients.map(client => ({
-      "Account No": client.acctNumber,
-      Name: client.name,
-      "Center No": client.center?.centerNo || "",
-      "Business Type": client.business?.type || "",
-      "Account Officer": client.acctOfficer,
-      "New Status": client.newStatus,
-      Address: client.address,
-      City: client.city,
-      "Zip Code": client.zipCode,
-      "Telephone No": client.telNo,
-      "Mobile No": client.mobileNo,
-    }));
+    const datas = [
+      [
+        "Center No",
+        "Account Officer",
+        "Name",
+        "Account No",
+        "Loan Amount",
+        "Address",
+        "Contact No",
+        "B-Day",
+        "B-Place",
+        "Status",
+        "Sex",
+        "Nature of Business",
+        "Position",
+        "Status Active/Drop-Out",
+        "Cycle",
+      ],
+    ];
+
+    clients.map(item => {
+      let totalLoanAmounts = 0;
+      item.clients.map(data => {
+        if (data.entries) totalLoanAmounts += data.totalLoan;
+        datas.push([
+          data.center.centerNo,
+          data.acctOfficer,
+          data.name,
+          data.acctNumber,
+          formatNumber(data.totalLoan),
+          data.address,
+          data.mobileNo,
+          completeNumberDate(data.birthdate),
+          data.birthplace,
+          capitalize(data.civilStatus),
+          capitalize(data.sex),
+          data.business.type,
+          data.position,
+          data.memberStatus,
+          data.entries ? data.entries.cycle : 0,
+        ]);
+      });
+      datas.push(["", "", "", "", formatNumber(totalLoanAmounts), "", "", "", "", "", "", "", "", "", ""]);
+    });
 
     const author = getToken(req);
     await activityLogServ.create({
@@ -187,7 +204,7 @@ exports.exportAll = async (req, res, next) => {
       resource: `clients`,
     });
 
-    export_excel(formattedClients, res);
+    export_excel(datas, res);
   } catch (error) {
     next(error);
   }
@@ -195,38 +212,63 @@ exports.exportAll = async (req, res, next) => {
 
 exports.export = async (req, res, next) => {
   try {
-    const client = await customerService.get_single({ _id: req.params.id, deletedAt: null });
+    const clients = await customerService.printAll({ deletedAt: null, _id: new mongoose.Types.ObjectId(req.params.id) });
 
-    if (client.success) {
-      const formattedClients = {
-        "Account No": client.customer.acctNumber,
-        Name: client.customer.name,
-        "Group No": client.customer.groupNumber?.code || "",
-        "Center No": client.customer.center?.centerNo || "",
-        "Business Type": client.customer.business?.type || "",
-        "Account Officer": client.customer.acctOfficer,
-        "New Status": client.customer.newStatus,
-        Address: client.customer.address,
-        City: client.customer.city,
-        "Zip Code": client.customer.zipCode,
-        "Telephone No": client.customer.telNo,
-        "Mobile No": client.customer.mobileNo,
-      };
+    const datas = [
+      [
+        "Center No",
+        "Account Officer",
+        "Name",
+        "Account No",
+        "Loan Amount",
+        "Address",
+        "Contact No",
+        "B-Day",
+        "B-Place",
+        "Status",
+        "Sex",
+        "Nature of Business",
+        "Position",
+        "Status Active/Drop-Out",
+        "Cycle",
+      ],
+    ];
 
-      const author = getToken(req);
-      await activityLogServ.create({
-        author: author._id,
-        username: author.username,
-        activity: `exported a client`,
-        resource: `clients`,
-        dataId: client.customer._id,
+    clients.map(item => {
+      let totalLoanAmounts = 0;
+      item.clients.map(data => {
+        if (data.entries) totalLoanAmounts += data.totalLoan;
+        datas.push([
+          data.center.centerNo,
+          data.acctOfficer,
+          data.name,
+          data.acctNumber,
+          formatNumber(data.totalLoan),
+          data.address,
+          data.mobileNo,
+          completeNumberDate(data.birthdate),
+          data.birthplace,
+          capitalize(data.civilStatus),
+          capitalize(data.sex),
+          data.business.type,
+          data.position,
+          data.memberStatus,
+          data.entries ? data.entries.cycle : 0,
+        ]);
       });
+      datas.push(["", "", "", "", formatNumber(totalLoanAmounts), "", "", "", "", "", "", "", "", "", ""]);
+    });
 
-      export_excel([formattedClients], res);
-      return;
-    }
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported a client`,
+      resource: `clients`,
+      dataId: clients[0].clients[0]._id,
+    });
 
-    return res.status(500).json(client);
+    export_excel(datas, res);
   } catch (error) {
     next(error);
   }
@@ -234,12 +276,12 @@ exports.export = async (req, res, next) => {
 
 const export_excel = (datas, res) => {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.json_to_sheet(datas, { origin: "A7" });
+  const worksheet = XLSX.utils.aoa_to_sheet(datas, { origin: "A7" });
 
-  worksheet["!cols"] = Array.from(Array(12)).fill({ wch: 20 });
+  worksheet["!cols"] = Array.from(Array(15)).fill({ wch: 20 });
 
   const headerTitle = "KAALALAY FOUNDATION, INC. (LB)";
-  const headerSubtitle = "Clients";
+  const headerSubtitle = "Clients Profile";
   const dateTitle = `Date Printed: ${completeNumberDate(new Date())}`;
 
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [dateTitle], []], { origin: "A2" });

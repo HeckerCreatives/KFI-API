@@ -13,6 +13,7 @@ journalVoucherRoutes
   .get("/print/detailed/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printDetailedById)
   .get("/print-all/summary", isAuthorize("journal voucher", "print"), journalVoucherController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printSummaryById)
+
   .get("/export-all/summary", isAuthorize("journal voucher", "export"), journalVoucherController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("journal voucher", "export"), journalVoucherController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("journal voucher", "export"), journalVoucherController.exportAllDetailed)
@@ -21,22 +22,25 @@ journalVoucherRoutes
   .get("/selection", journalVoucherController.getSelections)
   .get("/", isAuthorize("journal voucher", "visible"), journalVoucherController.getJournalVouchers)
   .get("/entries/:id", isAuthorize("journal voucher", "visible"), entryCtrl.getEntries)
+  .get("/entries/all/:id", isAuthorize("journal voucher", "visible"), entryCtrl.getAllEntries)
   .get("/:id", isAuthorize("journal voucher", "read"), journalVoucherIdRules, validateData, journalVoucherController.getJournalVoucher)
 
   .post("/", isAuthorize("journal voucher", "create"), journalVoucherRules, validateData, journalVoucherController.createJournalVoucher)
-  .post("/entries/:id", isAuthorize("journal voucher", "update"), journalVoucherIdRules, journalVoucherEntryRules, validateData, entryCtrl.createEntry)
 
   .put("/:id", isAuthorize("journal voucher", "update"), journalVoucherIdRules, updateJournalVoucherRules, validateData, journalVoucherController.updateJournalVoucher)
-  .put(
-    "/entries/:id/:entryId",
-    isAuthorize("journal voucher", "update"),
-    journalVoucherIdRules,
-    journalVoucherEntryIdRules,
-    journalVoucherEntryRules,
-    validateData,
-    entryCtrl.updateEntry
-  )
-  .delete("/:id", isAuthorize("journal voucher", "delete"), journalVoucherIdRules, validateData, journalVoucherController.deleteJournalVoucher)
-  .delete("/entries/:id/:entryId", isAuthorize("journal voucher", "update"), journalVoucherIdRules, journalVoucherEntryIdRules, validateData, entryCtrl.deleteEntry);
+
+  .delete("/:id", isAuthorize("journal voucher", "delete"), journalVoucherIdRules, validateData, journalVoucherController.deleteJournalVoucher);
+
+// .post("/entries/:id", isAuthorize("journal voucher", "update"), journalVoucherIdRules, journalVoucherEntryRules, validateData, entryCtrl.createEntry)
+// .put(
+//   "/entries/:id/:entryId",
+//   isAuthorize("journal voucher", "update"),
+//   journalVoucherIdRules,
+//   journalVoucherEntryIdRules,
+//   journalVoucherEntryRules,
+//   validateData,
+//   entryCtrl.updateEntry
+// )
+// .delete("/entries/:id/:entryId", isAuthorize("journal voucher", "update"), journalVoucherIdRules, journalVoucherEntryIdRules, validateData, entryCtrl.deleteEntry);
 
 module.exports = journalVoucherRoutes;

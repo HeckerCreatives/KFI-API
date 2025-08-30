@@ -3,6 +3,22 @@ const DamayanFund = require("../damayan-fund.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 
+exports.get_all_no_pagination = async damayanFund => {
+  const filter = { deletedAt: null, damayanFund };
+
+  const entries = await DamayanFundEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } })
+    .lean()
+    .exec();
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
 exports.get_all = async (limit, page, offset, damayanFund) => {
   const filter = { deletedAt: null, damayanFund };
 

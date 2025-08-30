@@ -2,6 +2,30 @@ const Release = require("../release.schema.js");
 const ReleaseEntry = require("./release-entries.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 
+exports.get_all_no_pagination = async release => {
+  const filter = { deletedAt: null, release };
+
+  const entries = await ReleaseEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({
+      path: "loanReleaseEntryId",
+      select: "client center transaction",
+      populate: [
+        { path: "client", select: "name" },
+        { path: "center", select: "" },
+        { path: "transaction", select: "code noOfWeeks dueDate" },
+      ],
+    })
+    .lean()
+    .exec();
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
 exports.get_all = async (limit, page, offset, release) => {
   const filter = { deletedAt: null, release };
 

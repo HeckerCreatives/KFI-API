@@ -90,7 +90,7 @@ exports.create = async (data, author) => {
     }).save({ session });
 
     if (!newRelease) {
-      throw new CustomError("Failed to save release");
+      throw new CustomError("Failed to save acknowledgement receipt");
     }
 
     const entries = data.entries.map(entry => ({
@@ -106,7 +106,7 @@ exports.create = async (data, author) => {
     const addedEntries = await ReleaseEntry.insertMany(entries, { session });
 
     if (addedEntries.length !== entries.length) {
-      throw new CustomError("Failed to save release");
+      throw new CustomError("Failed to save acknowledgement receipt");
     }
 
     const _ids = addedEntries.map(entry => entry._id);
@@ -121,8 +121,8 @@ exports.create = async (data, author) => {
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `created an release`,
-      resource: `release`,
+      activity: `created an acknowledgement receipt`,
+      resource: `acknowledgement receipt`,
       dataId: release._id,
       session,
     });
@@ -132,8 +132,8 @@ exports.create = async (data, author) => {
         await activityLogServ.create({
           author: author._id,
           username: author.username,
-          activity: `created a release entry`,
-          resource: `release - entry`,
+          activity: `created a acknowledgement receipt entry`,
+          resource: `acknowledgement receipt - entry`,
           dataId: id,
           session,
         });
@@ -147,7 +147,7 @@ exports.create = async (data, author) => {
     };
   } catch (error) {
     await session.abortTransaction();
-    throw new CustomError(error.message || "Failed to create a release", error.statusCode || 500);
+    throw new CustomError(error.message || "Failed to create a acknowledgement receipt", error.statusCode || 500);
   } finally {
     await session.endSession();
   }
@@ -174,35 +174,113 @@ exports.update = async (id, data, author) => {
     },
   };
   const options = { new: true };
-  const updated = await Release.findOneAndUpdate(filter, updates, options)
-    .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .lean()
-    .exec();
 
-  if (!updated) {
-    throw new CustomError("Failed to update the release", 500);
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updated = await Release.findOneAndUpdate(filter, updates, options)
+      .populate({ path: "bankCode", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .lean()
+      .exec();
+
+    if (!updated) {
+      throw new CustomError("Failed to update the release", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        release: updated._id,
+        loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        acctCode: entry.acctCodeId,
+        particular: entry.particular,
+        debit: entry.debit,
+        credit: entry.credit,
+        encodedBy: author._id,
+      }));
+
+      const added = await ReleaseEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the acknowledgement receipt", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await ReleaseEntry.updateMany({ _id: { $in: data.deletedIds }, deletedAt: { $exists: false } }, { deletedAt: new Date().toISOString() }, { session }).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the acknowledgement receipt", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              acctCode: entry.acctCodeId,
+              particular: entry.particular,
+              debit: entry.debit,
+              credit: entry.credit,
+            },
+          },
+        },
+      }));
+      const updateds = await ReleaseEntry.bulkWrite(updates, { session });
+      if (updateds.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the acknowledgement receipt", 500);
+      }
+    }
+
+    const latestEntries = await ReleaseEntry.find({ release: updated._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated an acknowledgement receipt`,
+      resource: `acknowledgement receipt`,
+      dataId: updated._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      acknowledgement: updated,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update acknowledgement receipt", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated an release`,
-    resource: `release`,
-    dataId: updated._id,
-  });
 
   return {
     success: true,
-    release: updated,
+    // release: updated,
   };
 };
 
 exports.delete = async (filter, author) => {
   const deleted = await Release.findOneAndUpdate(filter, { $set: { deletedAt: new Date().toISOString() } }).exec();
   if (!deleted) {
-    throw new CustomError("Failed to delete the release", 500);
+    throw new CustomError("Failed to delete the acknowledgement receipt", 500);
   }
 
   await ReleaseEntry.updateMany({ release: deleted._id }, { $set: { deletedAt: new Date().toISOString() } }).exec();
@@ -210,8 +288,8 @@ exports.delete = async (filter, author) => {
   await activityLogServ.create({
     author: author._id,
     username: author.username,
-    activity: `deleted a release along with its linked gl entries`,
-    resource: `release`,
+    activity: `deleted a acknowledgement receipt along with its linked gl entries`,
+    resource: `acknowledgement receipt`,
     dataId: deleted._id,
   });
 

@@ -13,6 +13,7 @@ expenseVoucherRoutes
   .get("/print/detailed/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printDetailedById)
   .get("/print-all/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
+
   .get("/export-all/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllDetailed)
@@ -21,24 +22,26 @@ expenseVoucherRoutes
   .get("/selection", expenseVoucherController.getSelections)
   .get("/", isAuthorize("expense voucher", "visible"), expenseVoucherController.getExpenseVouchers)
   .get("/entries/:id", isAuthorize("expense voucher", "visible"), entryCtrl.getEntries)
+  .get("/entries/all/:id", isAuthorize("expense voucher", "visible"), entryCtrl.getAllEntries)
 
   .get("/:id", isAuthorize("expense voucher", "read"), expenseVoucherIdRules, validateData, expenseVoucherController.getExpenseVoucher)
 
   .post("/", isAuthorize("expense voucher", "create"), expenseVoucherRules, validateData, expenseVoucherController.createExpenseVoucher)
-  .post("/entries/:id", isAuthorize("expense voucher", "update"), expenseVoucherIdRules, expenseVoucherEntryRules, validateData, entryCtrl.createEntry)
 
   .put("/:id", isAuthorize("expense voucher", "update"), expenseVoucherIdRules, updateExpenseVoucherRules, validateData, expenseVoucherController.updateExpenseVoucher)
-  .put(
-    "/entries/:id/:entryId",
-    isAuthorize("expense voucher", "update"),
-    expenseVoucherIdRules,
-    expenseVoucherEntryIdRules,
-    expenseVoucherEntryRules,
-    validateData,
-    entryCtrl.updateEntry
-  )
 
-  .delete("/:id", isAuthorize("expense voucher", "delete"), expenseVoucherIdRules, validateData, expenseVoucherController.deleteExpenseVoucher)
-  .delete("/entries/:id/:entryId", isAuthorize("expense voucher", "update"), expenseVoucherIdRules, expenseVoucherEntryIdRules, validateData, entryCtrl.deleteEntry);
+  .delete("/:id", isAuthorize("expense voucher", "delete"), expenseVoucherIdRules, validateData, expenseVoucherController.deleteExpenseVoucher);
+
+// .post("/entries/:id", isAuthorize("expense voucher", "update"), expenseVoucherIdRules, expenseVoucherEntryRules, validateData, entryCtrl.createEntry)
+// .put(
+//   "/entries/:id/:entryId",
+//   isAuthorize("expense voucher", "update"),
+//   expenseVoucherIdRules,
+//   expenseVoucherEntryIdRules,
+//   expenseVoucherEntryRules,
+//   validateData,
+//   entryCtrl.updateEntry
+// )
+// .delete("/entries/:id/:entryId", isAuthorize("expense voucher", "update"), expenseVoucherIdRules, expenseVoucherEntryIdRules, validateData, entryCtrl.deleteEntry);
 
 module.exports = expenseVoucherRoutes;

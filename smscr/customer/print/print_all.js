@@ -1,44 +1,63 @@
 const { completeNumberDate } = require("../../../utils/date");
+const { capitalize } = require("../../../utils/letters");
+const { formatNumber } = require("../../../utils/number");
 
 exports.generatePrintAllCustomers = datas => {
   const info = {
     title: "Clients",
   };
 
-  const clients = datas.map(data => [
-    { text: data.acctNumber, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.name, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.center.centerNo, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.business.type, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.acctOfficer, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.newStatus, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.address, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.city, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.zipCode, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.telNo, fontSize: 8, margin: [0, 1, 0, 1] },
-    { text: data.mobileNo, fontSize: 8, margin: [0, 1, 0, 1] },
-  ]);
+  const clients = [];
+
+  datas.map(item => {
+    let totalLoanAmounts = 0;
+    item.clients.map(data => {
+      if (data.entries) totalLoanAmounts += data.totalLoan;
+      clients.push([
+        { text: data.center.centerNo, fontSize: 8 },
+        { text: data.acctOfficer, fontSize: 8 },
+        { text: data.name, fontSize: 8 },
+        { text: data.acctNumber, fontSize: 8 },
+        { text: formatNumber(data.totalLoan), fontSize: 8, alignment: "right" },
+        { text: data.address, fontSize: 8 },
+        { text: data.mobileNo, fontSize: 8 },
+        { text: completeNumberDate(data.birthdate), fontSize: 8 },
+        { text: data.birthplace, fontSize: 8 },
+        { text: capitalize(data.civilStatus), fontSize: 8 },
+        { text: capitalize(data.sex), fontSize: 8 },
+        { text: data.business.type, fontSize: 8 },
+        { text: data.position, fontSize: 8 },
+        { text: data.memberStatus, fontSize: 8 },
+        { text: data.entries ? data.entries.cycle : 0, fontSize: 8 },
+      ]);
+    });
+    clients.push([{}, {}, {}, {}, { text: formatNumber(totalLoanAmounts), fontSize: 8, alignment: "right" }, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]);
+  });
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Clients", fontSize: 9 },
+    { text: "Clients Profile", fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["10%", "9%", "9%", "9%", "9%", "9%", "9%", "9%", "9%", "9%", "9%"],
+        widths: ["6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%", "6.6%"],
         body: [
           [
-            { text: "Account No", fontSize: 9, bold: true },
-            { text: "Name", fontSize: 9, bold: true },
-            { text: "Center No", fontSize: 9, bold: true },
-            { text: "Business Type", fontSize: 9, bold: true },
-            { text: "Account Officer", fontSize: 9, bold: true },
-            { text: "New Status", fontSize: 9, bold: true },
-            { text: "Address", fontSize: 9, bold: true },
-            { text: "City", fontSize: 9, bold: true },
-            { text: "Zip Code", fontSize: 9, bold: true },
-            { text: "Telephone No", fontSize: 9, bold: true },
-            { text: "Mobile No", fontSize: 9, bold: true },
+            { text: "Center No", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Account Officer", style: "headerStyle", margin: [0, 4, 0, 0] },
+            { text: "Name", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Account No", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Loan Amount", style: "headerStyle", margin: [0, 4, 0, 0] },
+            { text: "Address", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Contact No.", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "B-Day", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "B-Place", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Status", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Sex", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Nature of Business", style: "headerStyle", margin: [0, 4, 0, 0] },
+            { text: "Position", style: "headerStyle", margin: [0, 8, 0, 0] },
+            { text: "Status Active/Drop-Out", style: "headerStyle" },
+            { text: "Cycle", style: "headerStyle", margin: [0, 8, 0, 0] },
           ],
           ...clients,
         ],
@@ -46,7 +65,9 @@ exports.generatePrintAllCustomers = datas => {
     },
   ];
 
-  const styles = [];
+  const styles = {
+    headerStyle: { fontSize: 8, bold: true, alignment: "left" },
+  };
 
   const footer = function (currentPage, pageCount) {
     return {

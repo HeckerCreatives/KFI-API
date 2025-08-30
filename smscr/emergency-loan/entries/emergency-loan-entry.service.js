@@ -3,6 +3,22 @@ const EmergencyLoan = require("../emergency-loan.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 
+exports.get_all_no_pagination = async emergencyLoan => {
+  const filter = { deletedAt: null, emergencyLoan };
+
+  const entries = await EmergencyLoanEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } })
+    .lean()
+    .exec();
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
 exports.get_all = async (limit, page, offset, emergencyLoan) => {
   const filter = { deletedAt: null, emergencyLoan };
 

@@ -2,6 +2,30 @@ const Acknowledgement = require("../acknowlegement.schema.js");
 const AcknowledgementEntry = require("./acknowledgement-entries.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 
+exports.get_all_no_pagination = async acknowledgement => {
+  const filter = { deletedAt: null, acknowledgement };
+
+  const entries = await AcknowledgementEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({
+      path: "loanReleaseEntryId",
+      select: "client center transaction",
+      populate: [
+        { path: "client", select: "name" },
+        { path: "center", select: "" },
+        { path: "transaction", select: "code noOfWeeks dueDate" },
+      ],
+    })
+    .lean()
+    .exec();
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
 exports.get_all = async (limit, page, offset, acknowledgement) => {
   const filter = { deletedAt: null, acknowledgement };
 

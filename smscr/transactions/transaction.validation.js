@@ -6,6 +6,8 @@ const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js")
 const Transaction = require("./transaction.schema.js");
 const Bank = require("../banks/bank.schema.js");
 const { isCodeUnique } = require("../../utils/code-checker.js");
+const Entry = require("./entries/entry.schema.js");
+const { default: mongoose } = require("mongoose");
 
 exports.transactionIdRules = [
   param("id")
@@ -182,4 +184,73 @@ exports.updateTransactionRules = [
   body("amount").trim().notEmpty().withMessage("Amount is required").isNumeric().withMessage("Amount must be a number"),
   body("cycle").trim().notEmpty().withMessage("Cycle is required").isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("interestRate").trim().notEmpty().withMessage("Interest rate is required").isNumeric().withMessage("Interest rate must be a number"),
+  body("entries")
+    .isArray()
+    .withMessage("Entries must be an array")
+    .custom(value => {
+      if (!Array.isArray(value)) throw new Error("Invalid entries");
+      if (value.length < 1) throw new Error("Atleast 1 entry is required");
+      return true;
+    }),
+  body("entries.*.clientId")
+    .if(body("entries.*.clientId").notEmpty())
+    .isMongoId()
+    .withMessage("Invalid client id")
+    .custom(async value => {
+      const exists = await Customer.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Client not found");
+      return true;
+    }),
+  body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.acctCodeId")
+    .if(body("entries.*.acctCodeId").notEmpty())
+    .isMongoId()
+    .withMessage("Invalid account code")
+    .custom(async value => {
+      const exists = await ChartOfAccount.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Account code not found");
+      return true;
+    }),
+  body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
+  body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
+  body("entries.*.interest").if(body("entries.*.interest").notEmpty()).isNumeric().withMessage("Interest must be a number"),
+  body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
+  body("entries.*.checkNo").if(body("entries.*.checkNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Check no. must only contain 1 to 255 characters"),
+  body("root").custom((value, { req }) => {
+    const entries = req.body.entries;
+    const amount = Number(req.body.amount);
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    entries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+
+    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
+    if (totalCredit + totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    return true;
+  }),
+  body("deletedIds")
+    .if(body("deletedIds").notEmpty())
+    .isArray()
+    .withMessage("Invalid deleted ids")
+    .custom(async value => {
+      if (!Array.isArray(value)) {
+        throw new Error("Invalid entries");
+      }
+
+      const validIds = value.filter(id => mongoose.Types.ObjectId.isValid(id));
+      if (validIds.length !== value.length) {
+        throw new Error("Invalid Id format detected");
+      }
+
+      const deletedIds = await Entry.countDocuments({ _id: { $in: value } }).exec();
+      if (deletedIds !== value.length) {
+        throw new Error("Please check all the deleted values");
+      }
+
+      return true;
+    }),
 ];

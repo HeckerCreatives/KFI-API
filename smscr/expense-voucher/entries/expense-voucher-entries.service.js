@@ -2,6 +2,20 @@ const ExpenseVoucher = require("../expense-voucher.schema.js");
 const ExpenseVoucherEntry = require("./expense-voucher-entries.schema.js");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
 
+exports.get_all_no_pagination = async expenseVoucher => {
+  const filter = { deletedAt: null, expenseVoucher };
+
+  const entries = await ExpenseVoucherEntry.find(filter)
+    .sort("-createdAt")
+    .populate({ path: "acctCode", select: "code description" })
+    .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } });
+
+  return {
+    success: true,
+    entries,
+  };
+};
+
 exports.get_all = async (limit, page, offset, expenseVoucher) => {
   const filter = { deletedAt: null, expenseVoucher };
 

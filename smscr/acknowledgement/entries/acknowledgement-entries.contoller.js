@@ -4,6 +4,17 @@ const entryService = require("./acknowledgement-entries.service.js");
 const CustomError = require("../../../utils/custom-error.js");
 const { getToken } = require("../../../utils/get-token.js");
 
+exports.getAllEntries = async (req, res, next) => {
+  try {
+    const { id: acknowledgementId } = req.params;
+    if (!isValidObjectId(acknowledgementId)) throw new CustomError("Invalid acknowledgement id");
+    const result = await entryService.get_all_no_pagination(acknowledgementId);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getEntries = async (req, res, next) => {
   try {
     const { page, limit } = req.query;

@@ -25,6 +25,17 @@ exports.getSelections = async (req, res, next) => {
   }
 };
 
+exports.getAllEntries = async (req, res, next) => {
+  try {
+    const { id: transactionId } = req.params;
+    if (!isValidObjectId(transactionId)) throw new CustomError("Invalid transaction id");
+    const result = await entryService.get_all_no_pagination(transactionId);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getEntries = async (req, res, next) => {
   try {
     const { page, limit } = req.query;

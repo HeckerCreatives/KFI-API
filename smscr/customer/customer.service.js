@@ -252,3 +252,41 @@ exports.delete = async (filter, author) => {
 
   return { success: true, customer: filter._id };
 };
+
+exports.printAll = async filter => {
+  const pipelines = [];
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $lookup: { from: "businesstypes", localField: "business", foreignField: "_id", as: "business" } });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+
+  pipelines.push({
+    $lookup: { from: "entries", let: { lrId: "$_id" }, pipeline: [{ $match: { $expr: { $eq: ["$client", "$$lrId"] } } }, { $sort: { cycle: -1 } }], as: "entries" },
+  });
+
+  pipelines.push({
+    $addFields: {
+      business: { $arrayElemAt: ["$business", 0] },
+      center: { $arrayElemAt: ["$center", 0] },
+      entries: { $arrayElemAt: ["$entries", 0] },
+      totalLoan: { $sum: "$entries.debit" },
+    },
+  });
+
+  pipelines.push({ $group: { _id: "$center._id", clients: { $push: "$$ROOT" }, count: { $sum: 1 } } });
+  pipelines.push({ $lookup: { from: "centers", localField: "_id", foreignField: "_id", as: "_id" } });
+
+  pipelines.push({
+    $addFields: {
+      _id: { $arrayElemAt: ["$_id", 0] },
+    },
+  });
+
+  pipelines.push({ $sort: { "_id.centerNo": 1 } });
+
+  const customers = await Customer.aggregate(pipelines).exec();
+
+  return customers;
+};

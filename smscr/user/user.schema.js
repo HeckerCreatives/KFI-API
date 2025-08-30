@@ -59,7 +59,6 @@ userSchema.methods.savePassword = async function (password) {
   try {
     this.password = await bcrypt.hash(password, 10);
   } catch (error) {
-    console.log(error);
     throw new CustomError("Password hashing failed", 500);
   }
 };

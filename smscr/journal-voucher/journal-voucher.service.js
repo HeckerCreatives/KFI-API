@@ -142,43 +142,124 @@ exports.create = async (data, author) => {
 };
 
 exports.update = async (filter, data, author) => {
-  const updated = await JournalVoucher.findOneAndUpdate(
-    filter,
-    {
-      $set: {
-        code: data.code.toUpperCase(),
-        nature: data.nature,
-        date: data.date,
-        acctMonth: data.acctMonth,
-        acctYear: data.acctYear,
-        refNo: data.refNo,
-        checkNo: data.checkNo,
-        checkDate: data.checkDate,
-        bankCode: data.bank,
-        amount: data.amount,
-        remarks: data.remarks,
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updated = await JournalVoucher.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          code: data.code.toUpperCase(),
+          nature: data.nature,
+          date: data.date,
+          acctMonth: data.acctMonth,
+          acctYear: data.acctYear,
+          refNo: data.refNo,
+          checkNo: data.checkNo,
+          checkDate: data.checkDate,
+          bankCode: data.bank,
+          amount: data.amount,
+          remarks: data.remarks,
+        },
       },
-    },
-    { new: true }
-  )
-    .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .lean()
-    .exec();
+      { new: true }
+    )
+      .populate({ path: "bankCode", select: "code description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .lean()
+      .exec();
 
-  if (!updated) {
-    throw new CustomError("Failed to update the journal voucher", 500);
+    if (!updated) {
+      throw new CustomError("Failed to update the journal voucher", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        expenseVoucher: updated._id,
+        client: entry.client || null,
+        particular: entry.particular,
+        acctCode: entry.acctCodeId,
+        debit: entry.debit,
+        credit: entry.credit,
+        cvForRecompute: entry.cvForRecompute,
+        encodedBy: author._id,
+      }));
+
+      const added = await JournalVoucherEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the journal voucher", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await JournalVoucherEntry.updateMany(
+        { _id: { $in: data.deletedIds }, deletedAt: { $exists: false } },
+        { deletedAt: new Date().toISOString() },
+        { session }
+      ).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the journal voucher", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              client: entry.client || null,
+              particular: entry.particular,
+              acctCode: entry.acctCodeId,
+              debit: entry.debit,
+              credit: entry.credit,
+              cvForRecompute: entry.cvForRecompute,
+            },
+          },
+        },
+      }));
+      const updateds = await JournalVoucherEntry.bulkWrite(updates, { session });
+      if (updateds.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the journal voucher", 500);
+      }
+    }
+
+    const latestEntries = await JournalVoucherEntry.find({ journalVoucher: updated._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `update a journal voucher`,
+      resource: `journal voucher`,
+      dataId: updated._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      journalVoucher: updated,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update journal voucher", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `update a journal voucher`,
-    resource: `journal voucher`,
-    dataId: updated._id,
-  });
-
-  return { success: true, journalVoucher: updated };
 };
 
 exports.delete = async (filter, author) => {

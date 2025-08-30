@@ -190,44 +190,124 @@ exports.create = async (data, author) => {
 };
 
 exports.update = async (filter, data, author) => {
-  const updatedEmergencyLoan = await EmergencyLoan.findOneAndUpdate(
-    filter,
-    {
-      $set: {
-        code: data.code.toUpperCase(),
-        // supplier: data.supplier,
-        center: data.centerValue,
-        refNo: data.refNo,
-        remarks: data.remarks,
-        date: data.date,
-        acctMonth: data.acctMonth,
-        acctYear: data.acctYear,
-        checkNo: data.checkNo,
-        checkDate: data.checkDate,
-        bankCode: data.bankCode,
-        amount: data.amount,
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    const updatedEmergencyLoan = await EmergencyLoan.findOneAndUpdate(
+      filter,
+      {
+        $set: {
+          code: data.code.toUpperCase(),
+          // supplier: data.supplier,
+          center: data.centerValue,
+          refNo: data.refNo,
+          remarks: data.remarks,
+          date: data.date,
+          acctMonth: data.acctMonth,
+          acctYear: data.acctYear,
+          checkNo: data.checkNo,
+          checkDate: data.checkDate,
+          bankCode: data.bankCode,
+          amount: data.amount,
+        },
       },
-    },
-    { new: true }
-  )
-    .populate({ path: "bankCode", select: "code description" })
-    // .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
-    .populate({ path: "encodedBy", select: "-_id username" })
-    .exec();
-  if (!updatedEmergencyLoan) {
-    throw new CustomError("Failed to update the emergency loan", 500);
+      { new: true }
+    )
+      .populate({ path: "bankCode", select: "code description" })
+      // .populate({ path: "supplier", select: "code description" })
+      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "encodedBy", select: "-_id username" })
+      .exec();
+
+    if (!updatedEmergencyLoan) {
+      throw new CustomError("Failed to update the emergency loan", 500);
+    }
+
+    if (entryToCreate.length > 0) {
+      const newEntries = entryToCreate.map(entry => ({
+        emergencyLoan: updatedEmergencyLoan._id,
+        client: entry.client || null,
+        particular: entry.particular || null,
+        acctCode: entry.acctCodeId,
+        debit: entry.debit,
+        credit: entry.credit,
+        encodedBy: author._id,
+      }));
+
+      const added = await EmergencyLoanEntry.insertMany(newEntries, { session });
+      if (added.length !== newEntries.length) {
+        throw new CustomError("Failed to update the emergency loan", 500);
+      }
+    }
+
+    if (data.deletedIds && data.deletedIds.length > 0) {
+      const deleted = await EmergencyLoanEntry.updateMany(
+        { _id: { $in: data.deletedIds }, deletedAt: { $exists: false } },
+        { deletedAt: new Date().toISOString() },
+        { session }
+      ).exec();
+      if (deleted.matchedCount !== data.deletedIds.length) {
+        throw new CustomError("Failed to update the emergency loan", 500);
+      }
+    }
+
+    if (entryToUpdate.length > 0) {
+      const updates = entryToUpdate.map(entry => ({
+        updateOne: {
+          filter: { _id: entry._id },
+          update: {
+            $set: {
+              client: entry.client || null,
+              particular: entry.particular || null,
+              acctCode: entry.acctCodeId,
+              debit: entry.debit,
+              credit: entry.credit,
+            },
+          },
+        },
+      }));
+      const updated = await EmergencyLoanEntry.bulkWrite(updates, { session });
+      if (updated.matchedCount !== updates.length) {
+        throw new CustomError("Failed to update the emergency loan", 500);
+      }
+    }
+
+    const latestEntries = await EmergencyLoanEntry.find({ emergencyLoan: updatedEmergencyLoan._id, deletedAt: null }).session(session).lean().exec();
+    let totalDebit = 0;
+    let totalCredit = 0;
+    latestEntries.map(entry => {
+      totalDebit += Number(entry.debit);
+      totalCredit += Number(entry.credit);
+    });
+    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (totalCredit + totalCredit !== updatedEmergencyLoan.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated an emergency loan`,
+      resource: `emergency loan`,
+      dataId: updatedEmergencyLoan._id,
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      emergencyLoan: updatedEmergencyLoan,
+    };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to update emergency loan", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated an emergency loan`,
-    resource: `emergency loan`,
-    dataId: updatedEmergencyLoan._id,
-  });
-
-  return { success: true, emergencyLoan: updatedEmergencyLoan };
 };
 
 exports.delete = async (filter, author) => {
