@@ -2,7 +2,7 @@ const express = require("express");
 const transactionCtrl = require("./transaction.controller.js");
 const entryCtrl = require("./entries/entry.controller.js");
 
-const { loadEntryRules, createTransactionRules, transactionIdRules, updateTransactionRules, entryLoadRules } = require("./transaction.validation.js");
+const { loadEntryRules, createTransactionRules, transactionIdRules, updateTransactionRules, entryLoadRules, printFileRules } = require("./transaction.validation.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
 const { entryRules, entryIdRules, deleteEntryRules } = require("./entries/entry.validation.js");
@@ -14,6 +14,8 @@ transactionRoutes
   .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
   .get("/print-all/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummary)
   .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
+
+  .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
 
   .get("/export-all/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)

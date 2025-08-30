@@ -81,6 +81,16 @@ exports.deleteLoanRelease = async (req, res, next) => {
   }
 };
 
+exports.printFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const result = await transactionServ.print_file(transaction);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.printAllSummary = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;

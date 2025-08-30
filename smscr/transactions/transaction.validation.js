@@ -9,6 +9,20 @@ const { isCodeUnique } = require("../../utils/code-checker.js");
 const Entry = require("./entries/entry.schema.js");
 const { default: mongoose } = require("mongoose");
 
+exports.printFileRules = [
+  param("transaction")
+    .trim()
+    .notEmpty()
+    .withMessage("Transaction id is required")
+    .isMongoId()
+    .withMessage("Invalid transaction id")
+    .custom(async value => {
+      const exists = await Transaction.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Transaction not found");
+      return true;
+    }),
+];
+
 exports.transactionIdRules = [
   param("id")
     .trim()
@@ -229,7 +243,7 @@ exports.updateTransactionRules = [
     });
 
     if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit + totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
     return true;
   }),
   body("deletedIds")

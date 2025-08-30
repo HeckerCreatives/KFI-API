@@ -9,6 +9,7 @@ const { setPaymentDates } = require("../../utils/date.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
 const { wallets } = require("../../constants/wallets.js");
+const { getDistinct } = require("../../utils/distinct.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -106,7 +107,8 @@ exports.create_loan_release = async (data, author) => {
       throw new CustomError("Failed to save loan release");
     }
 
-    const entries = data.entries.map(entry => ({
+    const entries = data.entries.map((entry, i) => ({
+      line: i + 1,
       transaction: newLoanRelease._id,
       client: entry.clientId,
       center: newLoanRelease.center,
@@ -288,7 +290,7 @@ exports.update_loan_release = async (id, data, author) => {
       totalCredit += Number(entry.credit);
     });
     if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit + totalCredit !== updatedLoanRelease.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    if (totalCredit !== updatedLoanRelease.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -475,4 +477,27 @@ exports.print_summary_by_id = async transactionId => {
   const filter = { deletedAt: null, _id: transactionId };
   const transactions = await Transaction.find(filter).populate({ path: "center" }).populate({ path: "bank" }).sort({ code: 1 });
   return transactions;
+};
+
+exports.print_file = async transactionId => {
+  const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").lean().exec();
+  const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null }).sort({ line: 1 }).lean().exec();
+  let payTo = `CTR#${loanRelease.center.centerNo}`;
+
+  const uniqueClientIds = [];
+  entries.map(entry => {
+    if (entry.client && !uniqueClientIds.includes(`${entry.client}`)) uniqueClientIds.push(`${entry.client}`);
+  });
+
+  if (uniqueClientIds.length < 2) {
+    const client = await Customer.findById({ _id: uniqueClientIds[0] }).lean().exec();
+    payTo = `${loanRelease.center.description} - ${client.name}`;
+  }
+
+  return {
+    success: true,
+    loanRelease,
+    entries,
+    payTo,
+  };
 };

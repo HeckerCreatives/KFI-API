@@ -247,7 +247,7 @@ exports.update = async (id, data, author) => {
       totalCredit += Number(entry.credit);
     });
     if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    if (totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -262,7 +262,7 @@ exports.update = async (id, data, author) => {
 
     return {
       success: true,
-      acknowledgement: updated,
+      release: updated,
     };
   } catch (error) {
     await session.abortTransaction();
@@ -270,11 +270,6 @@ exports.update = async (id, data, author) => {
   } finally {
     await session.endSession();
   }
-
-  return {
-    success: true,
-    // release: updated,
-  };
 };
 
 exports.delete = async (filter, author) => {

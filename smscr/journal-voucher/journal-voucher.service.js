@@ -237,7 +237,7 @@ exports.update = async (filter, data, author) => {
       totalCredit += Number(entry.credit);
     });
     if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit + totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    if (totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
 
     await activityLogServ.create({
       author: author._id,

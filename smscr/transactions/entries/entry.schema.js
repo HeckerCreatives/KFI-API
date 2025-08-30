@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const entrySchema = new mongoose.Schema(
   {
+    line: { type: Number },
     transaction: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     center: { type: mongoose.Schema.Types.ObjectId, ref: "Center" },
