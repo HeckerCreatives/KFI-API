@@ -145,7 +145,7 @@ exports.expenseVoucherRules = [
     });
 
     if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit + totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
     return true;
   }),
 ];
