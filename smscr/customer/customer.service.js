@@ -5,6 +5,15 @@ const { default: mongoose } = require("mongoose");
 const { wallets } = require("../../constants/wallets.js");
 const Wallet = require("../wallets/wallet.schema.js");
 
+exports.get_clients_by_center = async center => {
+  const filter = { deletedAt: null, center };
+  const clients = await Customer.find(filter).select("name").lean().exec();
+  return {
+    success: true,
+    clients,
+  };
+};
+
 exports.get_client_stats = async () => {
   const totalPromise = Customer.countDocuments({ deletedAt: null }).exec();
   const resignedPromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Resigned" }).exec();

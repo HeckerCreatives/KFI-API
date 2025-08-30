@@ -2,7 +2,7 @@ const customerService = require("./customer.service.js");
 const { stringEscape } = require("../../utils/escape-string.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const PdfPrinter = require("pdfmake");
-const XLSX = require("xlsx");
+const XLSX = require("xlsx-js-style");
 const { generatePrintAllCustomers } = require("./print/print_all.js");
 const { pmFonts } = require("../../constants/fonts.js");
 const { completeNumberDate } = require("../../utils/date.js");
@@ -11,6 +11,18 @@ const { getToken } = require("../../utils/get-token.js");
 const { isValidObjectId, default: mongoose } = require("mongoose");
 const { formatNumber } = require("../../utils/number.js");
 const { capitalize } = require("../../utils/letters.js");
+const CustomError = require("../../utils/custom-error.js");
+
+exports.getClientsByCenter = async (req, res, next) => {
+  try {
+    const { center } = req.params;
+    if (!isValidObjectId(center)) throw new CustomError("Invalid center id");
+    const result = await customerService.get_clients_by_center(center);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getClientStats = async (req, res, next) => {
   try {
@@ -193,7 +205,24 @@ exports.exportAll = async (req, res, next) => {
           data.entries ? data.entries.cycle : 0,
         ]);
       });
-      datas.push(["", "", "", "", formatNumber(totalLoanAmounts), "", "", "", "", "", "", "", "", "", ""]);
+      datas.push([
+        "Total:",
+        "",
+        "",
+        "",
+        { v: `${formatNumber(totalLoanAmounts)}`, s: { border: { top: { style: "thin", color: { rgb: "000000" } }, bottom: { style: "thin", color: { rgb: "000000" } } } } },
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+        "",
+      ]);
+      datas.push(Array(Array.from(15)).fill(""));
     });
 
     const author = getToken(req);
@@ -256,7 +285,7 @@ exports.export = async (req, res, next) => {
           data.entries ? data.entries.cycle : 0,
         ]);
       });
-      datas.push(["", "", "", "", formatNumber(totalLoanAmounts), "", "", "", "", "", "", "", "", "", ""]);
+      datas.push(["", "", "", "", { v: `${formatNumber(totalLoanAmounts)}`, s: { font: { bold: true, sz: 12 } } }, "", "", "", "", "", "", "", "", "", ""]);
     });
 
     const author = getToken(req);
@@ -287,16 +316,19 @@ const export_excel = (datas, res) => {
   XLSX.utils.sheet_add_aoa(worksheet, [[headerTitle], [headerSubtitle], [dateTitle], []], { origin: "A2" });
 
   if (!worksheet["A2"]) worksheet["A2"] = {};
-  worksheet["A2"].s = {
-    font: { bold: true, sz: 20 },
-    alignment: { horizontal: "client" },
-  };
+  worksheet["A2"].s = { font: { bold: true, sz: 12 } };
 
   if (!worksheet["A3"]) worksheet["A3"] = {};
-  worksheet["A3"].s = {
-    font: { italic: true, sz: 12 },
-    alignment: { horizontal: "client" },
-  };
+  worksheet["A3"].s = { font: { bold: false, sz: 12 } };
+
+  if (!worksheet["A4"]) worksheet["A4"] = {};
+  worksheet["A4"].s = { font: { bold: false, sz: 12 } };
+
+  const letters = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"];
+  letters.map(letter => {
+    if (!worksheet[`${letter}7`]) worksheet[`${letter}7`] = {};
+    worksheet[`${letter}7`].s = { border: { bottom: { style: "medium", color: { rgb: "000000" } } } };
+  });
 
   XLSX.utils.book_append_sheet(workbook, worksheet, "Clients");
 
