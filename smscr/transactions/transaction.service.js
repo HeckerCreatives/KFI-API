@@ -319,25 +319,28 @@ exports.load_entries = async data => {
   const clients = await Customer.find({ center: data.center, deletedAt: null }).populate({ path: "center" }).lean().exec();
   const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
   const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
+  const validClients = data.clients;
 
   const entries = [];
 
   clients.map(client => {
-    loans.map(loan => {
-      entries.push({
-        clientId: client._id,
-        client: client.name,
-        particular: `${client.center.centerNo} - ${client.name}`,
-        acctCodeId: loan.acctCode._id,
-        acctCode: loan.acctCode.code,
-        description: loan.acctCode.description,
-        debit: "",
-        credit: "",
-        interest: "",
-        cycle: "",
-        checkNo: "",
+    if (validClients.includes(`${client._id}`)) {
+      loans.map(loan => {
+        entries.push({
+          clientId: client._id,
+          client: client.name,
+          particular: `${client.center.centerNo} - ${client.name}`,
+          acctCodeId: loan.acctCode._id,
+          acctCode: loan.acctCode.code,
+          description: loan.acctCode.description,
+          debit: "",
+          credit: "",
+          interest: "",
+          cycle: "",
+          checkNo: "",
+        });
       });
-    });
+    }
   });
 
   return {
