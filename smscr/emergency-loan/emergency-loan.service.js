@@ -132,26 +132,26 @@ exports.create = async (data, author) => {
       .session(session)
       .exec();
 
-    const paymentSchedules = setPaymentDates(20, newEmergencyLoan.date);
-    const payments = [];
-    await Promise.all(
-      currentEntries.map(async entry => {
-        await upsertWallet(entry.client, "EL", entry.debit, session);
-        paymentSchedules.map(schedule => {
-          payments.push({
-            emergencyLoan: entry.emergencyLoan,
-            emergencyLoanEntry: entry._id,
-            date: schedule.date,
-            paid: schedule.paid,
-          });
-        });
-      })
-    );
+    // const paymentSchedules = setPaymentDates(20, newEmergencyLoan.date);
+    // const payments = [];
+    // await Promise.all(
+    //   currentEntries.map(async entry => {
+    //     await upsertWallet(entry.client, "EL", entry.debit, session);
+    //     paymentSchedules.map(schedule => {
+    //       payments.push({
+    //         emergencyLoan: entry.emergencyLoan,
+    //         emergencyLoanEntry: entry._id,
+    //         date: schedule.date,
+    //         paid: schedule.paid,
+    //       });
+    //     });
+    //   })
+    // );
 
-    const schedules = await PaymentSchedule.insertMany(payments, { session });
-    if (schedules.length !== payments.length) {
-      throw new CustomError("Failed to save emergency loan");
-    }
+    // const schedules = await PaymentSchedule.insertMany(payments, { session });
+    // if (schedules.length !== payments.length) {
+    //   throw new CustomError("Failed to save emergency loan");
+    // }
 
     await activityLogServ.create({
       author: author._id,

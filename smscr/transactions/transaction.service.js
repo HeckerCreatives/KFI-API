@@ -145,27 +145,27 @@ exports.create_loan_release = async (data, author) => {
       .session(session)
       .exec();
 
-    const payments = [];
-    await Promise.all(
-      currentEntries.map(async entry => {
-        if (wallets.includes(transaction.loan.code)) {
-          await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
-        }
-        paymentSchedules.map(schedule => {
-          payments.push({
-            loanRelease: entry.transaction,
-            loanSchemaEntry: entry._id,
-            date: schedule.date,
-            paid: schedule.paid,
-          });
-        });
-      })
-    );
+    // const payments = [];
+    // await Promise.all(
+    //   currentEntries.map(async entry => {
+    //     if (wallets.includes(transaction.loan.code)) {
+    //       await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
+    //     }
+    //     paymentSchedules.map(schedule => {
+    //       payments.push({
+    //         loanRelease: entry.transaction,
+    //         loanSchemaEntry: entry._id,
+    //         date: schedule.date,
+    //         paid: schedule.paid,
+    //       });
+    //     });
+    //   })
+    // );
 
-    const schedules = await PaymentSchedule.insertMany(payments, { session });
-    if (schedules.length !== payments.length) {
-      throw new CustomError("Failed to save loan release");
-    }
+    // const schedules = await PaymentSchedule.insertMany(payments, { session });
+    // if (schedules.length !== payments.length) {
+    //   throw new CustomError("Failed to save loan release");
+    // }
 
     await activityLogServ.create({
       author: author._id,
@@ -195,6 +195,7 @@ exports.create_loan_release = async (data, author) => {
       success: true,
     };
   } catch (error) {
+    console.log(error);
     await session.abortTransaction();
     throw new CustomError(error.message || "Failed to create a loan release", error.statusCode || 500);
   } finally {
@@ -316,31 +317,31 @@ exports.update_loan_release = async (id, data, author) => {
 };
 
 exports.load_entries = async data => {
-  const clients = await Customer.find({ center: data.center, deletedAt: null }).populate({ path: "center" }).lean().exec();
+  const clients = await Customer.find({ center: data.center, deletedAt: null, _id: { $in: data.clients } })
+    .populate({ path: "center" })
+    .lean()
+    .exec();
   const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
   const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
-  const validClients = data.clients;
 
   const entries = [];
 
   clients.map(client => {
-    if (validClients.includes(`${client._id}`)) {
-      loans.map(loan => {
-        entries.push({
-          clientId: client._id,
-          client: client.name,
-          particular: `${client.center.centerNo} - ${client.name}`,
-          acctCodeId: loan.acctCode._id,
-          acctCode: loan.acctCode.code,
-          description: loan.acctCode.description,
-          debit: "",
-          credit: "",
-          interest: "",
-          cycle: "",
-          checkNo: "",
-        });
+    loans.map(loan => {
+      entries.push({
+        clientId: client._id,
+        client: client.name,
+        particular: `${client.center.centerNo} - ${client.name}`,
+        acctCodeId: loan.acctCode._id,
+        acctCode: loan.acctCode.code,
+        description: loan.acctCode.description,
+        debit: "",
+        credit: "",
+        interest: "",
+        cycle: "",
+        checkNo: "",
       });
-    }
+    });
   });
 
   return {
