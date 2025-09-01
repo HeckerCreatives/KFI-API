@@ -13,6 +13,8 @@ const { pmFonts } = require("../../constants/fonts.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
+const { expenseVoucherPrintFile } = require("./prints/print_file.js");
+const { expenseVoucherExportFile } = require("./prints/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -386,4 +388,46 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await expenseVoucherService.print_file(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = expenseVoucherPrintFile(result.payTo, result.expense, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed expense voucher ( File )`,
+      resource: `expense voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { expense, payTo, entries } = await expenseVoucherService.print_file(id);
+
+    const excelBuffer = expenseVoucherExportFile(expense, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="expense-vouchers.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };

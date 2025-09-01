@@ -366,3 +366,11 @@ exports.print_summary_by_id = async journalVoucherId => {
   const journalVouchers = await JournalVoucher.find(filter).populate({ path: "bankCode" }).sort({ code: 1 });
   return journalVouchers;
 };
+
+exports.print_file = async transactionId => {
+  const journal = await JournalVoucher.findOne({ _id: transactionId, deletedAt: null }).populate("bankCode").lean().exec();
+  const entries = await JournalVoucherEntry.find({ journalVoucher: journal._id, deletedAt: null }).populate("client").populate("acctCode").lean().exec();
+  let payTo = `${journal.nature}`;
+
+  return { success: true, journal, entries, payTo };
+};

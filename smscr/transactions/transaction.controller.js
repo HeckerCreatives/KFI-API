@@ -7,11 +7,13 @@ const { loanReleaseDetailedPrintAll } = require("./print/print_all_detailed.js")
 const transactionServ = require("./transaction.service.js");
 const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
-const XLSX = require("xlsx");
+const XLSX = require("xlsx-js-style");
 const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
-const { formatNumber } = require("../../utils/number.js");
+const { formatNumber, numberToWordsWithDecimals } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
+const { loanReleasePrintFile } = require("./print/print_file.js");
+const { loanReleaseExportFile } = require("./print/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -85,7 +87,24 @@ exports.printFile = async (req, res, next) => {
   try {
     const { transaction } = req.params;
     const result = await transactionServ.print_file(transaction);
-    return res.status(200).json(result);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( File )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
   } catch (error) {
     next(error);
   }
@@ -342,6 +361,21 @@ exports.exportSummaryById = async (req, res, next) => {
   });
 
   export_excel(formattedLoanReleases, res);
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const { loanRelease, payTo, entries } = await transactionServ.print_file(transaction);
+
+    const excelBuffer = loanReleaseExportFile(loanRelease, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };
 
 const export_excel = (datas, res, from, to) => {

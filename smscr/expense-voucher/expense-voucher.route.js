@@ -14,6 +14,9 @@ expenseVoucherRoutes
   .get("/print-all/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
 
+  .get("/print/file/:id", isAuthorize("expense voucher", "print"), expenseVoucherIdRules, validateData, expenseVoucherController.printFile)
+  .get("/export/file/:id", isAuthorize("expense voucher", "export"), expenseVoucherIdRules, validateData, expenseVoucherController.exportFile)
+
   .get("/export-all/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllDetailed)

@@ -12,6 +12,8 @@ const { validateDateInput, completeNumberDate } = require("../../utils/date.js")
 const activityLogServ = require("./../activity-logs/activity-log.service.js");
 const { formatNumber } = require("../../utils/number.js");
 const XLSX = require("xlsx");
+const { journalVoucherPrintFile } = require("./prints/print_file.js");
+const { journalVoucherExportFile } = require("./prints/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -387,4 +389,46 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await journalVoucherService.print_file(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = journalVoucherPrintFile(result.payTo, result.journal, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed journal voucher ( File )`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { journal, payTo, entries } = await journalVoucherService.print_file(id);
+
+    const excelBuffer = journalVoucherExportFile(journal, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="journal-vouchers.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };

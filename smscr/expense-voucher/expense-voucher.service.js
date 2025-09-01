@@ -373,3 +373,11 @@ exports.print_summary_by_id = async expenseVoucherId => {
   const expenseVouchers = await ExpenseVoucher.find(filter).populate({ path: "bankCode" }).populate({ path: "supplier" }).sort({ code: 1 });
   return expenseVouchers;
 };
+
+exports.print_file = async transactionId => {
+  const expense = await ExpenseVoucher.findOne({ _id: transactionId, deletedAt: null }).populate("supplier").populate("bankCode").lean().exec();
+  const entries = await ExpenseVoucherEntry.find({ expenseVoucher: expense._id, deletedAt: null }).populate("client").populate("acctCode").lean().exec();
+  let payTo = `${expense.supplier.description}`;
+
+  return { success: true, expense, entries, payTo };
+};

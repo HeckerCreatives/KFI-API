@@ -14,6 +14,9 @@ releaseRoutes
   .get("/print-all/summary", isAuthorize("release", "print"), releaseCtrl.printAllSummary)
   .get("/print/summary/:id", isAuthorize("release", "print"), releaseCtrl.printSummaryById)
 
+  .get("/print/file/:id", isAuthorize("release", "print"), releaseIdRules, validateData, releaseCtrl.printFile)
+  .get("/export/file/:id", isAuthorize("release", "export"), releaseIdRules, validateData, releaseCtrl.exportFile)
+
   .get("/export-all/summary", isAuthorize("release", "export"), releaseCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("release", "export"), releaseCtrl.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("release", "export"), releaseCtrl.exportAllDetailed)

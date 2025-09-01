@@ -12,6 +12,8 @@ const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const { releaseSummaryPrintAll } = require("./prints/print_all_summary.js");
 const { releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
+const { acknowledgementReceiptPrintFile } = require("./prints/print_file.js");
+const { acknowledgementReceiptExportFile } = require("./prints/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -369,4 +371,46 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await releaseService.print_file(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = acknowledgementReceiptPrintFile(result.payTo, result.release, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed acknowledgement receipt ( File )`,
+      resource: `acknowledgement receipt`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { release, payTo, entries } = await releaseService.print_file(id);
+
+    const excelBuffer = acknowledgementReceiptExportFile(release, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements-receipts.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };

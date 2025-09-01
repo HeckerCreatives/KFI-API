@@ -374,3 +374,11 @@ exports.print_summary_by_id = async transactionId => {
   const releases = await Release.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
   return releases;
 };
+
+exports.print_file = async id => {
+  const release = await Release.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const entries = await ReleaseEntry.find({ release: release._id, deletedAt: null }).populate("acctCode").lean().exec();
+  let payTo = `${release.center.description}`;
+
+  return { success: true, release, entries, payTo };
+};

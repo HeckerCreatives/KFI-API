@@ -6,6 +6,7 @@ const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js
 const mongoose = require("mongoose");
 const { setPaymentDates } = require("../../utils/date.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
+const Customer = require("../customer/customer.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -434,4 +435,27 @@ exports.print_summary_by_id = async emergencyLoanId => {
   const filter = { deletedAt: null, _id: emergencyLoanId };
   const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return emergencyLoans;
+};
+
+exports.print_file = async id => {
+  const emergency = await EmergencyLoan.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const entries = await EmergencyLoanEntry.find({ emergencyLoan: emergency._id, deletedAt: null }).sort({ line: 1 }).populate("client").populate("acctCode").lean().exec();
+  let payTo = `CTR#${emergency.center.centerNo}`;
+
+  const uniqueClientIds = [];
+  entries.map(entry => {
+    if (entry?.client?._id && !uniqueClientIds.includes(`${entry.client._id}`)) uniqueClientIds.push(`${entry.client._id}`);
+  });
+
+  if (uniqueClientIds.length < 2 && uniqueClientIds.length !== 0) {
+    const client = await Customer.findById({ _id: uniqueClientIds[0] }).lean().exec();
+    payTo = `${client.name}`;
+  }
+
+  return {
+    success: true,
+    emergency,
+    entries,
+    payTo,
+  };
 };

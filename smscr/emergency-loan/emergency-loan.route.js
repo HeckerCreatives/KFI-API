@@ -20,6 +20,9 @@ emergencyLoanRoutes
   .get("/print-all/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
 
+  .get("/print/file/:id", isAuthorize("emergency loan", "print"), emergencyLoanIdRules, validateData, emergencyLoanController.printFile)
+  .get("/export/file/:id", isAuthorize("emergency loan", "export"), emergencyLoanIdRules, validateData, emergencyLoanController.exportFile)
+
   .get("/export-all/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailed)

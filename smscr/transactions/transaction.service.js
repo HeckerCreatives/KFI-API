@@ -10,6 +10,7 @@ const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js
 const { upsertWallet } = require("../wallets/wallet.service.js");
 const { wallets } = require("../../constants/wallets.js");
 const { getDistinct } = require("../../utils/distinct.js");
+const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -232,6 +233,7 @@ exports.update_loan_release = async (id, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         transaction: updatedLoanRelease._id,
         client: entry.clientId || null,
         center: updatedLoanRelease.center,
@@ -265,6 +267,7 @@ exports.update_loan_release = async (id, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               client: entry.clientId || null,
               acctCode: entry.acctCodeId || null,
               particular: entry.particular,
@@ -284,6 +287,9 @@ exports.update_loan_release = async (id, data, author) => {
     }
 
     const latestEntries = await Entry.find({ transaction: updatedLoanRelease._id, deletedAt: null }).session(session).lean().exec();
+
+    if (hasDuplicateLines(latestEntries)) throw new CustomError("Make sure there is no duplicate line no.", 400);
+
     let totalDebit = 0;
     let totalCredit = 0;
     latestEntries.map(entry => {
@@ -484,13 +490,13 @@ exports.print_summary_by_id = async transactionId => {
 };
 
 exports.print_file = async transactionId => {
-  const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").lean().exec();
-  const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null }).sort({ line: 1 }).lean().exec();
+  const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").populate("bank").lean().exec();
+  const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null }).sort({ line: 1 }).populate("center").populate("client").populate("acctCode").lean().exec();
   let payTo = `CTR#${loanRelease.center.centerNo}`;
 
   const uniqueClientIds = [];
   entries.map(entry => {
-    if (entry.client && !uniqueClientIds.includes(`${entry.client}`)) uniqueClientIds.push(`${entry.client}`);
+    if (entry?.client?._id && !uniqueClientIds.includes(`${entry.client._id}`)) uniqueClientIds.push(`${entry.client._id}`);
   });
 
   if (uniqueClientIds.length < 2) {

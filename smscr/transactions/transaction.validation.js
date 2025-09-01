@@ -8,6 +8,7 @@ const Bank = require("../banks/bank.schema.js");
 const { isCodeUnique } = require("../../utils/code-checker.js");
 const Entry = require("./entries/entry.schema.js");
 const { default: mongoose } = require("mongoose");
+const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 
 exports.printFileRules = [
   param("transaction")
@@ -206,6 +207,7 @@ exports.updateTransactionRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientId")
     .if(body("entries.*.clientId").notEmpty())
     .isMongoId()
@@ -233,6 +235,8 @@ exports.updateTransactionRules = [
   body("root").custom((value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
+
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
     let totalDebit = 0;
     let totalCredit = 0;

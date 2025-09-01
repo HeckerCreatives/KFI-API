@@ -12,6 +12,8 @@ const { isValidObjectId } = require("mongoose");
 const PdfPrinter = require("pdfmake");
 const XLSX = require("xlsx");
 const { pmFonts } = require("../../constants/fonts.js");
+const { emergencyLoanPrintFile } = require("./prints/print_file.js");
+const { emergencyLoanExportFile } = require("./prints/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -386,4 +388,46 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const result = await emergencyLoanService.print_file(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = emergencyLoanPrintFile(result.payTo, result.emergency, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed emergency loan ( File )`,
+      resource: `emergency loan`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { emergency, payTo, entries } = await emergencyLoanService.print_file(id);
+
+    const excelBuffer = emergencyLoanExportFile(emergency, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="emergency-loans.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };

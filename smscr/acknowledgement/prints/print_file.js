@@ -1,21 +1,21 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals, numberToWords } = require("../../../utils/number");
 
-exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
+exports.officialReceiptPrintFile = (payTo, officialReceipt, entries) => {
   const info = {
-    title: "Loan Release",
+    title: "Official Receipt",
   };
 
   let particulars = "";
   let accountEntries = [];
   let totalDebit = 0;
   let totalCredit = 0;
-  let totalAmount = Number(loanRelease.amount);
+  let totalAmount = Number(officialReceipt.amount);
 
-  if (loanRelease.remarks) particulars += `${loanRelease.remarks}\n`;
+  if (officialReceipt.remarks) particulars += `${officialReceipt.remarks}\n`;
   entries.map(entry => {
     if (entry.particular) particulars += `${entry.particular}\n`;
-    if (entry.client) totalAmount -= Number(entry.credit);
+    if (entry?.client) totalAmount -= Number(entry.credit);
 
     totalDebit += Number(entry.debit) || 0;
     totalCredit += Number(entry.credit) || 0;
@@ -42,7 +42,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
     { text: "10001 Mt. Halcon St. , Umali Subd.", fontSize: 9, alignment: "center" },
     { text: "Batong Malake, Los Baños, Laguna", fontSize: 9, alignment: "center" },
     { text: "Tel. No. (049) 536-4501", fontSize: 9, alignment: "center" },
-    { text: "CHECK VOUCHER (LOAN RELEASE)", fontSize: 9, bold: true, alignment: "center", margin: [0, 10, 0, 10] },
+    { text: "OFFICIAL RECEIPT (ACKNOWLEDGEMENT)", fontSize: 9, bold: true, alignment: "center", margin: [0, 10, 0, 10] },
     {
       margin: [0, 0, 0, 10],
       table: {
@@ -51,10 +51,10 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
           [
             {
               table: {
-                widths: ["13%", "*", "*"],
+                widths: ["20%", "*", "*"],
                 body: [
                   [
-                    { text: "PAY TO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: "RECEIVED FROM", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
                     { text: `***${payTo}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
                     {},
                   ],
@@ -64,7 +64,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                       border: [0, 0, 0, 0],
                       colSpan: 2,
                       table: {
-                        widths: ["18%", "*"],
+                        widths: ["20%", "*"],
                         body: [
                           [
                             { text: "( In Figures )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -81,7 +81,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                       border: [0, 0, 0, 0],
                       colSpan: 2,
                       table: {
-                        widths: ["18%", "*"],
+                        widths: ["20%", "*"],
                         body: [
                           [
                             { text: "( In Words )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -90,6 +90,11 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                         ],
                       },
                     },
+                    {},
+                  ],
+                  [
+                    { text: "MODE OF PAYMENT", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: `${officialReceipt.type.toUpperCase()}`, fontSize: 8, bold: true, margin: [0, 5, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
                     {},
                   ],
                 ],
@@ -105,19 +110,27 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                 body: [
                   [
                     { text: "DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${completeNumberDate(loanRelease.date)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${completeNumberDate(officialReceipt.date)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "DOC. NO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${loanRelease.code}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${officialReceipt.code}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                  ],
+                  [
+                    { text: "CENTER", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: `${officialReceipt.center.centerNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                  ],
+                  [
+                    { text: "AO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: `${officialReceipt.acctOfficer}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "BANK", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${loanRelease.bank.description}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${officialReceipt.bankCode.description}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "CHECK NO.", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${loanRelease.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${officialReceipt.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                 ],
               },

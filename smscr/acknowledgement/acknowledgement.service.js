@@ -377,3 +377,11 @@ exports.print_summary_by_id = async transactionId => {
   const transactions = await Acknowledgement.find(filter).populate({ path: "center" }).populate({ path: "bankCode" }).sort({ code: 1 });
   return transactions;
 };
+
+exports.print_file = async id => {
+  const officialReceipt = await Acknowledgement.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const entries = await AcknowledgementEntry.find({ acknowledgement: officialReceipt._id, deletedAt: null }).populate("acctCode").lean().exec();
+  let payTo = `${officialReceipt.center.description}`;
+
+  return { success: true, officialReceipt, entries, payTo };
+};

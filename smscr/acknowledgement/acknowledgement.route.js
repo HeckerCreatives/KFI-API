@@ -12,6 +12,10 @@ acknowledgementRoutes
   .get("/print/detailed/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printDetailedById)
   .get("/print-all/summary", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printAllSummary)
   .get("/print/summary/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printSummaryById)
+
+  .get("/print/file/:id", isAuthorize("acknowledgement", "print"), acknowledgementIdRules, validateData, acknowledgementCtrl.printFile)
+  .get("/export/file/:id", isAuthorize("acknowledgement", "export"), acknowledgementIdRules, validateData, acknowledgementCtrl.exportFile)
+
   .get("/export-all/summary", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportAllDetailed)

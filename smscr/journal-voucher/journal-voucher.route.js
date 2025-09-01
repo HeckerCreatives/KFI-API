@@ -14,6 +14,9 @@ journalVoucherRoutes
   .get("/print-all/summary", isAuthorize("journal voucher", "print"), journalVoucherController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printSummaryById)
 
+  .get("/print/file/:id", isAuthorize("journal voucher", "print"), journalVoucherIdRules, validateData, journalVoucherController.printFile)
+  .get("/export/file/:id", isAuthorize("journal voucher", "export"), journalVoucherIdRules, validateData, journalVoucherController.exportFile)
+
   .get("/export-all/summary", isAuthorize("journal voucher", "export"), journalVoucherController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("journal voucher", "export"), journalVoucherController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("journal voucher", "export"), journalVoucherController.exportAllDetailed)
