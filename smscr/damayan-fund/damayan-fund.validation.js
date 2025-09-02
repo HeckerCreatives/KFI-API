@@ -332,6 +332,20 @@ exports.damayanLoadEntriesRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
-  body("includeAllCentersActiveMembers").trim().isBoolean().withMessage("Invalid all centers member included value"),
-  body("resignedIncluded").trim().isBoolean().withMessage("Invalid resigned included value"),
+  body("includeAllCentersActiveMembers")
+    .customSanitizer(value => {
+      if (value === "true" || value === "1") return true;
+      if (value === "false" || value === "0") return false;
+      return value;
+    })
+    .isBoolean()
+    .withMessage("Invalid all centers member included value"),
+  body("resignedIncluded")
+    .customSanitizer(value => {
+      if (value === "true" || value === "1") return true;
+      if (value === "false" || value === "0") return false;
+      return value;
+    })
+    .isBoolean()
+    .withMessage("Invalid resigned included value"),
 ];
