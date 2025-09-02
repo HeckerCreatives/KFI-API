@@ -388,3 +388,13 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
 
   return res.send(excelBuffer);
 };
+
+exports.loadEntries = async (req, res, next) => {
+  try {
+    const { center, amount, includeAllCentersActiveMembers, resignedIncluded } = req.body;
+    const result = await damayanFundService.load_entries(center, amount, includeAllCentersActiveMembers, resignedIncluded);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};

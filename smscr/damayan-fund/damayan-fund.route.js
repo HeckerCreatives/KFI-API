@@ -20,6 +20,7 @@ damayanFundRoutes
   .get("/export/detailed/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportDetailedById)
 
   .get("/selection", damayanFundController.getSelections)
+  .get("/load-entries", damayanFundController.loadEntries)
 
   .get("/", isAuthorize("damayan fund", "visible"), damayanFundController.getDamayanFunds)
   .get("/entries/:id", isAuthorize("damayan fund", "visible"), damayanFundIdRules, validateData, entryCtrl.getEntries)

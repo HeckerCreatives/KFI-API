@@ -312,3 +312,26 @@ exports.updateDamayanFundRules = [
       return true;
     }),
 ];
+
+exports.damayanLoadEntriesRules = [
+  body("center")
+    .trim()
+    .notEmpty()
+    .withMessage("Center is required")
+    .custom(async value => {
+      if (!isValidObjectId(value)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
+      return true;
+    }),
+  body("amount")
+    .trim()
+    .notEmpty()
+    .withMessage("Amount is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Amount must only consist of 1 to 255 characters")
+    .isNumeric()
+    .withMessage("Amount must be a number"),
+  body("includeAllCentersActiveMembers").trim().isBoolean().withMessage("Invalid all centers member included value"),
+  body("resignedIncluded").trim().isBoolean().withMessage("Invalid resigned included value"),
+];

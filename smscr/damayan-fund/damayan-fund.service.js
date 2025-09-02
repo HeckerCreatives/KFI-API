@@ -6,6 +6,8 @@ const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js
 const mongoose = require("mongoose");
 const { setPaymentDates } = require("../../utils/date.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
+const Customer = require("../customer/customer.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -442,4 +444,30 @@ exports.print_summary_by_id = async damayanFundId => {
   const filter = { deletedAt: null, _id: damayanFundId };
   const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
   return damayanFunds;
+};
+
+exports.load_entries = async (center, amount, includeAllCentersActiveMembers, resignedIncluded) => {
+  const filter = { deletedAt: null };
+  const statuses = activeMemberStatuses;
+  if (!includeAllCentersActiveMembers) filter.center = center;
+  if (resignedIncluded) statuses.push("Resigned");
+  filter.status = { $in: statuses };
+
+  const clients = await Customer.find(filter).select("name center").populate("center").lean().exec();
+  const acctCode = await ChartOfAccount.findOne({ deletedAt: null, code: "2010D" }).lean().exec();
+  if (!acctCode) throw new CustomError("Invalid account code");
+
+  const entries = clients.map(client => ({
+    client: client._id,
+    particular: `${client.center.centerNo} - ${client.name}`,
+    acctCode: acctCode._id,
+    acctCodeLabel: acctCode.description,
+    debit: Number(amount),
+    credit: 0,
+  }));
+
+  return {
+    success: true,
+    entries,
+  };
 };
