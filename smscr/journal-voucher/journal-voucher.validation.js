@@ -6,6 +6,7 @@ const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
 const Customer = require("../customer/customer.schema");
 const ExpenseVoucherEntry = require("../expense-voucher/entries/expense-voucher-entries.schema");
+const JournalVoucherEntry = require("./entries/journal-voucher-entries.schema");
 
 exports.journalVoucherIdRules = [
   param("id")
@@ -257,7 +258,7 @@ exports.updateJournalVoucherRules = [
         throw new Error("Invalid Id format detected");
       }
 
-      const deletedIds = await ExpenseVoucherEntry.countDocuments({ _id: { $in: value } }).exec();
+      const deletedIds = await JournalVoucherEntry.countDocuments({ _id: { $in: value } }).exec();
       if (deletedIds !== value.length) {
         throw new Error("Please check all the deleted values");
       }
