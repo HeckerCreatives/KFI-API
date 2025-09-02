@@ -107,7 +107,7 @@ exports.expenseVoucherRules = [
       const entries = req.body.entries;
 
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const clientId = entries[index].clientId;
+      const clientId = entries[index].client;
       const exists = await Customer.exists({ _id: clientId, deletedAt: null });
       if (!exists) throw new Error("Client not found / deleted");
       return true;
@@ -239,7 +239,7 @@ exports.updateExpenseVoucherRules = [
       const entries = req.body.entries;
 
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const clientId = entries[index].clientId;
+      const clientId = entries[index].client;
       const exists = await Customer.exists({ _id: clientId, deletedAt: null });
       if (!exists) throw new Error("Client not found / deleted");
       return true;
