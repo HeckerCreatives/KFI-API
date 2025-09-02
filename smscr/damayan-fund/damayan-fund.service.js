@@ -8,6 +8,7 @@ const { setPaymentDates } = require("../../utils/date.js");
 const { upsertWallet } = require("../wallets/wallet.service.js");
 const Customer = require("../customer/customer.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { activeMemberStatuses } = require("../../constants/member-status.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -459,6 +460,7 @@ exports.load_entries = async (center, amount, includeAllCentersActiveMembers, re
 
   const entries = clients.map(client => ({
     client: client._id,
+    clientName: client.name,
     particular: `${client.center.centerNo} - ${client.name}`,
     acctCode: acctCode._id,
     acctCodeLabel: acctCode.description,

@@ -1,7 +1,7 @@
 const { param, body } = require("express-validator");
 const JournalVoucher = require("./journal-voucher.schema");
 const Bank = require("../banks/bank.schema");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
 const Customer = require("../customer/customer.schema");

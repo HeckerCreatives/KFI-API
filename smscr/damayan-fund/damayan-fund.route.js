@@ -2,7 +2,14 @@ const express = require("express");
 const damayanFundController = require("./damayan-fund.controller.js");
 const entryCtrl = require("./entries/damayan-fund-entries.controller.js");
 const { validateData } = require("../../validation/validate-data.js");
-const { damayanFundIdRules, damayanFundRules, updateDamayanFundCodeRules, updateDamayanFundRules, damayanFundCodeRules } = require("./damayan-fund.validation.js");
+const {
+  damayanFundIdRules,
+  damayanFundRules,
+  updateDamayanFundCodeRules,
+  updateDamayanFundRules,
+  damayanFundCodeRules,
+  damayanLoadEntriesRules,
+} = require("./damayan-fund.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
 const { damayanFundEntryIdRules, damayanFundEntryRules } = require("./entries/damayan-fund-entries.validation.js");
 
@@ -20,7 +27,7 @@ damayanFundRoutes
   .get("/export/detailed/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportDetailedById)
 
   .get("/selection", damayanFundController.getSelections)
-  .get("/load-entries", damayanFundController.loadEntries)
+  .post("/load-entries", damayanLoadEntriesRules, validateData, damayanFundController.loadEntries)
 
   .get("/", isAuthorize("damayan fund", "visible"), damayanFundController.getDamayanFunds)
   .get("/entries/:id", isAuthorize("damayan fund", "visible"), damayanFundIdRules, validateData, entryCtrl.getEntries)
