@@ -448,13 +448,11 @@ exports.print_summary_by_id = async damayanFundId => {
 };
 
 exports.load_entries = async (center, amount, includeAllCentersActiveMembers, resignedIncluded) => {
-  console.log(center, amount, includeAllCentersActiveMembers, resignedIncluded);
   const filter = { deletedAt: null };
   const statuses = activeMemberStatuses;
   if (!includeAllCentersActiveMembers) filter.center = center;
   if (resignedIncluded) statuses.push("Resigned");
   filter.status = { $in: statuses };
-  console.log(filter);
 
   const clients = await Customer.find(filter).select("name center").populate("center").lean().exec();
   const acctCode = await ChartOfAccount.findOne({ deletedAt: null, code: "2010D" }).lean().exec();

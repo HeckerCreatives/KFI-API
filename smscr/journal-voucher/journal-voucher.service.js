@@ -180,7 +180,7 @@ exports.update = async (filter, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
-        expenseVoucher: updated._id,
+        journalVoucher: updated._id,
         client: entry.client || null,
         particular: entry.particular,
         acctCode: entry.acctCodeId,
