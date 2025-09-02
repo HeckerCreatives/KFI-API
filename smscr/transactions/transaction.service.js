@@ -207,8 +207,8 @@ exports.create_loan_release = async (data, author) => {
 exports.update_loan_release = async (id, data, author) => {
   const filter = { deletedAt: null, _id: id };
 
-  const entryToUpdate = data.entries.filter(entry => entry._id !== "");
-  const entryToCreate = data.entries.filter(entry => entry._id === "");
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
 
   const lrUpdates = { $set: { amount: data.amount, interest: data.interestRate, cycle: data.cycle } };
   const lrOptions = { new: true };
@@ -250,14 +250,14 @@ exports.update_loan_release = async (id, data, author) => {
 
       const added = await Entry.insertMany(newEntries, { session });
       if (added.length !== newEntries.length) {
-        throw new CustomError("Failed to update the loan release", 500);
+        throw new CustomError("Please check all the new entries you want to add", 500);
       }
     }
 
     if (data.deletedIds && data.deletedIds.length > 0) {
       const deleted = await Entry.updateMany({ _id: { $in: data.deletedIds }, deletedAt: { $exists: false } }, { deletedAt: new Date().toISOString() }, { session }).exec();
       if (deleted.matchedCount !== data.deletedIds.length) {
-        throw new CustomError("Failed to update the loan release", 500);
+        throw new CustomError("Please make sure all the entries you want to deleted existed.", 500);
       }
     }
 
@@ -282,7 +282,7 @@ exports.update_loan_release = async (id, data, author) => {
       }));
       const updated = await Entry.bulkWrite(updates, { session });
       if (updated.matchedCount !== updates.length) {
-        throw new CustomError("Failed to update the loan release", 500);
+        throw new CustomError("Please make sure the entries you want to update is existing.", 500);
       }
     }
 
