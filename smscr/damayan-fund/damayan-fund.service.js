@@ -473,3 +473,14 @@ exports.load_entries = async (center, amount, includeAllCentersActiveMembers, re
     entries,
   };
 };
+
+exports.print_file = async id => {
+  const damayan = await DamayanFund.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const entries = await DamayanFundEntry.find({ damayanFund: damayan._id, deletedAt: null }).sort({ line: 1 }).populate("client").populate("acctCode").lean().exec();
+
+  return {
+    success: true,
+    damayan,
+    entries,
+  };
+};

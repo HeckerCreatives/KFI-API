@@ -1,21 +1,21 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals, numberToWords } = require("../../../utils/number");
 
-exports.emergencyLoanPrintFile = (payTo, emergency, entries) => {
+exports.damayanFundPrintFile = (payTo, damayan, entries) => {
   const info = {
-    title: "Emergency Loan",
+    title: "Damayan Fund",
   };
 
   let particulars = "";
   let accountEntries = [];
   let totalDebit = 0;
   let totalCredit = 0;
-  let totalAmount = Number(emergency.amount);
+  let totalAmount = Number(damayan.amount);
 
-  if (emergency.remarks) particulars += `${emergency.remarks}\n`;
+  if (damayan.remarks) particulars += `${damayan.remarks}\n`;
   entries.map(entry => {
     if (entry.particular) particulars += `${entry.particular}\n`;
-    if (entry.client) totalAmount -= Number(entry.credit);
+    // if (entry.client) totalAmount -= Number(entry.credit);
 
     totalDebit += Number(entry.debit) || 0;
     totalCredit += Number(entry.credit) || 0;
@@ -42,7 +42,7 @@ exports.emergencyLoanPrintFile = (payTo, emergency, entries) => {
     { text: "10001 Mt. Halcon St. , Umali Subd.", fontSize: 9, alignment: "center" },
     { text: "Batong Malake, Los Baños, Laguna", fontSize: 9, alignment: "center" },
     { text: "Tel. No. (049) 536-4501", fontSize: 9, alignment: "center" },
-    { text: "EMERGENCY LOAN", fontSize: 9, bold: true, alignment: "center", margin: [0, 10, 0, 10] },
+    { text: "DAMAYAN FUND", fontSize: 9, bold: true, alignment: "center", margin: [0, 10, 0, 10] },
     {
       margin: [0, 0, 0, 10],
       table: {
@@ -105,23 +105,19 @@ exports.emergencyLoanPrintFile = (payTo, emergency, entries) => {
                 body: [
                   [
                     { text: "DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${completeNumberDate(emergency.date)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${completeNumberDate(damayan.date)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "DOC. NO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${emergency.code}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${damayan.code}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "BANK", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${emergency.bankCode.description}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${damayan.bankCode.description}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                   [
                     { text: "CHECK NO.", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${emergency.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
-                  ],
-                  [
-                    { text: "CHECK DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `${completeNumberDate(emergency.checkDate)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                    { text: `${damayan.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                 ],
               },
@@ -146,7 +142,7 @@ exports.emergencyLoanPrintFile = (payTo, emergency, entries) => {
           ...entries.map(entry => [
             { text: `${entry.acctCode.code}`, fontSize: 8, margin: [0, 0, 0, 0], alignment: "center", border: [0, 0, 0, 0] },
             {
-              text: entry?.client?._id ? `${emergency?.center?.centerNo} - ${entry?.client?.name}` : "",
+              text: entry?.client?._id ? `${damayan?.center?.centerNo} - ${entry?.client?.name}` : "",
               fontSize: 8,
               margin: [0, 0, 0, 0],
               border: [0, 0, 0, 0],

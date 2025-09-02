@@ -5,6 +5,7 @@ const ExpenseVoucher = require("../smscr/expense-voucher/expense-voucher.schema.
 const JournalVoucher = require("../smscr/journal-voucher/journal-voucher.schema.js");
 const Release = require("../smscr/release/release.schema.js");
 const Transaction = require("../smscr/transactions/transaction.schema.js");
+const { stringEscape } = require("./escape-string.js");
 
 const units = ["CV#", "JV#", "OR#", "AR#"];
 
@@ -20,7 +21,7 @@ const removeUnitPrefix = value => {
 exports.isCodeUnique = async code => {
   const value = removeUnitPrefix(code);
 
-  const filter = { code: new RegExp(`^(CV|JV|OR|AR)#${value}$`), deletedAt: null };
+  const filter = { code: new RegExp(`^(CV|JV|OR|AR)#${stringEscape(value)}$`, "i"), deletedAt: null };
 
   const transactionExistsPromise = Transaction.exists(filter);
   const expenseVoucherExistsPromise = ExpenseVoucher.exists(filter);
@@ -39,6 +40,9 @@ exports.isCodeUnique = async code => {
     acknowledgementExistsPromise,
     releaseExistsPromise,
   ]);
+
+  console.log(filter);
+  console.log(transaction, expense, journal, emergency, damayan, acknowledgement, release);
 
   if (transaction || expense || journal || emergency || damayan || acknowledgement || release) return false;
 

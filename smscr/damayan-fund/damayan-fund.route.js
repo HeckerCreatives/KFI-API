@@ -21,6 +21,9 @@ damayanFundRoutes
   .get("/print-all/summary", isAuthorize("damayan fund", "print"), damayanFundController.printAllSummary)
   .get("/print/summary/:id", isAuthorize("damayan fund", "print"), damayanFundController.printSummaryById)
 
+  .get("/print/file/:id", isAuthorize("acknowledgement", "print"), damayanFundIdRules, validateData, damayanFundController.printFile)
+  .get("/export/file/:id", isAuthorize("acknowledgement", "export"), damayanFundIdRules, validateData, damayanFundController.exportFile)
+
   .get("/export-all/summary", isAuthorize("damayan fund", "export"), damayanFundController.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportSummaryById)
   .get("/export-all/detailed", isAuthorize("damayan fund", "export"), damayanFundController.exportAllDetailed)

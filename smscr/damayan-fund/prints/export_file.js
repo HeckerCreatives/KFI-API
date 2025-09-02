@@ -167,7 +167,7 @@ exports.emergencyLoanExportFile = (emergency, payTo, entries) => {
     datas.push([
       { v: `${entry.acctCode.code}`, t: "s", s: { alignment: { vertical: "center", horizontal: "center" } } },
       {
-        v: entry?.client?._id ? `${emergency.center.centerNo} - ${entry?.client?.name}` : "",
+        v: entry?.client?._id ? `${entry.center.centerNo} - ${entry?.client?.name}` : "",
         t: "s",
         s: { alignment: { vertical: "center", horizontal: "center" } },
       },

@@ -440,7 +440,7 @@ exports.print_summary_by_id = async emergencyLoanId => {
 exports.print_file = async id => {
   const emergency = await EmergencyLoan.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
   const entries = await EmergencyLoanEntry.find({ emergencyLoan: emergency._id, deletedAt: null }).sort({ line: 1 }).populate("client").populate("acctCode").lean().exec();
-  let payTo = `CTR#${emergency.center.centerNo}`;
+  let payTo = `CTR#${emergency?.center?.centerNo}`;
 
   const uniqueClientIds = [];
   entries.map(entry => {
@@ -451,6 +451,8 @@ exports.print_file = async id => {
     const client = await Customer.findById({ _id: uniqueClientIds[0] }).lean().exec();
     payTo = `${client.name}`;
   }
+
+  console.log(emergency);
 
   return {
     success: true,

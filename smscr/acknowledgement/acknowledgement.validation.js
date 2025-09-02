@@ -122,14 +122,14 @@ exports.acknowledgementRules = [
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
     .notEmpty()
-    .withMessage("CV# is required")
+    .withMessage("OR# is required")
     .custom(async (value, { req, path }) => {
       const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
       const entryId = entries[index].loanReleaseEntryId;
       const exists = await Entry.exists({ _id: entryId, deletedAt: null });
-      if (!exists) throw new Error("CV# not found / deleted");
+      if (!exists) throw new Error("OR# not found / deleted");
       return true;
     }),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),

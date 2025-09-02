@@ -13,6 +13,7 @@ const { pmFonts } = require("../../constants/fonts.js");
 const { damayanFundSummaryPrintAll } = require("./prints/print_all_summary.js");
 const { damayanFundDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const CustomError = require("../../utils/custom-error.js");
+const { damayanFundPrintFile } = require("./prints/print_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -394,6 +395,48 @@ exports.loadEntries = async (req, res, next) => {
     const { center, amount, includeAllCentersActiveMembers, resignedIncluded } = req.body;
     const result = await damayanFundService.load_entries(center, amount, includeAllCentersActiveMembers, resignedIncluded);
     return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { id, name } = req.params;
+    const result = await damayanFundService.print_file(id);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = damayanFundPrintFile(name, result.damayan, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed damayan fund ( File )`,
+      resource: `damayan fund`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { emergency, payTo, entries } = await emergencyLoanService.print_file(id);
+
+    const excelBuffer = emergencyLoanExportFile(emergency, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="emergency-loans.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    return res.send(excelBuffer);
   } catch (error) {
     next(error);
   }

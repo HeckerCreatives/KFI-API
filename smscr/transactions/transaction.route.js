@@ -25,8 +25,10 @@ transactionRoutes
 
   .get("/selection", transactionCtrl.getSelections)
   .get("/entries/selection", entryCtrl.getSelections)
+
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
   .post("/entries/load", entryLoadRules, validateData, entryCtrl.loadEntries)
+
   .get("/loan-release/entries/:id", isAuthorize("loan release", "visible"), entryCtrl.getEntries)
   .get("/loan-release/entries/all/:id", isAuthorize("loan release", "visible"), entryCtrl.getAllEntries)
 
