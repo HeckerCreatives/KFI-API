@@ -68,7 +68,7 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
                         body: [
                           [
                             { text: "( In Figures )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `P ${formatNumber(totalAmount)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `P ${formatNumber(expense.amount)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },
@@ -85,7 +85,7 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
                         body: [
                           [
                             { text: "( In Words )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `${numberToWordsWithDecimals(Number(expense.amount).toFixed(2))}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },
@@ -142,7 +142,7 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
           ...entries.map(entry => [
             { text: `${entry.acctCode.code}`, fontSize: 8, margin: [0, 0, 0, 0], alignment: "center", border: [0, 0, 0, 0] },
             {
-              text: entry?.client?._id ? `${entry.center.centerNo} - ${entry?.client?.name}` : "",
+              text: entry?.client?._id ? `${entry?.client?.name}` : "",
               fontSize: 8,
               margin: [0, 0, 0, 0],
               border: [0, 0, 0, 0],

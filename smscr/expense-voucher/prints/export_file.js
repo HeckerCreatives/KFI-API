@@ -70,7 +70,7 @@ exports.expenseVoucherExportFile = (expense, payTo, entries) => {
     [
       { v: "AMOUNT", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Figures ) P ${formatNumber(totalAmount)}`,
+        v: `( In Figures ) P ${formatNumber(expense.amount)}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder, merge: { rows: 2 } },
       },
@@ -81,7 +81,7 @@ exports.expenseVoucherExportFile = (expense, payTo, entries) => {
     [
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Words ) ${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`,
+        v: `( In Words ) ${numberToWordsWithDecimals(Number(expense.amount).toFixed(2))}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder },
       },
@@ -160,7 +160,7 @@ exports.expenseVoucherExportFile = (expense, payTo, entries) => {
     datas.push([
       { v: `${entry.acctCode.code}`, t: "s", s: { alignment: { vertical: "center", horizontal: "center" } } },
       {
-        v: entry?.client?._id ? `${entry.center.centerNo} - ${entry?.client?.name}` : "",
+        v: entry?.client?._id ? `${entry?.client?.name}` : "",
         t: "s",
         s: { alignment: { vertical: "center", horizontal: "center" } },
       },
