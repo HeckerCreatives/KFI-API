@@ -391,6 +391,7 @@ exports.printFile = async (req, res, next) => {
       username: author.username,
       activity: `printed acknowledgement receipt ( File )`,
       resource: `acknowledgement receipt`,
+      dataId: result.release._id,
     });
 
     pdfDoc.pipe(res);
@@ -408,6 +409,15 @@ exports.exportFile = async (req, res, next) => {
     const excelBuffer = acknowledgementReceiptExportFile(release, payTo, entries);
     res.setHeader("Content-Disposition", 'attachment; filename="acknowledgements-receipts.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported acknowledgement receipt ( File )`,
+      resource: `acknowledgement receipt`,
+      dataId: release._id,
+    });
 
     return res.send(excelBuffer);
   } catch (error) {

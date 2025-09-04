@@ -409,6 +409,14 @@ exports.exportFile = async (req, res, next) => {
     res.setHeader("Content-Disposition", 'attachment; filename="official-receipts.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported official receipt ( File )`,
+      resource: `official receipt`,
+    });
+
     return res.send(excelBuffer);
   } catch (error) {
     next(error);

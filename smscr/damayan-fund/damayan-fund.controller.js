@@ -14,6 +14,7 @@ const { damayanFundSummaryPrintAll } = require("./prints/print_all_summary.js");
 const { damayanFundDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const CustomError = require("../../utils/custom-error.js");
 const { damayanFundPrintFile } = require("./prints/print_file.js");
+const { damayanFundExportFile } = require("./prints/export_file.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -418,6 +419,7 @@ exports.printFile = async (req, res, next) => {
       username: author.username,
       activity: `printed damayan fund ( File )`,
       resource: `damayan fund`,
+      dataId: result.damayan._id,
     });
 
     pdfDoc.pipe(res);
@@ -429,12 +431,21 @@ exports.printFile = async (req, res, next) => {
 
 exports.exportFile = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { emergency, payTo, entries } = await emergencyLoanService.print_file(id);
+    const { id, name } = req.params;
+    const { damayan, entries } = await damayanFundService.print_file(id);
 
-    const excelBuffer = emergencyLoanExportFile(emergency, payTo, entries);
-    res.setHeader("Content-Disposition", 'attachment; filename="emergency-loans.xlsx"');
+    const excelBuffer = damayanFundExportFile(damayan, name, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="damayan-funds.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported damayan fund ( File )`,
+      resource: `damayan fund`,
+      dataId: damayan._id,
+    });
 
     return res.send(excelBuffer);
   } catch (error) {

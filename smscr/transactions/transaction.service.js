@@ -491,7 +491,16 @@ exports.print_summary_by_id = async transactionId => {
 
 exports.print_file = async transactionId => {
   const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").populate("bank").lean().exec();
-  const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null }).sort({ line: 1 }).populate("center").populate("client").populate("acctCode").lean().exec();
+  const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null })
+    .sort({ line: 1 })
+    .populate("center")
+    .populate({
+      path: "client",
+      populate: [{ path: "business" }],
+    })
+    .populate("acctCode")
+    .lean()
+    .exec();
   let payTo = `CTR#${loanRelease.center.centerNo}`;
 
   const uniqueClientIds = [];

@@ -55,7 +55,7 @@ exports.damayanFundPrintFile = (payTo, damayan, entries) => {
                 body: [
                   [
                     { text: "PAY TO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `***${payTo}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
+                    { text: `${payTo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
                     {},
                   ],
                   [
@@ -68,7 +68,7 @@ exports.damayanFundPrintFile = (payTo, damayan, entries) => {
                         body: [
                           [
                             { text: "( In Figures )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `P ***${formatNumber(totalAmount)}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `P ${formatNumber(totalAmount)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },
@@ -85,7 +85,7 @@ exports.damayanFundPrintFile = (payTo, damayan, entries) => {
                         body: [
                           [
                             { text: "( In Words )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `***${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },

@@ -452,8 +452,6 @@ exports.print_file = async id => {
     payTo = `${client.name}`;
   }
 
-  console.log(emergency);
-
   return {
     success: true,
     emergency,

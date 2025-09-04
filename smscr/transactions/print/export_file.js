@@ -11,7 +11,7 @@ exports.loanReleaseExportFile = (loanRelease, payTo, entries) => {
 
   if (loanRelease.remarks) particulars.push(`${loanRelease.remarks}`);
   entries.map(entry => {
-    if (entry.particular) particulars.push(`${entry.particular}`);
+    // if (entry.particular) particulars.push(`${entry.particular}`);
     if (entry.client) totalAmount -= Number(entry.credit);
 
     totalDebit += Number(entry.debit) || 0;
@@ -62,7 +62,7 @@ exports.loanReleaseExportFile = (loanRelease, payTo, entries) => {
     [{ v: "" }],
     [
       { v: "PAY TO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `***${payTo}***`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${payTo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "DATE", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       { v: `${completeNumberDate(loanRelease.date)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
@@ -70,7 +70,7 @@ exports.loanReleaseExportFile = (loanRelease, payTo, entries) => {
     [
       { v: "AMOUNT", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Figures ) P ***${formatNumber(totalAmount)}***`,
+        v: `( In Figures ) P ${formatNumber(totalAmount)}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder, merge: { rows: 2 } },
       },
@@ -81,7 +81,7 @@ exports.loanReleaseExportFile = (loanRelease, payTo, entries) => {
     [
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Words ) ***${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}***`,
+        v: `( In Words ) ${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder },
       },

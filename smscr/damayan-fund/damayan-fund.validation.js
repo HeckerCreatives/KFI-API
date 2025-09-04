@@ -9,6 +9,21 @@ const { isCodeUnique } = require("../../utils/code-checker");
 const Center = require("../center/center.schema");
 const DamayanFundEntry = require("./entries/damayan-fund-entries.schema");
 
+exports.damayanFundPrintRules = [
+  param("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Damayan fund id is required")
+    .isMongoId()
+    .withMessage("Invalid damayan fund id")
+    .custom(async value => {
+      const exists = await DamayanFund.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Damayan fund not found");
+      return true;
+    }),
+  param("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 1, max: 255 }).withMessage("Name must only consist of 1 to 255 characters"),
+];
+
 exports.damayanFundCodeRules = [
   body("code")
     .trim()

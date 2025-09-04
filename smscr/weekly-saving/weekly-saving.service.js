@@ -93,3 +93,14 @@ exports.delete = async (filter, author) => {
 
   return { success: true, weeklySaving: filter._id };
 };
+
+exports.get_value_by_amount = async amount => {
+  const weeklySaving = await WeeklySaving.findOne({ rangeAmountFrom: { $lte: amount }, rangeAmountTo: { $gte: amount } })
+    .lean()
+    .exec();
+
+  return {
+    success: true,
+    weeklySaving,
+  };
+};

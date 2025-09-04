@@ -449,7 +449,7 @@ exports.print_summary_by_id = async damayanFundId => {
 
 exports.load_entries = async (center, amount, includeAllCentersActiveMembers, resignedIncluded) => {
   const filter = { deletedAt: null };
-  const statuses = activeMemberStatuses;
+  const statuses = ["Active-Existing", "Active-New", "Active-PastDue", "Active-Returnee"];
   if (!includeAllCentersActiveMembers) filter.center = center;
   if (resignedIncluded) statuses.push("Resigned");
   filter.status = { $in: statuses };

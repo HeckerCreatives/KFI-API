@@ -408,6 +408,7 @@ exports.printFile = async (req, res, next) => {
       username: author.username,
       activity: `printed expense voucher ( File )`,
       resource: `expense voucher`,
+      dataId: result.expense._id,
     });
 
     pdfDoc.pipe(res);
@@ -425,6 +426,15 @@ exports.exportFile = async (req, res, next) => {
     const excelBuffer = expenseVoucherExportFile(expense, payTo, entries);
     res.setHeader("Content-Disposition", 'attachment; filename="expense-vouchers.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported expense voucher ( File )`,
+      resource: `expense voucher`,
+      dataId: expense._id,
+    });
 
     return res.send(excelBuffer);
   } catch (error) {

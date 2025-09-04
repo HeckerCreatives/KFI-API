@@ -5,6 +5,7 @@ const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const { loanReleaseDetailedPrintAll } = require("./print/print_all_detailed.js");
 const transactionServ = require("./transaction.service.js");
+const wsfService = require("../weekly-saving/weekly-saving.service.js");
 const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx-js-style");
@@ -14,6 +15,8 @@ const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const { loanReleasePrintFile } = require("./print/print_file.js");
 const { loanReleaseExportFile } = require("./print/export_file.js");
+const { loanReleasePrintFormat2File } = require("./print/print_file_format_2.js");
+const { loanReleaseExportFormat2File } = require("./print/export_file_format.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -78,33 +81,6 @@ exports.deleteLoanRelease = async (req, res, next) => {
     const filter = { deletedAt: null, _id: id };
     const result = await transactionServ.delete_loan_release(filter, token);
     return res.status(200).json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.printFile = async (req, res, next) => {
-  try {
-    const { transaction } = req.params;
-    const result = await transactionServ.print_file(transaction);
-    const printer = new PdfPrinter(pmFonts);
-
-    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries);
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-    res.setHeader("Content-Type", "application/pdf");
-
-    const author = getToken(req);
-    await activityLogServ.create({
-      author: author._id,
-      username: author.username,
-      activity: `printed loan release ( File )`,
-      resource: `loan release`,
-    });
-
-    pdfDoc.pipe(res);
-    pdfDoc.end();
   } catch (error) {
     next(error);
   }
@@ -363,21 +339,6 @@ exports.exportSummaryById = async (req, res, next) => {
   export_excel(formattedLoanReleases, res);
 };
 
-exports.exportFile = async (req, res, next) => {
-  try {
-    const { transaction } = req.params;
-    const { loanRelease, payTo, entries } = await transactionServ.print_file(transaction);
-
-    const excelBuffer = loanReleaseExportFile(loanRelease, payTo, entries);
-    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-
-    return res.send(excelBuffer);
-  } catch (error) {
-    next(error);
-  }
-};
-
 const export_excel = (datas, res, from, to) => {
   const workbook = XLSX.utils.book_new();
   const worksheet = XLSX.utils.json_to_sheet(datas, { origin: "A7" });
@@ -428,4 +389,109 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const result = await transactionServ.print_file(transaction);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( File )`,
+      resource: `loan release`,
+      dataId: result.loanRelease._id,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const { loanRelease, payTo, entries } = await transactionServ.print_file(transaction);
+
+    const excelBuffer = loanReleaseExportFile(loanRelease, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported loan release ( File )`,
+      resource: `loan release`,
+      dataId: loanRelease._id,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.print2ndFormatFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const result = await transactionServ.print_file(transaction);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = await loanReleasePrintFormat2File(result.payTo, result.loanRelease, result.entries);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Format 2 File )`,
+      resource: `loan release`,
+      dataId: result.loanRelease._id,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.export2ndFormatFile = async (req, res, next) => {
+  try {
+    const { transaction } = req.params;
+    const { loanRelease, payTo, entries } = await transactionServ.print_file(transaction);
+
+    const excelBuffer = await loanReleaseExportFormat2File(loanRelease, payTo, entries);
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Format 2 File )`,
+      resource: `loan release`,
+      dataId: loanRelease._id,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
 };

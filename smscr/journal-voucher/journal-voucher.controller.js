@@ -409,6 +409,7 @@ exports.printFile = async (req, res, next) => {
       username: author.username,
       activity: `printed journal voucher ( File )`,
       resource: `journal voucher`,
+      dataId: result.journal._id,
     });
 
     pdfDoc.pipe(res);
@@ -426,6 +427,15 @@ exports.exportFile = async (req, res, next) => {
     const excelBuffer = journalVoucherExportFile(journal, payTo, entries);
     res.setHeader("Content-Disposition", 'attachment; filename="journal-vouchers.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported journal voucher ( File )`,
+      resource: `journal voucher`,
+      dataId: journal._id,
+    });
 
     return res.send(excelBuffer);
   } catch (error) {

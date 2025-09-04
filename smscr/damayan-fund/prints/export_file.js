@@ -2,14 +2,14 @@ const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals } = require("../../../utils/number");
 const XLSX = require("xlsx-js-style");
 
-exports.emergencyLoanExportFile = (emergency, payTo, entries) => {
+exports.damayanFundExportFile = (damayan, payTo, entries) => {
   let particulars = [];
   let accountEntries = [];
   let totalDebit = 0;
   let totalCredit = 0;
-  let totalAmount = Number(emergency.amount);
+  let totalAmount = Number(damayan.amount);
 
-  if (emergency.remarks) particulars.push(`${emergency.remarks}`);
+  if (damayan.remarks) particulars.push(`${damayan.remarks}`);
   entries.map(entry => {
     if (entry.particular) particulars.push(`${entry.particular}`);
     if (entry.client) totalAmount -= Number(entry.credit);
@@ -58,50 +58,50 @@ exports.emergencyLoanExportFile = (emergency, payTo, entries) => {
     [{ v: "Batong Malake, Los Baños, Laguna", t: "s", s: { alignment: { vertical: "center", horizontal: "center" } }, merge: { cols: 5 } }],
     [{ v: "Tel. No. (049) 536-4501", t: "s", s: { alignment: { vertical: "center", horizontal: "center" } }, merge: { cols: 5 } }],
     [{ v: "" }],
-    [{ v: "EMERGENCY LOAN", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } }, merge: { cols: 5 } }],
+    [{ v: "DAMAYAN FUND", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } }, merge: { cols: 5 } }],
     [{ v: "" }],
     [
       { v: "PAY TO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `***${payTo}***`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${payTo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "DATE", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `${completeNumberDate(emergency.date)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${completeNumberDate(damayan.date)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
     [
       { v: "AMOUNT", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Figures ) P ***${formatNumber(totalAmount)}***`,
+        v: `( In Figures ) P ${formatNumber(totalAmount)}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder, merge: { rows: 2 } },
       },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "DOC NO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `${emergency.code}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${damayan.code}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
     [
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       {
-        v: `( In Words ) ***${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}***`,
+        v: `( In Words ) ${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`,
         t: "s",
         s: { font: { bold: true, sz: 9 }, alignment: { vertical: "center", horizontal: "left", wrapText: true }, border: botBorder },
       },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
       { v: "BANK", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `${emergency.bankCode.description}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${damayan.bankCode.description}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
     [
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "CHECK NO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `${emergency.checkNo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${damayan.checkNo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
     [
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "CHECK DATE", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
-      { v: `${completeNumberDate(emergency.checkDate)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+      { v: `${completeNumberDate(damayan.checkDate)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
     [{ v: "" }],
     [
@@ -245,7 +245,7 @@ exports.emergencyLoanExportFile = (emergency, payTo, entries) => {
 
   ws["!cols"] = Array.from(Array(5)).fill({ wch: 30 });
 
-  XLSX.utils.book_append_sheet(wb, ws, "Emergency Loan");
+  XLSX.utils.book_append_sheet(wb, ws, "DAMAYAN FUND");
 
   const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
 

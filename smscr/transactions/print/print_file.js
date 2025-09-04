@@ -2,9 +2,7 @@ const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals, numberToWords } = require("../../../utils/number");
 
 exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
-  const info = {
-    title: "Loan Release",
-  };
+  const info = { title: "Loan Release" };
 
   let particulars = "";
   let accountEntries = [];
@@ -14,7 +12,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
 
   if (loanRelease.remarks) particulars += `${loanRelease.remarks}\n`;
   entries.map(entry => {
-    if (entry.particular) particulars += `${entry.particular}\n`;
+    // if (entry.particular) particulars += `${entry.particular}\n`;
     if (entry.client) totalAmount -= Number(entry.credit);
 
     totalDebit += Number(entry.debit) || 0;
@@ -55,7 +53,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                 body: [
                   [
                     { text: "PAY TO", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                    { text: `***${payTo}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
+                    { text: `${payTo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1], colSpan: 2 },
                     {},
                   ],
                   [
@@ -68,7 +66,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                         body: [
                           [
                             { text: "( In Figures )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `P ***${formatNumber(totalAmount)}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `P ${formatNumber(totalAmount)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },
@@ -85,7 +83,7 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
                         body: [
                           [
                             { text: "( In Words )", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
-                            { text: `***${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}***`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                            { text: `${numberToWordsWithDecimals(Number(totalAmount).toFixed(2))}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                           ],
                         ],
                       },

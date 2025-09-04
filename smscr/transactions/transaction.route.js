@@ -16,7 +16,9 @@ transactionRoutes
   .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
 
   .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
+  .get("/print/file-format/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.print2ndFormatFile)
   .get("/export/file/:transaction", isAuthorize("loan release", "export"), printFileRules, validateData, transactionCtrl.exportFile)
+  .get("/export/file-format/:transaction", isAuthorize("loan release", "export"), printFileRules, validateData, transactionCtrl.export2ndFormatFile)
 
   .get("/export-all/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
   .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)
