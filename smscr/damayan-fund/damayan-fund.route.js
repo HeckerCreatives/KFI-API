@@ -11,7 +11,6 @@ const {
   damayanLoadEntriesRules,
 } = require("./damayan-fund.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
-const { damayanFundEntryIdRules, damayanFundEntryRules } = require("./entries/damayan-fund-entries.validation.js");
 
 const damayanFundRoutes = express.Router();
 
