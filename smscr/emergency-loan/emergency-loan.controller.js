@@ -203,14 +203,14 @@ exports.exportAllDetailed = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
     const emergencyLoans = await emergencyLoanService.print_all_detailed(docNoFrom, docNoTo);
-    const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
+    const data = [["Doc No", "Date", "Name", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
     emergencyLoans.map(transaction => {
       data.push(
         [
           `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
+          transaction?.client?.name || "",
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -250,7 +250,7 @@ exports.exportDetailedById = async (req, res, next) => {
         [
           `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.center.centerNo,
+          transaction?.client?.name || "",
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -286,7 +286,7 @@ exports.exportAllSummary = async (req, res, next) => {
   const formattedLoanReleases = emergencyLoans.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    "Center Code": transaction.center.centerNo,
+    Name: transaction?.client?.name || "",
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -297,7 +297,7 @@ exports.exportAllSummary = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
+    Name: "",
     Particulars: "",
     Bank: "",
     "Check No": "",
@@ -316,7 +316,7 @@ exports.exportSummaryById = async (req, res, next) => {
   const formattedLoanReleases = emergencyLoans.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    "Center Code": transaction.center.centerNo,
+    Name: transaction?.client?.name || "",
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -327,7 +327,7 @@ exports.exportSummaryById = async (req, res, next) => {
   formattedLoanReleases.push({
     "Document Number": "",
     Date: "",
-    Supplier: "",
+    Name: "",
     Particulars: "",
     Bank: "",
     "Check No": "",
