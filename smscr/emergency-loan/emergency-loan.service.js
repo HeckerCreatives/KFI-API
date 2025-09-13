@@ -2,11 +2,9 @@ const CustomError = require("../../utils/custom-error.js");
 const EmergencyLoan = require("./emergency-loan.schema.js");
 const EmergencyLoanEntry = require("./entries/emergency-loan-entry.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
-const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const mongoose = require("mongoose");
-const { setPaymentDates } = require("../../utils/date.js");
-const { upsertWallet } = require("../wallets/wallet.service.js");
 const Customer = require("../customer/customer.schema.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -48,8 +46,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = EmergencyLoan.countDocuments(filter);
   const emergencyLoansPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    // .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
+    .populate({ path: "client", select: "name" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .skip(offset)
     .limit(limit)
@@ -84,8 +81,7 @@ exports.create = async (data, author) => {
     session.startTransaction();
     const newEmergencyLoan = await new EmergencyLoan({
       code: data.code.toUpperCase(),
-      // supplier: data.supplier,
-      center: data.centerValue,
+      client: data.clientValue,
       refNo: data.refNo,
       remarks: data.remarks,
       date: data.date,
@@ -103,6 +99,7 @@ exports.create = async (data, author) => {
     }
 
     const entries = data.entries.map(entry => ({
+      line: entry.line,
       emergencyLoan: newEmergencyLoan._id,
       client: entry.client || null,
       particular: entry.particular || null,
@@ -127,32 +124,10 @@ exports.create = async (data, author) => {
 
     const emergencyLoan = await EmergencyLoan.findById(newEmergencyLoan._id)
       .populate({ path: "bankCode", select: "code description" })
-      // .populate({ path: "supplier", select: "code description" })
-      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "client", select: "name" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .exec();
-
-    // const paymentSchedules = setPaymentDates(20, newEmergencyLoan.date);
-    // const payments = [];
-    // await Promise.all(
-    //   currentEntries.map(async entry => {
-    //     await upsertWallet(entry.client, "EL", entry.debit, session);
-    //     paymentSchedules.map(schedule => {
-    //       payments.push({
-    //         emergencyLoan: entry.emergencyLoan,
-    //         emergencyLoanEntry: entry._id,
-    //         date: schedule.date,
-    //         paid: schedule.paid,
-    //       });
-    //     });
-    //   })
-    // );
-
-    // const schedules = await PaymentSchedule.insertMany(payments, { session });
-    // if (schedules.length !== payments.length) {
-    //   throw new CustomError("Failed to save emergency loan");
-    // }
 
     await activityLogServ.create({
       author: author._id,
@@ -204,8 +179,7 @@ exports.update = async (filter, data, author) => {
       {
         $set: {
           code: data.code.toUpperCase(),
-          // supplier: data.supplier,
-          center: data.centerValue,
+          client: data.clientValue,
           refNo: data.refNo,
           remarks: data.remarks,
           date: data.date,
@@ -220,8 +194,7 @@ exports.update = async (filter, data, author) => {
       { new: true }
     )
       .populate({ path: "bankCode", select: "code description" })
-      // .populate({ path: "supplier", select: "code description" })
-      .populate({ path: "center", select: "centerNo description" })
+      .populate({ path: "client", select: "name" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .exec();
 
@@ -231,6 +204,7 @@ exports.update = async (filter, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         emergencyLoan: updatedEmergencyLoan._id,
         client: entry.client || null,
         particular: entry.particular || null,
@@ -263,6 +237,7 @@ exports.update = async (filter, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               client: entry.client || null,
               particular: entry.particular || null,
               acctCode: entry.acctCodeId,
@@ -278,15 +253,12 @@ exports.update = async (filter, data, author) => {
       }
     }
 
-    const latestEntries = await EmergencyLoanEntry.find({ emergencyLoan: updatedEmergencyLoan._id, deletedAt: null }).session(session).lean().exec();
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updatedEmergencyLoan.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const latestEntries = await EmergencyLoanEntry.find({ emergencyLoan: updatedEmergencyLoan._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
+
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updatedEmergencyLoan.amount);
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -341,11 +313,9 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({ $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { name: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { code: 1, description: 1 } }] } });
-
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$center", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -387,10 +357,9 @@ exports.print_detailed_by_id = async emergencyLoanId => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+  pipelines.push({ $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { name: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -427,20 +396,20 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom || docNoTo) filter.$and = [];
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
-  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
+  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "client" }).sort({ code: 1 });
   return emergencyLoans;
 };
 
 exports.print_summary_by_id = async emergencyLoanId => {
   const filter = { deletedAt: null, _id: emergencyLoanId };
-  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
+  const emergencyLoans = await EmergencyLoan.find(filter).populate({ path: "bankCode" }).populate({ path: "client" }).sort({ code: 1 });
   return emergencyLoans;
 };
 
 exports.print_file = async id => {
-  const emergency = await EmergencyLoan.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const emergency = await EmergencyLoan.findOne({ _id: id, deletedAt: null }).populate("client").populate("bankCode").lean().exec();
   const entries = await EmergencyLoanEntry.find({ emergencyLoan: emergency._id, deletedAt: null }).sort({ line: 1 }).populate("client").populate("acctCode").lean().exec();
-  let payTo = `CTR#${emergency?.center?.centerNo}`;
+  let payTo = `${emergency?.client?.name || ""}`;
 
   const uniqueClientIds = [];
   entries.map(entry => {

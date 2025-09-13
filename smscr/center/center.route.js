@@ -8,6 +8,8 @@ const centerRoutes = express.Router();
 
 centerRoutes
   .get("/selection", centerController.getSelections)
+  .get("/officer/:id", centerIdRules, validateData, centerController.getOfficer)
+
   .get("/print-all", isAuthorize("center", "print"), centerController.printAll)
   .get("/export-all", isAuthorize("center", "export"), centerController.exportAll)
   .get("/", isAuthorize("center", "visible"), centerController.getCenters)

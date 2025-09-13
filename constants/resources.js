@@ -23,4 +23,5 @@ exports.ALL_RESOURCES = [
   "action logs",
   "emergency loan",
   "damayan fund",
+  "nature",
 ];

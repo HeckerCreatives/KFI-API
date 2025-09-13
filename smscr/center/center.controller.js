@@ -10,6 +10,15 @@ const { completeNumberDate } = require("../../utils/date.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { getToken } = require("../../utils/get-token.js");
 
+exports.getOfficer = async (req, res, next) => {
+  try {
+    const result = await centerService.get_officer(req.params.id);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getDescription = async (req, res, next) => {
   try {
     const filter = { _id: req.params.id, deletedAt: null };

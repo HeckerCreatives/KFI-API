@@ -106,7 +106,7 @@ exports.acknowledgementReceiptPrintFile = (payTo, officialReceipt, entries) => {
             {
               border: [0, 0, 0, 0],
               table: {
-                widths: ["30%", "*"],
+                widths: ["35%", "*"],
                 body: [
                   [
                     { text: "DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -131,6 +131,10 @@ exports.acknowledgementReceiptPrintFile = (payTo, officialReceipt, entries) => {
                   [
                     { text: "CHECK NO.", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
                     { text: `${officialReceipt.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                  ],
+                  [
+                    { text: "CHECK DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: `${completeNumberDate(officialReceipt.checkDate)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
                 ],
               },
@@ -190,44 +194,49 @@ exports.acknowledgementReceiptPrintFile = (payTo, officialReceipt, entries) => {
         ],
       },
     },
-    {
-      margin: [0, 10, 0, 0],
-      table: {
-        widths: ["*", "*", "*", "*"],
-        body: [
-          [
-            { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
-          ],
-          [
-            { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-            { text: "", margin: [0, 3, 0, 3] },
-            { text: "", margin: [0, 3, 0, 3] },
-            { text: "", margin: [0, 3, 0, 3] },
-          ],
-        ],
-      },
-    },
   ];
 
   const styles = [];
 
   const footer = function (currentPage, pageCount) {
-    return {
-      text: `Page ${currentPage} of ${pageCount}`,
-      alignment: "right",
-      fontSize: 8,
-      margin: [0, 5, 20, 0],
-    };
+    if (currentPage === pageCount) {
+      return {
+        margin: [10, 0, 10, 0],
+        table: {
+          widths: ["*", "*", "*", "*"],
+          body: [
+            [
+              { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
+            ],
+            [
+              { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: "", margin: [0, 3, 0, 3] },
+              { text: "", margin: [0, 3, 0, 3] },
+              { text: "", margin: [0, 3, 0, 3] },
+            ],
+            [{ text: ``, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
+            [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
+          ],
+        },
+      };
+    } else {
+      return {
+        text: `Page ${currentPage} of ${pageCount}`,
+        alignment: "right",
+        fontSize: 8,
+        margin: [0, 5, 20, 0],
+      };
+    }
   };
 
   return {
     info: info,
     pageOrientation: "portrait",
     footer: footer,
-    pageMargins: [20, 25, 20, 25],
+    pageMargins: [20, 25, 20, 60],
     content: contents,
     styles: styles,
     defaultStyle: {

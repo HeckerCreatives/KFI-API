@@ -3,6 +3,7 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const Release = require("./release.schema.js");
 const { default: mongoose } = require("mongoose");
 const ReleaseEntry = require("./entries/release-entries.schema.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -94,6 +95,7 @@ exports.create = async (data, author) => {
     }
 
     const entries = data.entries.map(entry => ({
+      line: entry.line,
       release: newRelease._id,
       loanReleaseEntryId: entry.loanReleaseEntryId || null,
       acctCode: entry.acctCodeId,
@@ -196,6 +198,7 @@ exports.update = async (id, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         release: updated._id,
         loanReleaseEntryId: entry.loanReleaseEntryId || null,
         acctCode: entry.acctCodeId,
@@ -224,6 +227,7 @@ exports.update = async (id, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               loanReleaseEntryId: entry.loanReleaseEntryId || null,
               acctCode: entry.acctCodeId,
               particular: entry.particular,
@@ -239,15 +243,13 @@ exports.update = async (id, data, author) => {
       }
     }
 
-    const latestEntries = await ReleaseEntry.find({ release: updated._id, deletedAt: null }).session(session).lean().exec();
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const latestEntries = await ReleaseEntry.find({ release: updated._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
+
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updated.amount);
+
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,

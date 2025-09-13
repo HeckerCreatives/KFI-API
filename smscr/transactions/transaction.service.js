@@ -6,11 +6,10 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const Transaction = require("./transaction.schema.js");
 const { default: mongoose } = require("mongoose");
 const { setPaymentDates } = require("../../utils/date.js");
-const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
-const { upsertWallet } = require("../wallets/wallet.service.js");
-const { wallets } = require("../../constants/wallets.js");
-const { getDistinct } = require("../../utils/distinct.js");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
+const LoanReleaseEntryParam = require("../system-parameters/loan-release-entry-param.schema.js");
+const { bankCodes } = require("../../constants/bank-codes.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -94,11 +93,11 @@ exports.create_loan_release = async (data, author) => {
       acctYear: data.acctYear,
       noOfWeeks: data.noOfWeeks,
       loan: data.typeOfLoan,
-      checkNo: data.checkNo,
+      checkNo: data?.checkNo || "",
       checkDate: data.checkDate,
       bank: data.bankCode,
       amount: data.amount,
-      cycle: data.cycle,
+      cycle: data?.cycle || "",
       interest: data.interestRate,
       isEduc: data.isEduc,
       encodedBy: author._id,
@@ -109,9 +108,9 @@ exports.create_loan_release = async (data, author) => {
     }
 
     const entries = data.entries.map((entry, i) => ({
-      line: i + 1,
+      line: entry.line,
       transaction: newLoanRelease._id,
-      client: entry.clientId,
+      client: entry?.clientId || null,
       center: newLoanRelease.center,
       product: newLoanRelease.loan,
       acctCode: entry.acctCodeId,
@@ -286,18 +285,12 @@ exports.update_loan_release = async (id, data, author) => {
       }
     }
 
-    const latestEntries = await Entry.find({ transaction: updatedLoanRelease._id, deletedAt: null }).session(session).lean().exec();
+    const latestEntries = await Entry.find({ transaction: updatedLoanRelease._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
 
-    if (hasDuplicateLines(latestEntries)) throw new CustomError("Make sure there is no duplicate line no.", 400);
-
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updatedLoanRelease.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updatedLoanRelease.amount);
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -327,8 +320,16 @@ exports.load_entries = async data => {
     .populate({ path: "center" })
     .lean()
     .exec();
-  const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
-  const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
+
+  const loans = await LoanReleaseEntryParam.find()
+    .sort("sort")
+    .select("-createdAt -updatedAt -__v")
+    .populate({
+      path: "accountCode",
+      select: "_id description",
+    })
+    .lean()
+    .exec();
 
   const entries = [];
 
@@ -338,9 +339,9 @@ exports.load_entries = async data => {
         clientId: client._id,
         client: client.name,
         particular: `${client.center.centerNo} - ${client.name}`,
-        acctCodeId: loan.acctCode._id,
-        acctCode: loan.acctCode.code,
-        description: loan.acctCode.description,
+        acctCodeId: loan.accountCode._id,
+        acctCode: loan.code,
+        description: loan.accountCode.description,
         debit: "",
         credit: "",
         interest: "",
@@ -349,6 +350,29 @@ exports.load_entries = async data => {
       });
     });
   });
+
+  // const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
+  // const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
+
+  // const entries = [];
+
+  // clients.map(client => {
+  //   loans.map(loan => {
+  //     entries.push({
+  //       clientId: client._id,
+  //       client: client.name,
+  //       particular: `${client.center.centerNo} - ${client.name}`,
+  //       acctCodeId: loan.acctCode._id,
+  //       acctCode: loan.acctCode.code,
+  //       description: loan.acctCode.description,
+  //       debit: "",
+  //       credit: "",
+  //       interest: "",
+  //       cycle: "",
+  //       checkNo: "",
+  //     });
+  //   });
+  // });
 
   return {
     success: true,

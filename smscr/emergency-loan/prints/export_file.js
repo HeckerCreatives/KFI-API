@@ -200,6 +200,10 @@ exports.emergencyLoanExportFile = (emergency, payTo, entries) => {
   ]);
 
   datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
 
   datas.push(
     [

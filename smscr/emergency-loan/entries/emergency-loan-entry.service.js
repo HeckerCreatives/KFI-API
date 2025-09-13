@@ -7,7 +7,7 @@ exports.get_all_no_pagination = async emergencyLoan => {
   const filter = { deletedAt: null, emergencyLoan };
 
   const entries = await EmergencyLoanEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } })
     .lean()
@@ -23,7 +23,7 @@ exports.get_all = async (limit, page, offset, emergencyLoan) => {
   const filter = { deletedAt: null, emergencyLoan };
 
   const query = EmergencyLoanEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({ path: "client", select: "name", populate: { path: "center", select: "centerNo" } });
 

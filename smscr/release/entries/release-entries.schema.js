@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const releaseEntrySchema = new mongoose.Schema(
   {
+    line: { type: Number },
     release: { type: mongoose.Schema.Types.ObjectId, ref: "Release" },
     loanReleaseEntryId: { type: mongoose.Schema.Types.ObjectId, ref: "Entry" },
     acctCode: { type: mongoose.Schema.Types.ObjectId, ref: "ChartOfAccount", required: true },

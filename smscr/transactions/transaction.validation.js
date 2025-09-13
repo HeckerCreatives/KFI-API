@@ -9,6 +9,8 @@ const { isCodeUnique } = require("../../utils/code-checker.js");
 const Entry = require("./entries/entry.schema.js");
 const { default: mongoose } = require("mongoose");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
+const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.printFileRules = [
   param("transaction")
@@ -121,7 +123,13 @@ exports.createTransactionRules = [
       if (!exists) throw new Error("Type of loan not found");
       return true;
     }),
-  body("checkNo").trim().notEmpty().withMessage("Check No. is required").isLength({ min: 1, max: 255 }).withMessage("Check No. must only contain 1 to 255 characters"),
+  body("checkNo")
+    .if(body("checkNo").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Check No. is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Check No. must only contain 1 to 255 characters"),
   body("checkDate")
     .trim()
     .notEmpty()
@@ -129,7 +137,13 @@ exports.createTransactionRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("bankCode")
     .trim()
     .notEmpty()
@@ -142,7 +156,13 @@ exports.createTransactionRules = [
       return true;
     }),
   body("amount").trim().notEmpty().withMessage("Amount is required").isNumeric().withMessage("Amount must be a number"),
-  body("cycle").trim().notEmpty().withMessage("Cycle is required").isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
+  body("cycle")
+    .if(body("cycle").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Cycle is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Cycle must only consist of 1 to 255 characters"),
   body("interestRate").trim().notEmpty().withMessage("Interest rate is required").isNumeric().withMessage("Interest rate must be a number"),
   body("isEduc").isBoolean().withMessage("EDUC must be a boolean"),
   body("entries")
@@ -153,6 +173,7 @@ exports.createTransactionRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientId")
     .if(body("entries.*.clientId").notEmpty())
     .isMongoId()
@@ -177,27 +198,33 @@ exports.createTransactionRules = [
   body("entries.*.interest").if(body("entries.*.interest").notEmpty()).isNumeric().withMessage("Interest must be a number"),
   body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("entries.*.checkNo").if(body("entries.*.checkNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Check no. must only contain 1 to 255 characters"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
     return true;
   }),
 ];
 
 exports.updateTransactionRules = [
   body("amount").trim().notEmpty().withMessage("Amount is required").isNumeric().withMessage("Amount must be a number"),
-  body("cycle").trim().notEmpty().withMessage("Cycle is required").isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
+  body("cycle")
+    .if(body("cycle").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Cycle is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Cycle must only consist of 1 to 255 characters"),
   body("interestRate").trim().notEmpty().withMessage("Interest rate is required").isNumeric().withMessage("Interest rate must be a number"),
   body("entries")
     .isArray()
@@ -232,22 +259,20 @@ exports.updateTransactionRules = [
   body("entries.*.interest").if(body("entries.*.interest").notEmpty()).isNumeric().withMessage("Interest must be a number"),
   body("entries.*.cycle").if(body("entries.*.cycle").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Cycle must only consist of 1 to 255 characters"),
   body("entries.*.checkNo").if(body("entries.*.checkNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Check no. must only contain 1 to 255 characters"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
+
     if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
     return true;
   }),
   body("deletedIds")

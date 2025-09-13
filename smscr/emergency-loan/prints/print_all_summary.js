@@ -14,7 +14,7 @@ exports.emergencyLoanSummaryPrintAll = (datas, from = "", to = "") => {
     loanReleases.push([
       { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-      { text: data.center.centerNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+      { text: data?.client?.name || "", fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },

@@ -96,6 +96,13 @@ exports.expenseVoucherExportFile = (expense, payTo, entries) => {
       { v: "CHECK NO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       { v: `${expense.checkNo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
+    [
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "CHECK DATE", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
+      { v: `${completeNumberDate(expense.checkDate)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+    ],
     [{ v: "" }],
     [
       {

@@ -2,6 +2,16 @@ const CustomError = require("../../utils/custom-error.js");
 const Center = require("./center.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_officer = async id => {
+  const filter = { _id: id, deletedAt: null };
+  const center = await Center.findOne(filter).lean().exec();
+
+  return {
+    success: true,
+    officer: center.acctOfficer,
+  };
+};
+
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, $or: [{ centerNo: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
 

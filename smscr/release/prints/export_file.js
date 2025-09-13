@@ -110,6 +110,13 @@ exports.acknowledgementReceiptExportFile = (officialReceipt, payTo, entries) => 
       { v: "CHECK NO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
       { v: `${officialReceipt.checkNo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
     ],
+    [
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "CHECK NO", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "left" } } },
+      { v: `${officialReceipt.checkNo}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: botBorder } },
+    ],
     [{ v: "" }],
     [
       {
@@ -206,6 +213,10 @@ exports.acknowledgementReceiptExportFile = (officialReceipt, payTo, entries) => 
     { v: `${formatNumber(totalDebit)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "right" } } },
   ]);
 
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
   datas.push([{ v: "" }]);
 
   datas.push(

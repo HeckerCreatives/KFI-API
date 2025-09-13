@@ -3,7 +3,8 @@ const mongoose = require("mongoose");
 const expenseVoucherSchema = new mongoose.Schema(
   {
     code: { type: String },
-    supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
+    // supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
+    supplier: { type: String },
     date: { type: Date },
     acctMonth: { type: String },
     acctYear: { type: String },

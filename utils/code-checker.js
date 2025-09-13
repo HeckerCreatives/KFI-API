@@ -21,7 +21,7 @@ const removeUnitPrefix = value => {
 exports.isCodeUnique = async code => {
   const value = removeUnitPrefix(code);
 
-  const filter = { code: new RegExp(`^(CV|JV|OR|AR)#${stringEscape(value)}$`, "i") };
+  const filter = { code: new RegExp(`^(CV#|JV#|OR#|AR#|)${stringEscape(value)}$`, "i") };
 
   const transactionExistsPromise = Transaction.exists(filter);
   const expenseVoucherExistsPromise = ExpenseVoucher.exists(filter);

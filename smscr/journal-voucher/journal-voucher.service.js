@@ -3,6 +3,7 @@ const JournalVoucherEntry = require("./entries/journal-voucher-entries.schema.js
 const JournalVoucher = require("./journal-voucher.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -92,6 +93,7 @@ exports.create = async (data, author) => {
   }
 
   const entries = data.entries.map(entry => ({
+    line: entry.line,
     journalVoucher: newJournalVoucher._id,
     client: entry.client || null,
     particular: entry.particular || null,
@@ -180,6 +182,7 @@ exports.update = async (filter, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         journalVoucher: updated._id,
         client: entry.client || null,
         particular: entry.particular,
@@ -213,6 +216,7 @@ exports.update = async (filter, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               client: entry.client || null,
               particular: entry.particular,
               acctCode: entry.acctCodeId,
@@ -229,15 +233,11 @@ exports.update = async (filter, data, author) => {
       }
     }
 
-    const latestEntries = await JournalVoucherEntry.find({ journalVoucher: updated._id, deletedAt: null }).session(session).lean().exec();
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const latestEntries = await JournalVoucherEntry.find({ journalVoucher: updated._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updated.amount);
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,

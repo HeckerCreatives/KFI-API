@@ -37,7 +37,8 @@ exports.get_single = async filter => {
 
 exports.create = async data => {
   const newNature = await new Nature({
-    type: data.type,
+    nature: data.nature,
+    description: data.description,
   }).save();
   if (!newNature) {
     throw new CustomError("Failed to create a new nature", 500);
@@ -49,7 +50,7 @@ exports.create = async data => {
 };
 
 exports.update = async (filter, data) => {
-  const updatedNature = await Nature.findOneAndUpdate(filter, { $set: { type: data.type } }, { new: true }).exec();
+  const updatedNature = await Nature.findOneAndUpdate(filter, { $set: { nature: data.nature, description: data.description } }, { new: true }).exec();
   if (!updatedNature) {
     throw new CustomError("Failed to update the nature", 500);
   }

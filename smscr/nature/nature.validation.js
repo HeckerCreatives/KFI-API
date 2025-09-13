@@ -15,4 +15,7 @@ exports.natureIdRules = [
     }),
 ];
 
-exports.natureRules = [body("type").trim().notEmpty().withMessage("Type is required").isLength({ min: 1, max: 255 }).withMessage("Type must only contain 1 to 255 characters")];
+exports.natureRules = [
+  body("nature").trim().notEmpty().withMessage("Nature is required").isLength({ min: 1, max: 255 }).withMessage("Nature must only contain 1 to 255 characters"),
+  body("description").trim().notEmpty().withMessage("Description is required").isLength({ min: 1, max: 255 }).withMessage("Description must only contain 1 to 255 characters"),
+];

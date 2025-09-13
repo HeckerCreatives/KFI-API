@@ -101,7 +101,7 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
             {
               border: [0, 0, 0, 0],
               table: {
-                widths: ["30%", "*"],
+                widths: ["35%", "*"],
                 body: [
                   [
                     { text: "DATE", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -119,6 +119,10 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
                     { text: "CHECK NO.", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
                     { text: `${expense.checkNo}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
                   ],
+                  [
+                    { text: "CHECK DATE.", fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+                    { text: `${completeNumberDate(expense.checkDate)}`, fontSize: 8, bold: true, margin: [0, 0, 0, 0], border: [0, 0, 0, 1] },
+                  ],
                 ],
               },
             },
@@ -131,7 +135,7 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
         widths: ["10%", "*", "*", "10%", "10%"],
         body: [
           [{ text: "Particulars", colSpan: 5, fontSize: 8, bold: true, margin: [0, 0, 0, 0], alignment: "center" }, {}, {}, {}, {}],
-          [{ text: `${particulars}`, colSpan: 5, fontSize: 8, margin: [0, 0, 0, 0], alignment: "left" }, {}, {}, {}, {}],
+          [{ text: `${particulars}`, colSpan: 5, fontSize: 8, margin: [0, 10, 0, 10], alignment: "left" }, {}, {}, {}, {}],
           [
             { text: "GL Code", fontSize: 8, bold: true, margin: [0, 0, 0, 0], alignment: "center" },
             { text: "CTR Code  Client Name", fontSize: 8, bold: true, margin: [0, 0, 0, 0], alignment: "center" },
@@ -177,44 +181,50 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
         ],
       },
     },
-    {
-      margin: [0, 10, 0, 0],
-      table: {
-        widths: ["*", "*", "*", "*"],
-        body: [
-          [
-            { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
-            { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
-          ],
-          [
-            { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-            { text: "", margin: [0, 3, 0, 3] },
-            { text: "", margin: [0, 3, 0, 3] },
-            { text: "", margin: [0, 3, 0, 3] },
-          ],
-        ],
-      },
-    },
   ];
 
   const styles = [];
+  const pageMargins = [20, 25, 20, 60];
 
   const footer = function (currentPage, pageCount) {
-    return {
-      text: `Page ${currentPage} of ${pageCount}`,
-      alignment: "right",
-      fontSize: 8,
-      margin: [0, 5, 20, 0],
-    };
+    if (currentPage === pageCount) {
+      return {
+        margin: [10, 0, 10, 0],
+        table: {
+          widths: ["*", "*", "*", "*"],
+          body: [
+            [
+              { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
+            ],
+            [
+              { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: "", margin: [0, 3, 0, 3] },
+              { text: "", margin: [0, 3, 0, 3] },
+              { text: "", margin: [0, 3, 0, 3] },
+            ],
+            [{ text: ``, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
+            [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
+          ],
+        },
+      };
+    } else {
+      return {
+        text: `Page ${currentPage} of ${pageCount}`,
+        alignment: "right",
+        fontSize: 8,
+        margin: [0, 5, 20, 0],
+      };
+    }
   };
 
   return {
     info: info,
     pageOrientation: "portrait",
     footer: footer,
-    pageMargins: [20, 25, 20, 25],
+    pageMargins: pageMargins,
     content: contents,
     styles: styles,
     defaultStyle: {
@@ -222,14 +232,3 @@ exports.expenseVoucherPrintFile = (payTo, expense, entries) => {
     },
   };
 };
-
-// [
-//             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Amount", fontSize: 10, alignment: "right", bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//           ],

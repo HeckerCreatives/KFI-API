@@ -87,7 +87,8 @@ exports.update_permissions = async (id, data) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
-    const { permissions } = data;
+
+    const { permissions, platform } = data;
     const updateOperations = permissions.map(permission => ({
       updateOne: {
         filter: {
@@ -99,13 +100,13 @@ exports.update_permissions = async (id, data) => {
       },
     }));
 
-    const updates = await User.bulkWrite(updateOperations);
-
+    const updates = await User.bulkWrite(updateOperations, { session });
     if (updates.matchedCount !== permissions.length || updates.modifiedCount < 1) {
       throw new CustomError("Failed to set permissions", 500);
     }
 
-    const user = await this.get_single({ _id: id, deletedAt: null, role: "user" });
+    const user = await User.findByIdAndUpdate(id, { $set: { platform } }, { new: true, session }).exec();
+    if (!user) throw new CustomError("Failed to set permissions", 500);
 
     return {
       success: true,

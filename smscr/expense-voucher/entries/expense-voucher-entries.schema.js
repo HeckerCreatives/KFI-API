@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const expenseVoucherEntriesSchema = new mongoose.Schema(
   {
+    line: { type: Number },
     expenseVoucher: { type: mongoose.Schema.Types.ObjectId, ref: "ExpenseVoucher", required: true },
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     acctCode: { type: mongoose.Schema.Types.ObjectId, ref: "ChartOfAccount", required: true },

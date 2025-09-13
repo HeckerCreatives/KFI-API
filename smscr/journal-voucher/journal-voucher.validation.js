@@ -5,8 +5,9 @@ const { isValidObjectId, default: mongoose } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
 const Customer = require("../customer/customer.schema");
-const ExpenseVoucherEntry = require("../expense-voucher/entries/expense-voucher-entries.schema");
 const JournalVoucherEntry = require("./entries/journal-voucher-entries.schema");
+const { hasDuplicateLines } = require("../../utils/line-duplicate-checker");
+const { isAmountTally } = require("../../utils/tally-amount");
 
 exports.journalVoucherIdRules = [
   param("id")
@@ -55,7 +56,13 @@ exports.journalVoucherRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
   body("bankLabel")
     .trim()
@@ -85,6 +92,7 @@ exports.journalVoucherRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()
@@ -122,6 +130,20 @@ exports.journalVoucherRules = [
     .if(body("entries.*.cvForRecompute").notEmpty())
     .isLength({ min: 1, max: 255 })
     .withMessage("CV for recompute must only contain 1 to 255 characters"),
+  body("root").custom(async (value, { req }) => {
+    const entries = req.body.entries;
+    const amount = Number(req.body.amount);
+
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
+
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
+    return true;
+  }),
 ];
 
 exports.updateJournalVoucherRules = [
@@ -161,7 +183,13 @@ exports.updateJournalVoucherRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
   body("bankLabel")
     .trim()
@@ -191,6 +219,7 @@ exports.updateJournalVoucherRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()
@@ -228,20 +257,17 @@ exports.updateJournalVoucherRules = [
     .if(body("entries.*.cvForRecompute").notEmpty())
     .isLength({ min: 1, max: 255 })
     .withMessage("CV for recompute must only contain 1 to 255 characters"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
 
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
     return true;
   }),
   body("deletedIds")

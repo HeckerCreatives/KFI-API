@@ -13,7 +13,7 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
       [
         { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: data.supplier.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: data.supplier, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },

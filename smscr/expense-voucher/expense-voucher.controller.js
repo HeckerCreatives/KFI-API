@@ -210,7 +210,7 @@ exports.exportAllDetailed = async (req, res, next) => {
         [
           `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
+          transaction.supplier,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -250,7 +250,7 @@ exports.exportDetailedById = async (req, res, next) => {
         [
           `${transaction.code}`,
           completeNumberDate(transaction.date),
-          transaction.supplier.description,
+          transaction.supplier,
           transaction.remarks,
           transaction.bankCode.description,
           transaction.checkNo,
@@ -286,7 +286,7 @@ exports.exportAllSummary = async (req, res, next) => {
   const formattedLoanReleases = expenseVouchers.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
+    Supplier: transaction.supplier,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,
@@ -316,7 +316,7 @@ exports.exportSummaryById = async (req, res, next) => {
   const formattedLoanReleases = expenseVouchers.map(transaction => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
-    Supplier: transaction.supplier.description,
+    Supplier: transaction.supplier,
     Particulars: transaction.remarks,
     Bank: transaction.bankCode.description,
     "Check No": transaction.checkNo,

@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const emergencyLoanEntrySchema = new mongoose.Schema(
   {
+    line: { type: Number },
     emergencyLoan: { type: mongoose.Schema.ObjectId, ref: "EmergencyLoan", required: true },
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     particular: { type: String },

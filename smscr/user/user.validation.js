@@ -2,6 +2,7 @@ const { param, body } = require("express-validator");
 const User = require("./user.schema");
 const { ALL_RESOURCES } = require("../../constants/resources");
 const { isValidObjectId } = require("mongoose");
+const { platforms } = require("../../constants/platforms");
 
 exports.userIdRules = [
   param("id")
@@ -56,6 +57,14 @@ exports.changePasswordRules = [
 ];
 
 exports.permissionRules = [
+  body("platform")
+    .trim()
+    .notEmpty()
+    .withMessage("Platform is required")
+    .custom(value => {
+      if (!platforms.includes(value)) throw new Error("Invalid platform");
+      return true;
+    }),
   body("permissions")
     .isArray()
     .withMessage("Permissions must be an array")

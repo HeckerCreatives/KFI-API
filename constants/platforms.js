@@ -1,0 +1,1 @@
+exports.platforms = ["desktop", "tablet"];

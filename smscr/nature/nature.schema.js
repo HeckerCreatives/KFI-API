@@ -2,7 +2,8 @@ const mongoose = require("mongoose");
 
 const natureSchema = new mongoose.Schema(
   {
-    type: { type: String },
+    nature: { type: String },
+    description: { type: String },
     deletedAt: { type: Date },
   },
   { timestamps: true }

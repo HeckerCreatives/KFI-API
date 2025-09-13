@@ -1,13 +1,14 @@
 const { param, body } = require("express-validator");
 const ExpenseVoucher = require("./expense-voucher.schema");
-const Supplier = require("../supplier/supplier.schema");
 const Bank = require("../banks/bank.schema");
 const { isValidObjectId, default: mongoose } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
 const { isCodeUnique } = require("../../utils/code-checker");
-const CustomError = require("../../utils/custom-error");
 const Customer = require("../customer/customer.schema");
 const ExpenseVoucherEntry = require("./entries/expense-voucher-entries.schema");
+const { hasDuplicateLines } = require("../../utils/line-duplicate-checker");
+const { isAmountTally } = require("../../utils/tally-amount");
+const { hasBankEntry } = require("../../utils/bank-entry-checker");
 
 exports.expenseVoucherIdRules = [
   param("id")
@@ -37,16 +38,17 @@ exports.expenseVoucherRules = [
     })
     .matches(/^CV#[\d-]+$/i)
     .withMessage("CV# must start with CV# followed by numbers or hyphens"),
-  body("supplier")
-    .trim()
-    .notEmpty()
-    .withMessage("Supplier is required")
-    .custom(async (value, { req }) => {
-      const supplierId = req.body.supplierId;
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
-      return true;
-    }),
+  body("supplier").trim().notEmpty().withMessage("Supplier is required").isLength({ min: 1, max: 255 }).withMessage("Supplier must only consist of 1 to 255 characters"),
+  // body("supplier")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplierId;
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
   body("date")
     .trim()
     .notEmpty()
@@ -65,7 +67,13 @@ exports.expenseVoucherRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
   body("bankLabel")
     .trim()
@@ -95,6 +103,7 @@ exports.expenseVoucherRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()
@@ -132,20 +141,20 @@ exports.expenseVoucherRules = [
     .if(body("entries.*.cvForRecompute").notEmpty())
     .isLength({ min: 1, max: 255 })
     .withMessage("CV for recompute must only contain 1 to 255 characters"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
     return true;
   }),
 ];
@@ -169,16 +178,17 @@ exports.updateExpenseVoucherRules = [
     })
     .matches(/^CV#[\d-]+$/i)
     .withMessage("CV# must start with CV# followed by numbers or hyphens"),
-  body("supplier")
-    .trim()
-    .notEmpty()
-    .withMessage("Supplier is required")
-    .custom(async (value, { req }) => {
-      const supplierId = req.body.supplierId;
-      const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-      if (!exists) throw new Error("Supplier not found");
-      return true;
-    }),
+  body("supplier").trim().notEmpty().withMessage("Supplier is required").isLength({ min: 1, max: 255 }).withMessage("Supplier must only consist of 1 to 255 characters"),
+  // body("supplier")
+  //   .trim()
+  //   .notEmpty()
+  //   .withMessage("Supplier is required")
+  //   .custom(async (value, { req }) => {
+  //     const supplierId = req.body.supplierId;
+  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
+  //     if (!exists) throw new Error("Supplier not found");
+  //     return true;
+  //   }),
   body("date")
     .trim()
     .notEmpty()
@@ -197,7 +207,13 @@ exports.updateExpenseVoucherRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
   body("bankLabel")
     .trim()
@@ -227,6 +243,7 @@ exports.updateExpenseVoucherRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()
@@ -264,20 +281,20 @@ exports.updateExpenseVoucherRules = [
     .if(body("entries.*.cvForRecompute").notEmpty())
     .isLength({ min: 1, max: 255 })
     .withMessage("CV for recompute must only contain 1 to 255 characters"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
     return true;
   }),
   body("deletedIds")

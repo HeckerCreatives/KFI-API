@@ -210,7 +210,7 @@ exports.loanReleasePrintFormat2File = async (payTo, loanRelease, entries) => {
             { text: `${formatNumber(loan.previousAmount)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan.amountApproved)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan.weeklyAmortization)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
-            { text: `${formatNumber(loan.serviceCharge)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
+            { text: `${loan?.serviceCharge ? formatNumber(loan.serviceCharge) : ""}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan.unityFund)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan.insurancePremium)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan.legalFee)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },

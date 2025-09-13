@@ -4,6 +4,6 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 
 const activityLogRoutes = express.Router();
 
-activityLogRoutes.get("/", isAuthorize("activity log", "visible"), activityLogCtrl.getAll);
+activityLogRoutes.get("/", isAuthorize("action logs", "visible"), activityLogCtrl.getAll);
 
 module.exports = activityLogRoutes;

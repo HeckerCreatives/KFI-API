@@ -5,6 +5,9 @@ const { initializeChartOfAccount } = require("../utils/initialize-chart-of-accou
 const ChartOfAccount = require("../smscr/chart-of-account/chart-of-account.schema");
 const WeeklySaving = require("../smscr/weekly-saving/weekly-saving.schema");
 const { initializeWeeklySavings } = require("../utils/initialize-weely-savings");
+const LoanReleaseEntryParam = require("../smscr/system-parameters/loan-release-entry-param.schema");
+const { lrParameterCodes } = require("../constants/lr-load-parameters");
+const { initializeLoanReleaseEntryParams } = require("../utils/initialize-lr-entry-params");
 
 exports.database = () => {
   mongoose.set("strictQuery", true);
@@ -13,10 +16,19 @@ exports.database = () => {
     const charOfAccountsPromise = ChartOfAccount.countDocuments();
     const weeklySavingsPromise = WeeklySaving.countDocuments();
     const suPromise = User.exists({ role: su, deletedAt: null });
-    const [chartOfAccounts, weeklySavings, suExists] = await Promise.all([charOfAccountsPromise, weeklySavingsPromise, suPromise]);
+    const lrEntriesPromise = LoanReleaseEntryParam.countDocuments({ code: { $in: [...lrParameterCodes.map(code => code.code)] } });
 
-    if (chartOfAccounts < 1) await initializeChartOfAccount();
+    const [chartOfAccounts, weeklySavings, suExists, lrEntries] = await Promise.all([charOfAccountsPromise, weeklySavingsPromise, suPromise, lrEntriesPromise]);
+
+    if (chartOfAccounts < 1) {
+      await initializeChartOfAccount();
+      await initializeLoanReleaseEntryParams();
+    } else {
+      if (lrEntries < 1) await initializeLoanReleaseEntryParams();
+    }
+
     if (weeklySavings < 1) await initializeWeeklySavings();
+
     if (!suExists) {
       const superadmin = new User({
         name: "Super Admin",

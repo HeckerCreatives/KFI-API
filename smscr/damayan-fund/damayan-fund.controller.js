@@ -403,11 +403,12 @@ exports.loadEntries = async (req, res, next) => {
 
 exports.printFile = async (req, res, next) => {
   try {
-    const { id, name } = req.params;
+    const { id } = req.params;
     const result = await damayanFundService.print_file(id);
     const printer = new PdfPrinter(pmFonts);
+    const payTo = result?.damayan?.name || "";
 
-    const docDefinition = damayanFundPrintFile(name, result.damayan, result.entries);
+    const docDefinition = damayanFundPrintFile(payTo, result.damayan, result.entries);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
@@ -431,10 +432,11 @@ exports.printFile = async (req, res, next) => {
 
 exports.exportFile = async (req, res, next) => {
   try {
-    const { id, name } = req.params;
+    const { id } = req.params;
     const { damayan, entries } = await damayanFundService.print_file(id);
+    const payTo = damayan?.name || "";
 
-    const excelBuffer = damayanFundExportFile(damayan, name, entries);
+    const excelBuffer = damayanFundExportFile(damayan, payTo, entries);
     res.setHeader("Content-Disposition", 'attachment; filename="damayan-funds.xlsx"');
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 

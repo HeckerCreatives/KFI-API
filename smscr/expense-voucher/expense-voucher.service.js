@@ -3,6 +3,7 @@ const ExpenseVoucherEntry = require("./entries/expense-voucher-entries.schema.js
 const ExpenseVoucher = require("./expense-voucher.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -47,7 +48,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = ExpenseVoucher.countDocuments(filter);
   const expenseVouchersPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
+
     .populate({ path: "encodedBy", select: "-_id username" })
     .skip(offset)
     .limit(limit)
@@ -79,7 +80,7 @@ exports.get_single = async filter => {
 exports.create = async (data, author) => {
   const newExpenseVoucher = await new ExpenseVoucher({
     code: data.code.toUpperCase(),
-    supplier: data.supplierId,
+    supplier: data.supplier,
     date: data.date,
     acctMonth: data.acctMonth,
     acctYear: data.acctYear,
@@ -96,6 +97,7 @@ exports.create = async (data, author) => {
   }
 
   const entries = data.entries.map(entry => ({
+    line: entry.line,
     expenseVoucher: newExpenseVoucher._id,
     client: entry.client || null,
     particular: entry.particular,
@@ -116,7 +118,6 @@ exports.create = async (data, author) => {
 
   const expenseVoucher = await ExpenseVoucher.findById(newExpenseVoucher._id)
     .populate({ path: "bankCode", select: "code description" })
-    .populate({ path: "supplier", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .exec();
 
@@ -160,7 +161,7 @@ exports.update = async (filter, data, author) => {
       {
         $set: {
           code: data.code.toUpperCase(),
-          supplier: data.supplierId,
+          supplier: data.supplier,
           date: data.date,
           acctMonth: data.acctMonth,
           acctYear: data.acctYear,
@@ -175,7 +176,6 @@ exports.update = async (filter, data, author) => {
       { new: true }
     )
       .populate({ path: "bankCode", select: "code description" })
-      .populate({ path: "supplier", select: "code description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .lean()
@@ -187,6 +187,7 @@ exports.update = async (filter, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         expenseVoucher: updatedExpenseVoucher._id,
         client: entry.client || null,
         particular: entry.particular,
@@ -220,6 +221,7 @@ exports.update = async (filter, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               client: entry.client || null,
               particular: entry.particular,
               acctCode: entry.acctCodeId,
@@ -236,15 +238,12 @@ exports.update = async (filter, data, author) => {
       }
     }
 
-    const latestEntries = await ExpenseVoucherEntry.find({ expenseVoucher: updatedExpenseVoucher._id, deletedAt: null }).session(session).lean().exec();
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updatedExpenseVoucher.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const latestEntries = await ExpenseVoucherEntry.find({ expenseVoucher: updatedExpenseVoucher._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
+
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updatedExpenseVoucher.amount);
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -299,9 +298,9 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -334,9 +333,9 @@ exports.print_detailed_by_id = async expenseVoucherId => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -377,7 +376,7 @@ exports.print_summary_by_id = async expenseVoucherId => {
 exports.print_file = async transactionId => {
   const expense = await ExpenseVoucher.findOne({ _id: transactionId, deletedAt: null }).populate("supplier").populate("bankCode").lean().exec();
   const entries = await ExpenseVoucherEntry.find({ expenseVoucher: expense._id, deletedAt: null }).populate("client").populate("acctCode").lean().exec();
-  let payTo = `${expense.supplier.description}`;
+  let payTo = `${expense.supplier}`;
 
   return { success: true, expense, entries, payTo };
 };

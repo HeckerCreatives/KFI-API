@@ -6,7 +6,7 @@ exports.get_all_no_pagination = async release => {
   const filter = { deletedAt: null, release };
 
   const entries = await ReleaseEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({
       path: "loanReleaseEntryId",
@@ -30,7 +30,7 @@ exports.get_all = async (limit, page, offset, release) => {
   const filter = { deletedAt: null, release };
 
   const query = ReleaseEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({
       path: "loanReleaseEntryId",

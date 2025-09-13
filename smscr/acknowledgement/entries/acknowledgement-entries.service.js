@@ -6,7 +6,7 @@ exports.get_all_no_pagination = async acknowledgement => {
   const filter = { deletedAt: null, acknowledgement };
 
   const entries = await AcknowledgementEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({
       path: "loanReleaseEntryId",
@@ -30,7 +30,7 @@ exports.get_all = async (limit, page, offset, acknowledgement) => {
   const filter = { deletedAt: null, acknowledgement };
 
   const query = AcknowledgementEntry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({
       path: "loanReleaseEntryId",

@@ -200,6 +200,10 @@ exports.damayanFundExportFile = (damayan, payTo, entries) => {
   ]);
 
   datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
 
   datas.push(
     [

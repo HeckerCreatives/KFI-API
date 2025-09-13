@@ -8,6 +8,9 @@ const Entry = require("../transactions/entries/entry.schema.js");
 const Center = require("../center/center.schema.js");
 const Release = require("./release.schema.js");
 const ReleaseEntry = require("./entries/release-entries.schema.js");
+const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
+const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.releaseIdRules = [
   param("id")
@@ -68,7 +71,13 @@ exports.releaseRules = [
     .withMessage("Date must be a valid date (YYYY-MM-DD)"),
   body("acctMonth").trim().notEmpty().withMessage("Account Month is required").isNumeric().withMessage("Account Month must be a number"),
   body("acctYear").trim().notEmpty().withMessage("Account Year is required").isNumeric().withMessage("Account Year must be a number"),
-  body("checkNo").trim().notEmpty().withMessage("Check no. is required").isLength({ min: 1, max: 255 }).withMessage("Check no. must only consist of 1 to 255 characters"),
+  body("checkNo")
+    .if(body("checkNo").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Check no. is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Check no. must only consist of 1 to 255 characters"),
   body("checkDate")
     .trim()
     .notEmpty()
@@ -76,7 +85,13 @@ exports.releaseRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("bankCodeLabel")
     .trim()
     .notEmpty()
@@ -105,6 +120,7 @@ exports.releaseRules = [
     .withMessage("Amount must only consist of 1 to 255 characters")
     .isNumeric()
     .withMessage("Amount must be a number"),
+
   body("entries")
     .isArray()
     .withMessage("Entries must be an array")
@@ -113,6 +129,7 @@ exports.releaseRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -143,6 +160,22 @@ exports.releaseRules = [
     }),
   body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
+  body("root").custom(async (value, { req }) => {
+    const entries = req.body.entries;
+    const amount = Number(req.body.amount);
+
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
+
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
+
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
+    return true;
+  }),
 ];
 
 exports.updateReleaseRules = [
@@ -194,7 +227,13 @@ exports.updateReleaseRules = [
     .withMessage("Date must be a valid date (YYYY-MM-DD)"),
   body("acctMonth").trim().notEmpty().withMessage("Account Month is required").isNumeric().withMessage("Account Month must be a number"),
   body("acctYear").trim().notEmpty().withMessage("Account Year is required").isNumeric().withMessage("Account Year must be a number"),
-  body("checkNo").trim().notEmpty().withMessage("Check no. is required").isLength({ min: 1, max: 255 }).withMessage("Check no. must only consist of 1 to 255 characters"),
+  body("checkNo")
+    .if(body("checkNo").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Check no. is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Check no. must only consist of 1 to 255 characters"),
   body("checkDate")
     .trim()
     .notEmpty()
@@ -202,7 +241,13 @@ exports.updateReleaseRules = [
     .isLength({ min: 1, max: 255 })
     .withMessage("Check date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
-    .withMessage("Check date must be a valid date (YYYY-MM-DD)"),
+    .withMessage("Check date must be a valid date (YYYY-MM-DD)")
+    .custom((value, { req }) => {
+      const date = req.body.date;
+      const checkDate = value;
+      if (date !== checkDate) throw Error("Date and Check Date must be the same");
+      return true;
+    }),
   body("bankCodeLabel")
     .trim()
     .notEmpty()
@@ -239,6 +284,7 @@ exports.updateReleaseRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
+  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -269,20 +315,20 @@ exports.updateReleaseRules = [
     }),
   body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
-  body("root").custom((value, { req }) => {
+  body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
 
-    let totalDebit = 0;
-    let totalCredit = 0;
+    const haveBankEntry = await hasBankEntry(entries);
+    if (!haveBankEntry) throw new Error("Bank entry is required");
 
-    entries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
+    if (hasDuplicateLines(entries)) throw new Error("Make sure there is no duplicate line no.");
 
-    if (totalDebit !== totalCredit) throw new Error("Debit and Credit must be balanced.");
-    if (totalCredit !== amount) throw new Error("Total of debit and credit must be balanced with the amount field.");
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(entries, amount);
+    if (!debitCreditBalanced) throw new Error("Debit and Credit must be balanced.");
+    if (!netDebitCreditBalanced) throw new Error("Please check all the amount in the entries");
+    if (!netAmountBalanced) throw new Error("Amount and Net Amount must be balanced");
+
     return true;
   }),
   body("deletedIds")

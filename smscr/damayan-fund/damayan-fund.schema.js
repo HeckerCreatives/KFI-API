@@ -3,8 +3,8 @@ const mongoose = require("mongoose");
 const damayanFundSchema = new mongoose.Schema(
   {
     code: { type: String, unique: true, required: true },
-    // supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
-    center: { type: mongoose.Schema.Types.ObjectId, ref: "Center", required: true },
+    name: { type: String },
+    nature: { type: String },
     refNo: { type: String },
     remarks: { type: String },
     date: { type: Date, required: true },

@@ -68,7 +68,7 @@ exports.get_all_no_pagination = async transaction => {
   const filter = { deletedAt: null, transaction };
 
   const entries = await Entry.find(filter)
-    .sort("-createdAt")
+    .sort("-line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "client", select: "name" })
@@ -84,7 +84,7 @@ exports.get_all = async (limit, page, offset, transaction) => {
   const filter = { deletedAt: null, transaction };
 
   const query = Entry.find(filter)
-    .sort("-createdAt")
+    .sort("line")
     .populate({ path: "acctCode", select: "code description" })
     .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "client", select: "name" })

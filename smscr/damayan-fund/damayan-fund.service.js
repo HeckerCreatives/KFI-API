@@ -2,13 +2,10 @@ const CustomError = require("../../utils/custom-error.js");
 const DamayanFund = require("./damayan-fund.schema.js");
 const DamayanFundEntry = require("./entries/damayan-fund-entries.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
-const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const mongoose = require("mongoose");
-const { setPaymentDates } = require("../../utils/date.js");
-const { upsertWallet } = require("../wallets/wallet.service.js");
 const Customer = require("../customer/customer.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
-const { activeMemberStatuses } = require("../../constants/member-status.js");
+const { isAmountTally } = require("../../utils/tally-amount.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -50,8 +47,6 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
   const countPromise = DamayanFund.countDocuments(filter);
   const damayanFundsPromise = query
     .populate({ path: "bankCode", select: "code description" })
-    // .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
     .skip(offset)
@@ -76,8 +71,6 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
 exports.get_single = async filter => {
   const damayanFund = await DamayanFund.findOne(filter)
     .populate({ path: "bankCode", select: "code description" })
-    // .populate({ path: "supplier", select: "code description" })
-    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
     .exec();
@@ -93,8 +86,8 @@ exports.create = async (data, author) => {
     session.startTransaction();
     const newDamayanFund = await new DamayanFund({
       code: data.code.toUpperCase(),
-      // supplier: data.supplier,
-      center: data.centerValue,
+      nature: data.nature,
+      name: data.name,
       refNo: data.refNo,
       remarks: data.remarks,
       date: data.date,
@@ -112,6 +105,7 @@ exports.create = async (data, author) => {
     }
 
     const entries = data.entries.map(entry => ({
+      line: entry.line,
       damayanFund: newDamayanFund._id,
       client: entry.client || null,
       particular: entry.particular || null,
@@ -128,40 +122,11 @@ exports.create = async (data, author) => {
 
     const _ids = newEntries.map(entry => entry._id);
 
-    // const currentEntries = await DamayanFundEntry.find({ _id: { $in: _ids }, client: { $ne: null } })
-    //   .populate("acctCode")
-    //   .session(session)
-    //   .lean()
-    //   .exec();
-
     const damayanFund = await DamayanFund.findById(newDamayanFund._id)
       .populate({ path: "bankCode", select: "code description" })
-      // .populate({ path: "supplier", select: "code description" })
-      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .exec();
-
-    // const paymentSchedules = setPaymentDates(20, newDamayanFund.date);
-    // const payments = [];
-    // await Promise.all(
-    //   currentEntries.map(async entry => {
-    //     await upsertWallet(entry.client, "EL", entry.debit, session);
-    //     paymentSchedules.map(schedule => {
-    //       payments.push({
-    //         emergencyLoan: entry.emergencyLoan,
-    //         emergencyLoanEntry: entry._id,
-    //         date: schedule.date,
-    //         paid: schedule.paid,
-    //       });
-    //     });
-    //   })
-    // );
-
-    // const schedules = await PaymentSchedule.insertMany(payments, { session });
-    // if (schedules.length !== payments.length) {
-    //   throw new CustomError("Failed to save emergency loan");
-    // }
 
     await activityLogServ.create({
       author: author._id,
@@ -213,8 +178,8 @@ exports.update = async (filter, data, author) => {
       {
         $set: {
           code: data.code.toUpperCase(),
-          // supplier: data.supplier,
-          center: data.centerValue,
+          nature: data.nature,
+          name: data.name,
           refNo: data.refNo,
           remarks: data.remarks,
           date: data.date,
@@ -229,8 +194,6 @@ exports.update = async (filter, data, author) => {
       { new: true }
     )
       .populate({ path: "bankCode", select: "code description" })
-      // .populate({ path: "supplier", select: "code description" })
-      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .exec();
 
@@ -240,6 +203,7 @@ exports.update = async (filter, data, author) => {
 
     if (entryToCreate.length > 0) {
       const newEntries = entryToCreate.map(entry => ({
+        line: entry.line,
         damayanFund: updated._id,
         client: entry.client || null,
         particular: entry.particular || null,
@@ -272,6 +236,7 @@ exports.update = async (filter, data, author) => {
           filter: { _id: entry._id },
           update: {
             $set: {
+              line: entry.line,
               client: entry.client || null,
               particular: entry.particular || null,
               acctCode: entry.acctCodeId,
@@ -287,15 +252,11 @@ exports.update = async (filter, data, author) => {
       }
     }
 
-    const latestEntries = await DamayanFundEntry.find({ damayanFund: updated._id, deletedAt: null }).session(session).lean().exec();
-    let totalDebit = 0;
-    let totalCredit = 0;
-    latestEntries.map(entry => {
-      totalDebit += Number(entry.debit);
-      totalCredit += Number(entry.credit);
-    });
-    if (totalDebit !== totalCredit) throw new CustomError("Debit and Credit must be balanced.", 400);
-    if (totalCredit !== updated.amount) throw new CustomError("Total of debit and credit must be balanced with the amount field.", 400);
+    const latestEntries = await DamayanFundEntry.find({ damayanFund: updated._id, deletedAt: null }).populate("acctCode").session(session).lean().exec();
+    const { debitCreditBalanced, netDebitCreditBalanced, netAmountBalanced } = isAmountTally(latestEntries, updated.amount);
+    if (!debitCreditBalanced) throw new CustomError("Debit and Credit must be balanced.", 400);
+    if (!netDebitCreditBalanced) throw new CustomError("Please check all the amount in the entries", 400);
+    if (!netAmountBalanced) throw new CustomError("Amount and Net Amount must be balanced", 400);
 
     await activityLogServ.create({
       author: author._id,
@@ -350,11 +311,7 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
-
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
-
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -396,11 +353,7 @@ exports.print_detailed_by_id = async damayanFundId => {
 
   pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
 
-  // pipelines.push({ $lookup: { from: "suppliers", localField: "supplier", foreignField: "_id", as: "supplier", pipeline: [{ $project: { code: 1, description: 1 } }] } });
-
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
-
-  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
 
   pipelines.push({
     $lookup: {
@@ -437,13 +390,13 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   if (docNoFrom || docNoTo) filter.$and = [];
   if (docNoFrom) filter.$and.push({ code: { $gte: docNoFrom } });
   if (docNoTo) filter.$and.push({ code: { $lte: docNoTo } });
-  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
+  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).sort({ code: 1 });
   return damayanFunds;
 };
 
 exports.print_summary_by_id = async damayanFundId => {
   const filter = { deletedAt: null, _id: damayanFundId };
-  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).populate({ path: "center" }).sort({ code: 1 });
+  const damayanFunds = await DamayanFund.find(filter).populate({ path: "bankCode" }).sort({ code: 1 });
   return damayanFunds;
 };
 
@@ -475,7 +428,7 @@ exports.load_entries = async (center, amount, includeAllCentersActiveMembers, re
 };
 
 exports.print_file = async id => {
-  const damayan = await DamayanFund.findOne({ _id: id, deletedAt: null }).populate("center").populate("bankCode").lean().exec();
+  const damayan = await DamayanFund.findOne({ _id: id, deletedAt: null }).populate("bankCode").lean().exec();
   const entries = await DamayanFundEntry.find({ damayanFund: damayan._id, deletedAt: null }).sort({ line: 1 }).populate("client").populate("acctCode").lean().exec();
 
   return {
