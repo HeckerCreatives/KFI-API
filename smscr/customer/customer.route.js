@@ -9,6 +9,7 @@ const customerRoutes = express.Router();
 customerRoutes
   .get("/statistics", customerController.getClientStats)
   .get("/by-center/:center", customerController.getClientsByCenter)
+  .get("/list", customerController.getNameLists)
   .get("/selection", customerController.getSelections)
   .get("/print-all", isAuthorize("clients", "print"), customerController.printAll)
   .get("/print/:id", isAuthorize("clients", "print"), customerIdRules, validateData, customerController.print)

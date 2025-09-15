@@ -14,6 +14,27 @@ exports.get_clients_by_center = async center => {
   };
 };
 
+exports.get_clients_list = async (keyword, limit, page, offset) => {
+  const filter = { deletedAt: null, name: new RegExp(keyword, "i") };
+
+  const clientsPromise = Customer.find(filter).select("name").skip(offset).limit(limit).lean().exec();
+  const countPromise = Customer.countDocuments(filter);
+
+  const [count, clients] = await Promise.all([countPromise, clientsPromise]);
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    clients,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
+};
+
 exports.get_client_stats = async () => {
   const totalPromise = Customer.countDocuments({ deletedAt: null }).exec();
   const resignedPromise = Customer.countDocuments({ deletedAt: null, memberStatus: "Resigned" }).exec();
