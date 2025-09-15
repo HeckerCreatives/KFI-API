@@ -137,7 +137,14 @@ exports.emergencyLoanRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
-  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
+  body("entries.*.line")
+    .trim()
+    .notEmpty()
+    .withMessage("Line is required")
+    .isNumeric()
+    .withMessage("Line must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Line"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()
@@ -262,7 +269,14 @@ exports.updateEmergencyLoanRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
-  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
+  body("entries.*.line")
+    .trim()
+    .notEmpty()
+    .withMessage("Line is required")
+    .isNumeric()
+    .withMessage("Line must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Line"),
   body("entries.*.clientLabel")
     .if(body("entries.*.clientLabel").notEmpty())
     .trim()

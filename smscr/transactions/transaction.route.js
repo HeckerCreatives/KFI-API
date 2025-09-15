@@ -5,15 +5,17 @@ const entryCtrl = require("./entries/entry.controller.js");
 const { loadEntryRules, createTransactionRules, transactionIdRules, updateTransactionRules, entryLoadRules, printFileRules } = require("./transaction.validation.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
-const { entryRules, entryIdRules, deleteEntryRules } = require("./entries/entry.validation.js");
 
 const transactionRoutes = express.Router();
 
 transactionRoutes
-  .get("/print-all/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
-  .get("/print-all/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailedByDocument)
+  .get("/print/by-date/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailedByDate)
+
+  .get("/print/by-document/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummaryByDocument)
+
+  // .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
 
   .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
   .get("/print/file-format/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.print2ndFormatFile)

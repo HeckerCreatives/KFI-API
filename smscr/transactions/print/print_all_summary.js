@@ -1,7 +1,7 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber } = require("../../../utils/number");
 
-exports.loanReleaseSummaryPrintAll = (datas, from = "", to = "") => {
+exports.loanReleaseSummaryPrintAll = (datas, from = "", to = "", type = "document") => {
   const info = {
     title: "Loan Release",
   };
@@ -14,7 +14,7 @@ exports.loanReleaseSummaryPrintAll = (datas, from = "", to = "") => {
     loanReleases.push([
       { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-      { text: data.center.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+      { text: `${data.center.centerNo} - ${data.center.description}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.bank.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -40,7 +40,7 @@ exports.loanReleaseSummaryPrintAll = (datas, from = "", to = "") => {
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Center", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },

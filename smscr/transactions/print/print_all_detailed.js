@@ -8,17 +8,20 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
 
   const loanReleases = [];
 
+  let totalAmount = 0;
+
   datas.map(data => {
+    totalAmount += Number(data.amount);
     loanReleases.push(
       [
-        { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: `${data?.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: data.center.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: `${data.center.centerNo} - ${data.center.description}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.remarks, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.bank.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.checkDate), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0], alignment: "right" },
       ],
       [
         {
@@ -35,8 +38,8 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
               ],
               ...data.entries.map((entry, i) => {
                 return [
-                  { table: { widths: ["*"], body: [[{ text: entry.acctCode.code, fontSize: 8, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] }]] }, border: [0, 0, 0, 0] },
-                  { table: { widths: ["*"], body: [[{ text: entry.acctCode.description, fontSize: 8, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] }]] }, border: [0, 0, 0, 0] },
+                  { table: { widths: ["*"], body: [[{ text: entry?.acctCode?.code, fontSize: 8, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] }]] }, border: [0, 0, 0, 0] },
+                  { table: { widths: ["*"], body: [[{ text: entry?.acctCode?.description, fontSize: 8, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] }]] }, border: [0, 0, 0, 0] },
                   {
                     table: {
                       widths: ["*"],
@@ -111,6 +114,17 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
     );
   });
 
+  loanReleases.push([
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `Total: `, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `${formatNumber(totalAmount)}`, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0], alignment: "right" },
+  ]);
+
   let title = "";
   if (from && !to) title = `Doc. No. From ${from}`;
   if (to && !from) title = `Doc. No. To ${to}`;
@@ -128,7 +142,7 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Center", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },

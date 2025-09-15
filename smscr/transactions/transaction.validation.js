@@ -173,7 +173,14 @@ exports.createTransactionRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
-  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
+  body("entries.*.line")
+    .trim()
+    .notEmpty()
+    .withMessage("Line is required")
+    .isNumeric()
+    .withMessage("Line must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Line"),
   body("entries.*.clientId")
     .if(body("entries.*.clientId").notEmpty())
     .isMongoId()
@@ -185,7 +192,6 @@ exports.createTransactionRules = [
     }),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.acctCodeId")
-    .if(body("entries.*.acctCodeId").notEmpty())
     .isMongoId()
     .withMessage("Invalid account code")
     .custom(async value => {
@@ -234,7 +240,14 @@ exports.updateTransactionRules = [
       if (value.length < 1) throw new Error("Atleast 1 entry is required");
       return true;
     }),
-  body("entries.*.line").trim().notEmpty().withMessage("Line is required").isNumeric().withMessage("Line must be a number"),
+  body("entries.*.line")
+    .trim()
+    .notEmpty()
+    .withMessage("Line is required")
+    .isNumeric()
+    .withMessage("Line must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Line"),
   body("entries.*.clientId")
     .if(body("entries.*.clientId").notEmpty())
     .isMongoId()
@@ -246,7 +259,6 @@ exports.updateTransactionRules = [
     }),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.acctCodeId")
-    .if(body("entries.*.acctCodeId").notEmpty())
     .isMongoId()
     .withMessage("Invalid account code")
     .custom(async value => {

@@ -1,7 +1,7 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals, numberToWords } = require("../../../utils/number");
 
-exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
+exports.loanReleasePrintFile = (payTo, loanRelease, entries, signature) => {
   const info = { title: "Loan Release" };
 
   let particulars = "";
@@ -194,9 +194,9 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
             ],
             [
               { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-              { text: "", margin: [0, 3, 0, 3] },
-              { text: "", margin: [0, 3, 0, 3] },
-              { text: "", margin: [0, 3, 0, 3] },
+              { text: signature.checkedBy, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: signature.approvedBy, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: "", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
             ],
             [{ text: ``, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
             [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],

@@ -5,18 +5,19 @@ const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const { loanReleaseDetailedPrintAll } = require("./print/print_all_detailed.js");
 const transactionServ = require("./transaction.service.js");
-const wsfService = require("../weekly-saving/weekly-saving.service.js");
 const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx-js-style");
 const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
-const { formatNumber, numberToWordsWithDecimals } = require("../../utils/number.js");
+const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const { loanReleasePrintFile } = require("./print/print_file.js");
 const { loanReleaseExportFile } = require("./print/export_file.js");
 const { loanReleasePrintFormat2File } = require("./print/print_file_format_2.js");
 const { loanReleaseExportFormat2File } = require("./print/export_file_format.js");
+const signatureParamServ = require("../system-parameters/system-parameter.service.js");
+const { loanReleaseDetailedByDate } = require("./print/print_all_detailed_by_date.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -86,7 +87,7 @@ exports.deleteLoanRelease = async (req, res, next) => {
   }
 };
 
-exports.printAllSummary = async (req, res, next) => {
+exports.printAllSummaryByDocument = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
     const transactions = await transactionServ.print_all_summary(docNoFrom, docNoTo);
@@ -103,6 +104,64 @@ exports.printAllSummary = async (req, res, next) => {
       author: author._id,
       username: author.username,
       activity: `printed loan release ( Summarized )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllDetailedByDocument = async (req, res, next) => {
+  try {
+    const { docNoFrom, docNoTo } = req.query;
+
+    const transactions = await transactionServ.print_all_detailed(docNoFrom, docNoTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseDetailedPrintAll(transactions, docNoFrom, docNoTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all loan release ( Detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const transactions = await transactionServ.print_all_detailed_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseDetailedByDate(transactions, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all loan release ( Detailed By Date )`,
       resource: `loan release`,
     });
 
@@ -132,35 +191,6 @@ exports.printSummaryById = async (req, res, next) => {
       author: author._id,
       username: author.username,
       activity: `printed all loan release ( Summarized )`,
-      resource: `loan release`,
-    });
-
-    pdfDoc.pipe(res);
-    pdfDoc.end();
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.printAllDetailed = async (req, res, next) => {
-  try {
-    const { docNoFrom, docNoTo } = req.query;
-
-    const transactions = await transactionServ.print_all_detailed(docNoFrom, docNoTo);
-
-    const printer = new PdfPrinter(pmFonts);
-
-    const docDefinition = loanReleaseDetailedPrintAll(transactions, docNoFrom, docNoTo);
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-    res.setHeader("Content-Type", "application/pdf");
-
-    const author = getToken(req);
-    await activityLogServ.create({
-      author: author._id,
-      username: author.username,
-      activity: `printed all loan release ( Detailed )`,
       resource: `loan release`,
     });
 
@@ -395,9 +425,11 @@ exports.printFile = async (req, res, next) => {
   try {
     const { transaction } = req.params;
     const result = await transactionServ.print_file(transaction);
+    const signature = await signatureParamServ.get_signature_by_type("loan release");
+
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries);
+    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries, signature);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 

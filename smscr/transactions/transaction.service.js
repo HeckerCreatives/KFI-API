@@ -449,6 +449,41 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
   return transactions;
 };
 
+exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+  if (dateFrom) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+  if (dateTo) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $sort: { date: 1 } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
+
+  pipelines.push({ $lookup: { from: "entries", localField: "_id", foreignField: "transaction", as: "entries" } });
+
+  pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
+
+  const transactions = await Transaction.aggregate(pipelines).exec();
+
+  return transactions;
+};
+
 exports.print_detailed_by_id = async transactionId => {
   const pipelines = [];
   const filter = { deletedAt: null, _id: new mongoose.Types.ObjectId(transactionId) };
