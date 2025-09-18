@@ -82,8 +82,12 @@ exports.getCustomer = async (req, res, next) => {
 
 exports.createCustomer = async (req, res, next) => {
   try {
+    if (!req.file) {
+      return next(new CustomError("Please select an image.", 400, [{ path: "clientImage", msgs: ["Please select an image."] }]));
+    }
+
     const token = getToken(req);
-    const result = await customerService.create(req.body, token);
+    const result = await customerService.create(req.body, req.file, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -94,7 +98,7 @@ exports.updateCustomer = async (req, res, next) => {
   try {
     const token = getToken(req);
     const filter = { _id: req.params.id };
-    const result = await customerService.update(filter, req.body, token);
+    const result = await customerService.update(filter, req.body, req.file, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

@@ -3,8 +3,6 @@ const mongoose = require("mongoose");
 const emergencyLoanSchema = new mongoose.Schema(
   {
     code: { type: String, unique: true, required: true },
-    // supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier", required: true },
-    // center: { type: mongoose.Schema.Types.ObjectId, ref: "Center", required: true },
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer", required: true },
     refNo: { type: String },
     remarks: { type: String },
@@ -17,6 +15,10 @@ const emergencyLoanSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     deletedAt: { type: Date },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

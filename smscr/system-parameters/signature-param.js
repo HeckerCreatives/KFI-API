@@ -7,7 +7,7 @@ const signatureParamSchema = new mongoose.Schema(
     approvedBy: { type: String },
     checkedBy: { type: String },
     verifiedBy: { type: String },
-    notedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

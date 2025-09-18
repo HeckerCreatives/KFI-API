@@ -2,7 +2,7 @@ const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals } = require("../../../utils/number");
 const XLSX = require("xlsx-js-style");
 
-exports.journalVoucherExportFile = (journal, payTo, entries) => {
+exports.journalVoucherExportFile = (journal, payTo, entries, signature, loggedInUser) => {
   let particulars = [];
   let accountEntries = [];
   let totalDebit = 0;
@@ -200,21 +200,25 @@ exports.journalVoucherExportFile = (journal, payTo, entries) => {
   ]);
 
   datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
+  datas.push([{ v: "" }]);
 
   datas.push(
     [
       { v: "PREPARED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: "CHECKED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "NOTED/APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: "RECEIVED BY/DATE:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
     ],
     [
-      { v: "EVD", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${journal.preparedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${journal.checkedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: ``, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: `${journal.approvedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${journal.receivedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
     ]
   );
 

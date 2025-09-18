@@ -18,6 +18,11 @@ const acknowledgementSchema = new mongoose.Schema(
     cashCollectionAmount: { type: Number },
     deletedAt: { type: Date },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
+    datePosted: { type: Date },
   },
   { timestamps: true }
 );

@@ -4,6 +4,7 @@ const ExpenseVoucher = require("./expense-voucher.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -78,6 +79,8 @@ exports.get_single = async filter => {
 };
 
 exports.create = async (data, author) => {
+  const signature = await SignatureParam.findOne({ type: "expense voucher" }).lean().exec();
+
   const newExpenseVoucher = await new ExpenseVoucher({
     code: data.code.toUpperCase(),
     supplier: data.supplier,
@@ -91,7 +94,12 @@ exports.create = async (data, author) => {
     amount: data.amount,
     remarks: data.remarks,
     encodedBy: author._id,
+    preparedBy: author.username,
+    checkedBy: signature.checkedBy,
+    approvedBy: signature.approvedBy,
+    receivedBy: signature.receivedBy,
   }).save();
+
   if (!newExpenseVoucher) {
     throw new CustomError("Failed to create a new expense voucher", 500);
   }

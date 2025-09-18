@@ -15,6 +15,10 @@ const journalVoucherSchema = new mongoose.Schema(
     amount: { type: Number },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

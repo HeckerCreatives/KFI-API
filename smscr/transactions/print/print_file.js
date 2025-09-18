@@ -1,7 +1,7 @@
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber, numberToWordsWithDecimals, numberToWords } = require("../../../utils/number");
 
-exports.loanReleasePrintFile = (payTo, loanRelease, entries, signature) => {
+exports.loanReleasePrintFile = (payTo, loanRelease, entries) => {
   const info = { title: "Loan Release" };
 
   let particulars = "";
@@ -189,14 +189,14 @@ exports.loanReleasePrintFile = (payTo, loanRelease, entries, signature) => {
             [
               { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
               { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
-              { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
               { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
             ],
             [
-              { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-              { text: signature.checkedBy, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-              { text: signature.approvedBy, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-              { text: "", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${loanRelease.preparedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${loanRelease.checkedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${loanRelease.approvedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${loanRelease.receivedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
             ],
             [{ text: ``, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
             [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],

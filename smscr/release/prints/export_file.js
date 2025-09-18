@@ -223,16 +223,16 @@ exports.acknowledgementReceiptExportFile = (officialReceipt, payTo, entries) => 
     [
       { v: "PREPARED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: "CHECKED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "NOTED/APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: "APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: "RECEIVED BY/DATE:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: "DATE POSTED:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
     ],
     [
-      { v: "EVD", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${officialReceipt.preparedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${officialReceipt.checkedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${officialReceipt.approvedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${officialReceipt.receivedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${completeNumberDate(officialReceipt.datePosted)}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
     ]
   );
 

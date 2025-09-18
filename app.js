@@ -13,6 +13,7 @@ const corsConfig = require("./configs/cors");
 const path = require("path");
 
 const app = express();
+
 app.use(cors(corsConfig));
 
 app.use(morgan("dev"));
@@ -22,6 +23,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 global.rootDir = path.resolve(__dirname);
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 const server = http.createServer(app);
 

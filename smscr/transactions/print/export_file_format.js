@@ -308,7 +308,7 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "" },
 
-      { v: "NOTED/APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "APPROVED BY:", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
@@ -319,14 +319,30 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
       { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+    ],
+    [
+      { v: `${loanRelease.preparedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "" },
+
+      { v: `${loanRelease.checkedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "" },
+
+      { v: `${loanRelease.approvedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "" },
+
+      { v: `${loanRelease.receivedBy}`, t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
+      { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" } } },
     ]
-    // [
-    //   { v: "EVD", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-    //   { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-    //   { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-    //   { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-    //   { v: "", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-    // ]
   );
 
   const merges = [];

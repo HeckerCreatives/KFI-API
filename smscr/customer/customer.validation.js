@@ -149,8 +149,26 @@ exports.customerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
-  body("beneficiary").optional().isArray(),
-  body("children").optional().isArray(),
+  body("beneficiary")
+    .optional()
+    .customSanitizer(value => {
+      try {
+        return typeof value === "string" ? JSON.parse(value) : value;
+      } catch {
+        throw new Error("Invalid JSON format for children");
+      }
+    })
+    .isArray(),
+  body("children")
+    .optional()
+    .customSanitizer(value => {
+      try {
+        return typeof value === "string" ? JSON.parse(value) : value;
+      } catch {
+        throw new Error("Invalid JSON format for beneficiaries");
+      }
+    })
+    .isArray(),
 ];
 
 exports.updateCustomerRules = [
@@ -287,6 +305,24 @@ exports.updateCustomerRules = [
     .withMessage("Parent is required")
     .isLength({ min: 1, max: 255 })
     .withMessage("Parent must only consist of 1 to 255 characters"),
-  body("beneficiary").optional().isArray(),
-  body("children").optional().isArray(),
+  body("beneficiary")
+    .optional()
+    .customSanitizer(value => {
+      try {
+        return typeof value === "string" ? JSON.parse(value) : value;
+      } catch {
+        throw new Error("Invalid JSON format for children");
+      }
+    })
+    .isArray(),
+  body("children")
+    .optional()
+    .customSanitizer(value => {
+      try {
+        return typeof value === "string" ? JSON.parse(value) : value;
+      } catch {
+        throw new Error("Invalid JSON format for beneficiaries");
+      }
+    })
+    .isArray(),
 ];

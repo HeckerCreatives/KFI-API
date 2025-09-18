@@ -8,6 +8,7 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { emergencyLoanDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const { formatNumber } = require("../../utils/number.js");
 const { isValidObjectId } = require("mongoose");
+const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 
 const PdfPrinter = require("pdfmake");
 const XLSX = require("xlsx");
@@ -394,6 +395,7 @@ exports.printFile = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await emergencyLoanService.print_file(id);
+
     const printer = new PdfPrinter(pmFonts);
 
     const docDefinition = emergencyLoanPrintFile(result.payTo, result.emergency, result.entries);

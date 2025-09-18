@@ -1,6 +1,7 @@
 const { isValidObjectId } = require("mongoose");
 const systemParamService = require("./system-parameter.service.js");
 const CustomError = require("../../utils/custom-error.js");
+const { signatureType } = require("../../constants/signature-type.js");
 
 exports.getLoanReleaseEntryParams = async (req, res, next) => {
   try {
@@ -14,6 +15,17 @@ exports.getLoanReleaseEntryParams = async (req, res, next) => {
 exports.getSignatureParams = async (req, res, next) => {
   try {
     const result = await systemParamService.get_signature_params();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getSignatureParamByType = async (req, res, next) => {
+  try {
+    const { type } = req.params;
+    if (!signatureType.includes(type)) throw new CustomError("Invalid page");
+    const result = await systemParamService.get_signature_by_type(type);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

@@ -5,6 +5,7 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const mongoose = require("mongoose");
 const Customer = require("../customer/customer.schema.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -79,6 +80,8 @@ exports.create = async (data, author) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
+
+    const signature = await SignatureParam.findOne({ type: "emergency loan" }).lean().exec();
     const newEmergencyLoan = await new EmergencyLoan({
       code: data.code.toUpperCase(),
       client: data.clientValue,
@@ -92,6 +95,10 @@ exports.create = async (data, author) => {
       bankCode: data.bankCode,
       amount: data.amount,
       encodedBy: author._id,
+      preparedBy: author.username,
+      checkedBy: signature.checkedBy,
+      approvedBy: signature.approvedBy,
+      receivedBy: signature.receivedBy,
     }).save({ session });
 
     if (!newEmergencyLoan) {

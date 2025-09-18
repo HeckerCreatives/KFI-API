@@ -1,6 +1,7 @@
 const { DateTime } = require("luxon");
 
 exports.completeNumberDate = date => {
+  if (!date) return "";
   if (typeof date === "string") date = new Date(date);
 
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -42,4 +43,10 @@ exports.setPaymentDates = (noOfWeeks, date) => {
     date: nextWednesday.plus({ weeks: i }).toISODate(), // Returns JavaScript Date object
     paid: false,
   }));
+};
+
+exports.isSameMonth = (date1, date2) => {
+  if (typeof date1 === "string") date1 = new Date(date1);
+  if (typeof date2 === "string") date2 = new Date(date2);
+  return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth();
 };

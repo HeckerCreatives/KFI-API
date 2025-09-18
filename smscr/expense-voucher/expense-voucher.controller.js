@@ -3,7 +3,6 @@ const { stringEscape } = require("../../utils/escape-string.js");
 const { getToken } = require("../../utils/get-token.js");
 const { validatePaginationParams } = require("../../utils/paginate-validate.js");
 const expenseVoucherService = require("./expense-voucher.service.js");
-
 const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx");
@@ -394,6 +393,7 @@ exports.printFile = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await expenseVoucherService.print_file(id);
+
     const printer = new PdfPrinter(pmFonts);
 
     const docDefinition = expenseVoucherPrintFile(result.payTo, result.expense, result.entries);

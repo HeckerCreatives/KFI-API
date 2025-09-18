@@ -33,19 +33,13 @@ exports.update_sinature_param = async (id, data) => {
     $set: {
       approvedBy: data?.approvedBy || "",
       checkedBy: data?.checkedBy || "",
-      verifiedBy: data?.verifiedBy || "",
-      notedBy: data?.notedBy || "",
+      receivedBy: data?.receivedBy || "",
     },
   };
   const options = { new: true };
 
   const updated = await SignatureParam.findOneAndUpdate(filter, updates, options).select("-createdAt -updatedAt -__v").lean().exec();
   if (!updated) throw new CustomError("Failed to update the signature param", 500);
-
-  if (updated.approvedBy === "") delete updated.approvedBy;
-  if (updated.checkedBy === "") delete updated.checkedBy;
-  if (updated.verifiedBy === "") delete updated.verifiedBy;
-  if (updated.notedBy === "") delete updated.notedBy;
 
   return {
     success: true,
@@ -54,6 +48,9 @@ exports.update_sinature_param = async (id, data) => {
 };
 
 exports.get_signature_by_type = async type => {
-  const signatureParam = await SignatureParam.findOne({ type }).lean().exec();
-  return signatureParam;
+  const signatureParam = await SignatureParam.findOne({ type }).select("-createdAt -updatedAt -__v").lean().exec();
+  return {
+    success: true,
+    signatureParam,
+  };
 };

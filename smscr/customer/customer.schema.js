@@ -29,6 +29,13 @@ const customerSchema = new mongoose.Schema(
     deletedAt: { type: Date },
     beneficiaries: [{ name: { type: String }, relationship: { type: String } }],
     children: [{ name: { type: String } }],
+    image: {
+      path: { type: String },
+      originalname: { type: String },
+      mimetype: { type: String },
+      filename: { type: String },
+      size: { type: Number },
+    },
   },
   { timestamps: true }
 );

@@ -19,7 +19,7 @@ exports.loan_entries = async center => {
   pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
   pipelines.push({ $addFields: { center: { $arrayElemAt: ["$center", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
   pipelines.push({
-    $project: { _id: 1, cvNo: "$transaction.code", dueDate: "$transaction.dueDate", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name", centerNo: "$center.centerNo" },
+    $project: { _id: 1, cvNo: "$transaction.code", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name", centerNo: "$center.centerNo" },
   });
 
   const entries = await Entry.aggregate(pipelines).exec();
@@ -44,7 +44,7 @@ exports.get_selections = async (keyword, limit, page, offset) => {
 
   pipelines.push({ $skip: offset });
   pipelines.push({ $limit: limit });
-  pipelines.push({ $project: { _id: 1, cvNo: "$transaction.code", dueDate: "$transaction.dueDate", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name" } });
+  pipelines.push({ $project: { _id: 1, cvNo: "$transaction.code", noOfWeeks: "$transaction.noOfWeeks", name: "$client.name" } });
   const loanEntriesPromise = Entry.aggregate(pipelines).exec();
 
   const [count, loanEntries] = await Promise.all([countPromise, loanEntriesPromise]);

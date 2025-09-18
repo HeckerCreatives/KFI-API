@@ -74,6 +74,8 @@ exports.get_single = async filter => {
 };
 
 exports.create = async (data, author) => {
+  const signature = await SignatureParam.findOne({ type: "journal voucher" }).lean().exec();
+
   const newJournalVoucher = await new JournalVoucher({
     code: data.code.toUpperCase(),
     nature: data.nature,
@@ -87,6 +89,10 @@ exports.create = async (data, author) => {
     amount: data.amount,
     remarks: data.remarks,
     encodedBy: author._id,
+    preparedBy: author.username,
+    checkedBy: signature.checkedBy,
+    approvedBy: signature.approvedBy,
+    receivedBy: signature.receivedBy,
   }).save();
   if (!newJournalVoucher) {
     throw new CustomError("Failed to create a new journal voucher", 500);

@@ -2,8 +2,8 @@ const Customer = require("./customer.schema.js");
 const CustomError = require("../../utils/custom-error.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
-const { wallets } = require("../../constants/wallets.js");
-const Wallet = require("../wallets/wallet.schema.js");
+const fs = require("fs");
+const path = require("path");
 
 exports.get_clients_by_center = async center => {
   const filter = { deletedAt: null, center };
@@ -136,7 +136,7 @@ exports.get_single = async filter => {
   return { success: true, customer };
 };
 
-exports.create = async (data, author) => {
+exports.create = async (data, file, author) => {
   const session = await mongoose.startSession();
   try {
     session.startTransaction();
@@ -164,30 +164,24 @@ exports.create = async (data, author) => {
       dateResigned: data.dateResigned,
       reason: data.reason,
       parent: data.parent,
-      beneficiaries: data.beneficiary,
-      children: data.children,
+      beneficiaries: data.beneficiary || [],
+      children: data.children || [],
+      image: {
+        path: `uploads/clients/${file.filename}`,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        filename: file.filename,
+        size: file.size,
+      },
     }).save({ session });
 
     if (!newCustomer) {
       throw new CustomError("Failed to create a new customer", 500);
     }
 
-    const clientWallets = wallets.map(wallet => ({
-      owner: newCustomer._id,
-      type: wallet,
-      amount: 0,
-    }));
-
-    const createdWallets = await Wallet.insertMany(clientWallets, { session });
-    if (createdWallets.length !== wallets.length) {
-      throw new CustomError("Failed to create a new customer", 500);
-    }
-
     const customer = await Customer.findOne({ _id: newCustomer._id })
       .populate({ path: "center", select: "centerNo" })
       .populate({ path: "business", select: "type" })
-      .populate({ path: "beneficiaries" })
-      .populate({ path: "children" })
       .session(session)
       .lean()
       .exec();
@@ -215,10 +209,13 @@ exports.create = async (data, author) => {
   }
 };
 
-exports.update = async (filter, data, author) => {
-  const updatedCustomer = await Customer.findOneAndUpdate(
-    filter,
-    {
+exports.update = async (filter, data, file, author) => {
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+
+    let oldImage = null;
+    let updates = {
       $set: {
         name: data.name,
         address: data.address,
@@ -245,25 +242,52 @@ exports.update = async (filter, data, author) => {
         beneficiaries: data.beneficiary,
         children: data.children,
       },
-    },
-    { new: true }
-  )
-    .populate({ path: "center", select: "centerNo" })
-    .populate({ path: "business", select: "type" })
-    .exec();
-  if (!updatedCustomer) {
-    throw new CustomError("Failed to update the customer", 500);
+    };
+
+    if (file) {
+      const client = await Customer.findOne(filter).session(session).lean().exec();
+      oldImage = client.image.path;
+      updates.$set["image"] = {
+        path: `uploads/clients/${file.filename}`,
+        originalname: file.originalname,
+        mimetype: file.mimetype,
+        filename: file.filename,
+        size: file.size,
+      };
+    }
+
+    const updatedCustomer = await Customer.findOneAndUpdate(filter, updates, { new: true, session })
+      .populate({ path: "center", select: "centerNo" })
+      .populate({ path: "business", select: "type" })
+      .exec();
+
+    if (!updatedCustomer) {
+      throw new CustomError("Failed to update the customer", 500);
+    }
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `updated a client`,
+      resource: `clients`,
+      dataId: updatedCustomer._id,
+      session,
+    });
+
+    if (oldImage && fs.existsSync(path.resolve(global.rootDir, oldImage))) {
+      await fs.promises.unlink(path.resolve(global.rootDir, oldImage));
+    }
+
+    await session.commitTransaction();
+
+    return { success: true, customer: updatedCustomer };
+  } catch (error) {
+    if (file) await fs.promises.unlink(file.path);
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to create a client", error.statusCode || 500);
+  } finally {
+    await session.endSession();
   }
-
-  await activityLogServ.create({
-    author: author._id,
-    username: author.username,
-    activity: `updated a client`,
-    resource: `clients`,
-    dataId: updatedCustomer._id,
-  });
-
-  return { success: true, customer: updatedCustomer };
 };
 
 exports.delete = async (filter, author) => {

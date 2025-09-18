@@ -3,12 +3,23 @@ const { loanCodes } = require("../../../constants/loan-codes");
 const { completeNumberDate } = require("../../../utils/date");
 const { formatNumber } = require("../../../utils/number");
 
-exports.loanReleaseDetailedByDate = (datas, from = "", to = "") => {
+exports.loanReleaseSummarizedByDate = (datas, from = "", to = "") => {
   const info = {
     title: "Loan Release",
   };
 
   const loanReleases = [];
+
+  const formattedDatas = [];
+  datas.map((data, i) => {
+    const fData = formattedDatas.findIndex(e => e.officer === data.acctOfficer);
+    const monthYear = `${new Date(data.date).getMonth()} - ${new Date(data.date).getFullYear()}`;
+    if (fData < 0) {
+      formattedDatas.push({ officer: data.acctOfficer, months: [{ month: monthYear, datas: [data] }] });
+    } else {
+      const monthYear = formattedDatas[i].months.map(e => e.month === monthYear);
+    }
+  });
 
   let totalAmount = 0;
   let totalMisc = 0;
@@ -72,7 +83,7 @@ exports.loanReleaseDetailedByDate = (datas, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Loan Release By Date (Detailed)", fontSize: 9 },
+    { text: "Loan Release By Date ( Summarized )", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {

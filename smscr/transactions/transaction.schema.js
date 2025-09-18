@@ -8,9 +8,9 @@ const transactionSchema = new mongoose.Schema(
     refNo: { type: String },
     remarks: { type: String },
     date: { type: Date, required: true },
-    dueDate: { type: Date },
     acctMonth: { type: Number, required: true },
     acctYear: { type: Number, required: true },
+    acctOfficer: { type: String, required: true },
     noOfWeeks: { type: Number, required: true },
     loan: { type: mongoose.Schema.Types.ObjectId, ref: "Loan", required: true },
     checkNo: { type: String },
@@ -24,6 +24,10 @@ const transactionSchema = new mongoose.Schema(
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     deletedAt: { type: Date },
     status: { type: String, enum: ["open", "closed", "past due"], default: "open" },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

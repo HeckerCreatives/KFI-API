@@ -1,15 +1,13 @@
 const CustomError = require("../../utils/custom-error.js");
 const Customer = require("../customer/customer.schema.js");
-const LoanCode = require("../loan-code/loan-code.schema.js");
 const Entry = require("./entries/entry.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const Transaction = require("./transaction.schema.js");
 const { default: mongoose } = require("mongoose");
-const { setPaymentDates } = require("../../utils/date.js");
-const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const LoanReleaseEntryParam = require("../system-parameters/loan-release-entry-param.schema.js");
-const { bankCodes } = require("../../constants/bank-codes.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
+const Center = require("../center/center.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -79,7 +77,8 @@ exports.create_loan_release = async (data, author) => {
   try {
     session.startTransaction();
 
-    const paymentSchedules = setPaymentDates(data.noOfWeeks, data.date);
+    const signature = await SignatureParam.findOne({ type: "loan release" }).lean().exec();
+    const center = await Center.findById(data.center).lean().exec();
 
     const newLoanRelease = await new Transaction({
       type: "loan release",
@@ -88,9 +87,9 @@ exports.create_loan_release = async (data, author) => {
       refNo: data.refNumber,
       remarks: data.remarks,
       date: data.date,
-      dueDate: paymentSchedules[paymentSchedules.length - 1].date,
       acctMonth: data.acctMonth,
       acctYear: data.acctYear,
+      acctOfficer: center.acctOfficer,
       noOfWeeks: data.noOfWeeks,
       loan: data.typeOfLoan,
       checkNo: data?.checkNo || "",
@@ -101,6 +100,10 @@ exports.create_loan_release = async (data, author) => {
       interest: data.interestRate,
       isEduc: data.isEduc,
       encodedBy: author._id,
+      preparedBy: author.username,
+      checkedBy: signature.checkedBy,
+      approvedBy: signature.approvedBy,
+      receivedBy: signature.receivedBy,
     }).save({ session });
 
     if (!newLoanRelease) {
@@ -131,12 +134,6 @@ exports.create_loan_release = async (data, author) => {
 
     const _ids = addedEntries.map(entry => entry._id);
 
-    const currentEntries = await Entry.find({ _id: { $in: _ids }, client: { $ne: null } })
-      .populate("acctCode")
-      .session(session)
-      .lean()
-      .exec();
-
     const transaction = await Transaction.findById(newLoanRelease._id)
       .populate({ path: "bank", select: "code description" })
       .populate({ path: "center", select: "centerNo description" })
@@ -144,28 +141,6 @@ exports.create_loan_release = async (data, author) => {
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
       .exec();
-
-    // const payments = [];
-    // await Promise.all(
-    //   currentEntries.map(async entry => {
-    //     if (wallets.includes(transaction.loan.code)) {
-    //       await upsertWallet(entry.client, transaction.loan.code, entry.debit, session);
-    //     }
-    //     paymentSchedules.map(schedule => {
-    //       payments.push({
-    //         loanRelease: entry.transaction,
-    //         loanSchemaEntry: entry._id,
-    //         date: schedule.date,
-    //         paid: schedule.paid,
-    //       });
-    //     });
-    //   })
-    // );
-
-    // const schedules = await PaymentSchedule.insertMany(payments, { session });
-    // if (schedules.length !== payments.length) {
-    //   throw new CustomError("Failed to save loan release");
-    // }
 
     await activityLogServ.create({
       author: author._id,
@@ -475,7 +450,19 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
 
   pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
-  pipelines.push({ $lookup: { from: "entries", localField: "_id", foreignField: "transaction", as: "entries" } });
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
+        { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, transaction: 0 } },
+      ],
+      as: "entries",
+    },
+  });
 
   pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
 

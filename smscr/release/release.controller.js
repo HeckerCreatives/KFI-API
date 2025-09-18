@@ -14,6 +14,7 @@ const { releaseSummaryPrintAll } = require("./prints/print_all_summary.js");
 const { releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const { acknowledgementReceiptPrintFile } = require("./prints/print_file.js");
 const { acknowledgementReceiptExportFile } = require("./prints/export_file.js");
+const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -377,6 +378,7 @@ exports.printFile = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await releaseService.print_file(id);
+
     const printer = new PdfPrinter(pmFonts);
 
     const docDefinition = acknowledgementReceiptPrintFile(result.payTo, result.release, result.entries);

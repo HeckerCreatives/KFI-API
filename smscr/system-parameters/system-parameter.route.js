@@ -9,6 +9,7 @@ const systemParamRoutes = express.Router();
 systemParamRoutes
   .get("/loan-release-entry", isAuthorize("parameters", "visible"), systemParamCtrl.getLoanReleaseEntryParams)
   .get("/signature", isAuthorize("parameters", "visible"), systemParamCtrl.getSignatureParams)
+  .get("/signature/by-type/:type", systemParamCtrl.getSignatureParamByType)
   .put("/signature/:id", isAuthorize("parameters", "update"), updateSignatureParamRules, validateData, systemParamCtrl.updateSignatureParam);
 
 module.exports = systemParamRoutes;

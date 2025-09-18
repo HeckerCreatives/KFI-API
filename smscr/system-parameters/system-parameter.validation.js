@@ -19,33 +19,13 @@ exports.updateSignatureParamRules = [
       if (!signatureType.includes(value)) throw new Error("Invalid page");
       return true;
     }),
-  body("approvedBy").custom(async (value, { req }) => {
-    const type = req.body.type;
-    if (!signatureType.includes(type)) throw new Error("Invalid page");
-
-    if (!["loan release", "expense voucher", "journal voucher", "damayan fund", "emergency loan"].includes(type)) return true;
-    if (String(value).trim() === "") throw new Error("Approved by is required");
-    return true;
-  }),
-  body("checkedBy").custom((value, { req }) => {
-    const type = req.body.type;
-    if (!signatureType.includes(type)) throw new Error("Invalid page");
-    if (!["loan release", "official receipt", "journal voucher", "damayan fund", "emergency loan"].includes(type)) return true;
-    if (String(value).trim() === "") throw new Error("Checked by is required");
-    return true;
-  }),
-  body("verifiedBy").custom((value, { req }) => {
-    const type = req.body.type;
-    if (!signatureType.includes(type)) throw new Error("Invalid page");
-    if (!["expense voucher"].includes(type)) return true;
-    if (String(value).trim() === "") throw new Error("Verified by is required");
-    return true;
-  }),
-  body("notedBy").custom((value, { req }) => {
-    const type = req.body.type;
-    if (!signatureType.includes(type)) throw new Error("Invalid page");
-    if (!["official receipt"].includes(type)) return true;
-    if (String(value).trim() === "") throw new Error("Noted by is required");
-    return true;
-  }),
+  body("approvedBy").trim().notEmpty().withMessage("Approved by is required").isLength({ min: 1, max: 255 }).withMessage("Approved by must only consist of 1 to 255 characters"),
+  body("checkedBy").trim().notEmpty().withMessage("Checked by is required").isLength({ min: 1, max: 255 }).withMessage("Checked by must only consist of 1 to 255 characters"),
+  body("receivedBy")
+    .if(body("receivedBy").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Received by is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Received by must only consist of 1 to 255 characters"),
 ];

@@ -16,6 +16,10 @@ const damayanFundSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     deletedAt: { type: Date },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

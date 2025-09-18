@@ -148,6 +148,15 @@ exports.acknowledgementRules = [
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),
+  body("entries.*.dueDate")
+    .if(body("entries.*.dueDate").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Due Date is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Due Date must only consist of 1 to 255 characters")
+    .isDate({ format: "YYYY-MM-DD" })
+    .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.acctCode")
     .trim()
@@ -306,6 +315,15 @@ exports.updateAcknowledgementRules = [
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),
+  body("entries.*.dueDate")
+    .if(body("entries.*.dueDate").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Due Date is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Due Date must only consist of 1 to 255 characters")
+    .isDate({ format: "YYYY-MM-DD" })
+    .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
   body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.acctCode")
     .trim()

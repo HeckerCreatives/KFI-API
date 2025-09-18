@@ -15,6 +15,7 @@ const { damayanFundDetailedPrintAll } = require("./prints/print_all_detailed.js"
 const CustomError = require("../../utils/custom-error.js");
 const { damayanFundPrintFile } = require("./prints/print_file.js");
 const { damayanFundExportFile } = require("./prints/export_file.js");
+const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -405,6 +406,7 @@ exports.printFile = async (req, res, next) => {
   try {
     const { id } = req.params;
     const result = await damayanFundService.print_file(id);
+
     const printer = new PdfPrinter(pmFonts);
     const payTo = result?.damayan?.name || "";
 

@@ -425,11 +425,10 @@ exports.printFile = async (req, res, next) => {
   try {
     const { transaction } = req.params;
     const result = await transactionServ.print_file(transaction);
-    const signature = await signatureParamServ.get_signature_by_type("loan release");
 
     const printer = new PdfPrinter(pmFonts);
 
-    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries, signature);
+    const docDefinition = loanReleasePrintFile(result.payTo, result.loanRelease, result.entries);
 
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
 

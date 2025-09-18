@@ -16,6 +16,10 @@ const expenseVoucherSchema = new mongoose.Schema(
     remarks: { type: String },
     deletedAt: { type: Date },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    preparedBy: { type: String },
+    checkedBy: { type: String },
+    approvedBy: { type: String },
+    receivedBy: { type: String },
   },
   { timestamps: true }
 );

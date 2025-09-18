@@ -4,6 +4,7 @@ const Release = require("./release.schema.js");
 const { default: mongoose } = require("mongoose");
 const ReleaseEntry = require("./entries/release-entries.schema.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -72,6 +73,8 @@ exports.create = async (data, author) => {
   try {
     session.startTransaction();
 
+    const signature = await SignatureParam.findOne({ type: "acknowledgement receipt" }).lean().exec();
+
     const newRelease = await new Release({
       code: data.code.toUpperCase(),
       center: data.center,
@@ -88,6 +91,11 @@ exports.create = async (data, author) => {
       amount: data.amount,
       cashCollectionAmount: data.cashCollection,
       encodedBy: author._id,
+      preparedBy: author.username,
+      checkedBy: signature.checkedBy,
+      approvedBy: signature.approvedBy,
+      receivedBy: signature.receivedBy,
+      datePosted: new Date(),
     }).save({ session });
 
     if (!newRelease) {
@@ -98,6 +106,7 @@ exports.create = async (data, author) => {
       line: entry.line,
       release: newRelease._id,
       loanReleaseEntryId: entry.loanReleaseEntryId || null,
+      dueDate: entry.dueDate,
       acctCode: entry.acctCodeId,
       particular: entry.particular,
       debit: entry.debit,
@@ -201,6 +210,7 @@ exports.update = async (id, data, author) => {
         line: entry.line,
         release: updated._id,
         loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        dueDate: entry.dueDate,
         acctCode: entry.acctCodeId,
         particular: entry.particular,
         debit: entry.debit,
@@ -229,6 +239,7 @@ exports.update = async (id, data, author) => {
             $set: {
               line: entry.line,
               loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              dueDate: entry.dueDate,
               acctCode: entry.acctCodeId,
               particular: entry.particular,
               debit: entry.debit,

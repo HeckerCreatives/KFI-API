@@ -203,22 +203,24 @@ exports.officialReceiptPrintFile = (payTo, officialReceipt, entries) => {
       return {
         margin: [10, 0, 10, 0],
         table: {
-          widths: ["*", "*", "*", "*"],
+          widths: ["*", "*", "*", "*", "*"],
           body: [
             [
               { text: "PREPARED BY:", fontSize: 8, bold: true, alignment: "center" },
               { text: "CHECKED BY:", fontSize: 8, bold: true, alignment: "center" },
-              { text: "NOTED/APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "APPROVED BY:", fontSize: 8, bold: true, alignment: "center" },
               { text: "RECEIVED BY/DATE:", fontSize: 8, bold: true, alignment: "center" },
+              { text: "DATE POSTED:", fontSize: 8, bold: true, alignment: "center" },
             ],
             [
-              { text: "EVD", margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
-              { text: "", margin: [0, 3, 0, 3] },
-              { text: "", margin: [0, 3, 0, 3] },
-              { text: "", margin: [0, 3, 0, 3] },
+              { text: `${officialReceipt.preparedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${officialReceipt.checkedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${officialReceipt.approvedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${officialReceipt.receivedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
+              { text: `${completeNumberDate(officialReceipt.datePosted)}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, alignment: "center" },
             ],
-            [{ text: ``, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
-            [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 4, border: [0, 0, 0, 0] }, {}, {}, {}],
+            [{ text: ``, alignment: "right", fontSize: 8, colSpan: 5, border: [0, 0, 0, 0] }, {}, {}, {}, {}],
+            [{ text: `Page ${currentPage} of ${pageCount}`, alignment: "right", fontSize: 8, colSpan: 5, border: [0, 0, 0, 0] }, {}, {}, {}, {}],
           ],
         },
       };
@@ -244,14 +246,3 @@ exports.officialReceiptPrintFile = (payTo, officialReceipt, entries) => {
     },
   };
 };
-
-// [
-//             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Supplier", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Particular", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//             { text: "Amount", fontSize: 10, alignment: "right", bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-//           ],
