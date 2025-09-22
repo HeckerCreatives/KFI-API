@@ -121,8 +121,8 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
     { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
     { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
     { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-    { text: `Total: `, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-    { text: `${formatNumber(totalAmount)}`, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0], alignment: "right" },
+    { text: `Grand Total: `, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `${formatNumber(totalAmount)}`, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 1, 0, 1], alignment: "right" },
   ]);
 
   let title = "";
@@ -132,7 +132,7 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Loan Release By Doc. No. (Detailed)", fontSize: 9 },
+    { text: "Loan Release By Doc. No. ( Detailed )", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {

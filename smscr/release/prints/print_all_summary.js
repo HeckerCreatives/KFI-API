@@ -34,7 +34,7 @@ exports.releaseSummaryPrintAll = (datas, from = "", to = "") => {
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["*", "*", "*", "*", "*", "*", "*"],
+        widths: ["10%", "10%", "20%", "20%", "20%", "10%", "10%"],
         body: [
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
@@ -66,6 +66,7 @@ exports.releaseSummaryPrintAll = (datas, from = "", to = "") => {
   return {
     info: info,
     pageOrientation: "landscape",
+    pageSize: "legal",
     footer: footer,
     pageMargins: [20, 25, 20, 25],
     content: contents,

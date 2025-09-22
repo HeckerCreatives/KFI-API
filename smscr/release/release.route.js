@@ -9,9 +9,11 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const releaseRoutes = express.Router();
 
 releaseRoutes
-  .get("/print-all/detailed", isAuthorize("release", "print"), releaseCtrl.printAllDetailed)
+  .get("/print/by-document/detailed", isAuthorize("release", "print"), releaseCtrl.printAllDetailed)
+
+  .get("/print/by-document/summary", isAuthorize("release", "print"), releaseCtrl.printAllSummary)
+
   .get("/print/detailed/:id", isAuthorize("release", "print"), releaseCtrl.printDetailedById)
-  .get("/print-all/summary", isAuthorize("release", "print"), releaseCtrl.printAllSummary)
   .get("/print/summary/:id", isAuthorize("release", "print"), releaseCtrl.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("release", "print"), releaseIdRules, validateData, releaseCtrl.printFile)

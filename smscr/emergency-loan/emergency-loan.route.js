@@ -15,10 +15,12 @@ const { emergencyLoanEntryIdRules, emergencyLoanEntryRules } = require("./entrie
 const emergencyLoanRoutes = express.Router();
 
 emergencyLoanRoutes
-  .get("/print-all/detailed", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printDetailedById)
-  .get("/print-all/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllDetailed)
+
+  .get("/print/by-document/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummary)
+
+  // .get("/print/detailed/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("emergency loan", "print"), emergencyLoanIdRules, validateData, emergencyLoanController.printFile)
   .get("/export/file/:id", isAuthorize("emergency loan", "export"), emergencyLoanIdRules, validateData, emergencyLoanController.exportFile)

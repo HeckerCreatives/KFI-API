@@ -6,12 +6,12 @@ exports.emergencyLoanSummaryPrintAll = (datas, from = "", to = "") => {
     title: "Emergency Loan",
   };
 
-  const loanReleases = [];
+  const emergencyLoans = [];
   let total = 0;
 
   datas.map((data, i) => {
     total += data.amount;
-    loanReleases.push([
+    emergencyLoans.push([
       { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: completeNumberDate(data.date), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
       { text: data?.client?.name || "", fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -35,7 +35,7 @@ exports.emergencyLoanSummaryPrintAll = (datas, from = "", to = "") => {
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["*", "*", "*", "*", "*", "*", "*", "*"],
+        widths: ["10%", "7%", "20%", "20%", "20%", "9%", "7%", "7%"],
         body: [
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
@@ -47,7 +47,7 @@ exports.emergencyLoanSummaryPrintAll = (datas, from = "", to = "") => {
             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Amount", fontSize: 10, alignment: "right", bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
           ],
-          ...loanReleases,
+          ...emergencyLoans,
           [{ text: "", border: [0, 0, 0, 0], colSpan: 7 }, {}, {}, {}, {}, {}, {}, { text: formatNumber(total), alignment: "right", fontSize: 10, border: [0, 0, 0, 1] }],
         ],
       },
@@ -68,6 +68,7 @@ exports.emergencyLoanSummaryPrintAll = (datas, from = "", to = "") => {
   return {
     info: info,
     pageOrientation: "landscape",
+    pageSize: "legal",
     footer: footer,
     pageMargins: [20, 25, 20, 25],
     content: contents,

@@ -82,6 +82,8 @@ exports.getCustomer = async (req, res, next) => {
 
 exports.createCustomer = async (req, res, next) => {
   try {
+    console.log(req.body);
+
     if (!req.file) {
       return next(new CustomError("Please select an image.", 400, [{ path: "clientImage", msgs: ["Please select an image."] }]));
     }

@@ -8,10 +8,12 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const acknowledgementRoutes = express.Router();
 
 acknowledgementRoutes
-  .get("/print-all/detailed", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printDetailedById)
-  .get("/print-all/summary", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printAllDetailed)
+
+  .get("/print/by-document/summary", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printAllSummary)
+
+  // .get("/print/detailed/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("acknowledgement", "print"), acknowledgementIdRules, validateData, acknowledgementCtrl.printFile)
   .get("/export/file/:id", isAuthorize("acknowledgement", "export"), acknowledgementIdRules, validateData, acknowledgementCtrl.exportFile)

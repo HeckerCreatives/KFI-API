@@ -15,10 +15,11 @@ const { isAuthorize } = require("../../middlewares/authorized.js");
 const damayanFundRoutes = express.Router();
 
 damayanFundRoutes
-  .get("/print-all/detailed", isAuthorize("damayan fund", "print"), damayanFundController.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("damayan fund", "print"), damayanFundController.printDetailedById)
-  .get("/print-all/summary", isAuthorize("damayan fund", "print"), damayanFundController.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("damayan fund", "print"), damayanFundController.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("damayan fund", "print"), damayanFundController.printAllDetailed)
+  .get("/print/by-document/summary", isAuthorize("damayan fund", "print"), damayanFundController.printAllSummary)
+
+  // .get("/print/detailed/:id", isAuthorize("damayan fund", "print"), damayanFundController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("damayan fund", "print"), damayanFundController.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("acknowledgement", "print"), damayanFundIdRules, validateData, damayanFundController.printFile)
   .get("/export/file/:id", isAuthorize("acknowledgement", "export"), damayanFundIdRules, validateData, damayanFundController.exportFile)

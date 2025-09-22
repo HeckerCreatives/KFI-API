@@ -18,6 +18,7 @@ const { loanReleasePrintFormat2File } = require("./print/print_file_format_2.js"
 const { loanReleaseExportFormat2File } = require("./print/export_file_format.js");
 const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 const { loanReleaseDetailedByDate } = require("./print/print_all_detailed_by_date.js");
+const { loanReleaseSummarizedByDate } = require("./print/print_all_summary_by_date.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -104,6 +105,33 @@ exports.printAllSummaryByDocument = async (req, res, next) => {
       author: author._id,
       username: author.username,
       activity: `printed loan release ( Summarized )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllSummaryByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const transactions = await transactionServ.print_all_summary_by_date(dateFrom, dateTo);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseSummarizedByDate(transactions, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Summarized By Date )`,
       resource: `loan release`,
     });
 

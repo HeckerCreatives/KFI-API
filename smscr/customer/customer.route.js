@@ -18,8 +18,10 @@ customerRoutes
   .get("/export/:id", isAuthorize("clients", "export"), customerIdRules, validateData, customerController.export)
   .get("/", isAuthorize("clients", "visible"), customerController.getCustomers)
   .get("/:id", isAuthorize("clients", "read"), customerIdRules, validateData, customerController.getCustomer)
+
   .post("/", isAuthorize("clients", "create"), clientUploadCheck, customerRules, validateData, customerController.createCustomer)
   .put("/:id", isAuthorize("clients", "update"), clientUploadCheck, customerIdRules, updateCustomerRules, validateData, customerController.updateCustomer)
+
   .delete("/:id", isAuthorize("clients", "delete"), customerIdRules, validateData, customerController.deleteCustomer);
 
 module.exports = customerRoutes;

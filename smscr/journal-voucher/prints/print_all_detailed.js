@@ -7,8 +7,10 @@ exports.journalVoucherDetailedPrintAll = (datas, from = "", to = "") => {
   };
 
   const journalVouchers = [];
+  let totalAmount = 0;
 
   datas.map(data => {
+    totalAmount += Number(data.amount);
     journalVouchers.push(
       [
         { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -18,7 +20,7 @@ exports.journalVoucherDetailedPrintAll = (datas, from = "", to = "") => {
         { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.checkDate), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0], alignment: "right" },
       ],
       [
         {
@@ -111,6 +113,17 @@ exports.journalVoucherDetailedPrintAll = (datas, from = "", to = "") => {
     );
   });
 
+  journalVouchers.push([
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `Grand Total: `, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `${formatNumber(totalAmount)}`, fontSize: 10, bold: true, margin: [0, 1, 0, 1], border: [0, 1, 0, 1], alignment: "right" },
+  ]);
+
   let title = "";
   if (from && !to) title = `Doc. No. From ${from}`;
   if (to && !from) title = `Doc. No. To ${to}`;
@@ -133,7 +146,7 @@ exports.journalVoucherDetailedPrintAll = (datas, from = "", to = "") => {
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
           ],
           ...journalVouchers,
         ],

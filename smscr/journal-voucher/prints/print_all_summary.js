@@ -35,7 +35,7 @@ exports.journalVoucherSummaryPrintAll = (datas, from = "", to = "") => {
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["*", "*", "*", "*", "*", "*", "*", "*"],
+        widths: ["10%", "8%", "19%", "19%", "19%", "9%", "8%", "8%"],
         body: [
           [
             { text: "Doc. No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
@@ -68,6 +68,7 @@ exports.journalVoucherSummaryPrintAll = (datas, from = "", to = "") => {
   return {
     info: info,
     pageOrientation: "landscape",
+    pageSize: "LEGAL",
     footer: footer,
     pageMargins: [20, 25, 20, 25],
     content: contents,

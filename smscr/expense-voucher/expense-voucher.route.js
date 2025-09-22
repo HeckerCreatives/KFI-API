@@ -9,10 +9,12 @@ const { expenseVoucherEntryRules, expenseVoucherEntryIdRules } = require("./entr
 const expenseVoucherRoutes = express.Router();
 
 expenseVoucherRoutes
-  .get("/print-all/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printDetailedById)
-  .get("/print-all/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllDetailed)
+
+  .get("/print/by-document/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummary)
+
+  // .get("/print/detailed/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("expense voucher", "print"), expenseVoucherIdRules, validateData, expenseVoucherController.printFile)
   .get("/export/file/:id", isAuthorize("expense voucher", "export"), expenseVoucherIdRules, validateData, expenseVoucherController.exportFile)

@@ -13,6 +13,7 @@ transactionRoutes
   .get("/print/by-date/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailedByDate)
 
   .get("/print/by-document/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummaryByDocument)
+  .get("/print/by-date/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummaryByDate)
 
   // .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
   // .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)

@@ -9,10 +9,12 @@ const { journalVoucherEntryIdRules, journalVoucherEntryRules } = require("./entr
 const journalVoucherRoutes = express.Router();
 
 journalVoucherRoutes
-  .get("/print-all/detailed", isAuthorize("journal voucher", "print"), journalVoucherController.printAllDetailed)
-  .get("/print/detailed/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printDetailedById)
-  .get("/print-all/summary", isAuthorize("journal voucher", "print"), journalVoucherController.printAllSummary)
-  .get("/print/summary/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printSummaryById)
+  .get("/print/by-document/detailed", isAuthorize("journal voucher", "print"), journalVoucherController.printAllDetailed)
+
+  .get("/print/by-document/summary", isAuthorize("journal voucher", "print"), journalVoucherController.printAllSummary)
+
+  // .get("/print/detailed/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("journal voucher", "print"), journalVoucherController.printSummaryById)
 
   .get("/print/file/:id", isAuthorize("journal voucher", "print"), journalVoucherIdRules, validateData, journalVoucherController.printFile)
   .get("/export/file/:id", isAuthorize("journal voucher", "export"), journalVoucherIdRules, validateData, journalVoucherController.exportFile)

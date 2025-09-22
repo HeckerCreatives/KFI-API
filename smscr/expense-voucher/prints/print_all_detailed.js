@@ -8,7 +8,10 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
 
   const expenseVouchers = [];
 
+  let totalAmount = 0;
+
   datas.map(data => {
+    totalAmount += Number(data.amount);
     expenseVouchers.push(
       [
         { text: `${data.code}`, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
@@ -18,7 +21,7 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
         { text: data.bankCode.description, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: data.checkNo, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
         { text: completeNumberDate(data.checkDate), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
-        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+        { text: formatNumber(data.amount), fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0], alignment: "right" },
       ],
       [
         {
@@ -111,6 +114,17 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
     );
   });
 
+  expenseVouchers.push([
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: ``, fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `Grand Total: `, bold: true, alignment: "right", fontSize: 10, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] },
+    { text: `${formatNumber(totalAmount)}`, bold: true, alignment: "right", fontSize: 10, margin: [0, 1, 0, 1], border: [0, 1, 0, 1] },
+  ]);
+
   let title = "";
   if (from && !to) title = `Doc. No. From ${from}`;
   if (to && !from) title = `Doc. No. To ${to}`;
@@ -133,7 +147,7 @@ exports.expenseVoucherDetailedPrintAll = (datas, from = "", to = "") => {
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
           ],
           ...expenseVouchers,
         ],

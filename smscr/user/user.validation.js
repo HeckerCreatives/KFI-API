@@ -24,8 +24,8 @@ exports.userRules = [
     .trim()
     .notEmpty()
     .withMessage("Username is required")
-    .isLength({ min: 6, max: 30 })
-    .withMessage("Username must consist of 6 to 30 characters")
+    .isLength({ min: 3, max: 30 })
+    .withMessage("Username must consist of 3 to 30 characters")
     .custom(async value => {
       const exists = await User.exists({ username: value });
       if (exists) throw new Error("Username already exists");
