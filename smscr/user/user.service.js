@@ -108,6 +108,8 @@ exports.update_permissions = async (id, data) => {
     const user = await User.findByIdAndUpdate(id, { $set: { platform } }, { new: true, session }).exec();
     if (!user) throw new CustomError("Failed to set permissions", 500);
 
+    await session.commitTransaction();
+
     return {
       success: true,
       user,
