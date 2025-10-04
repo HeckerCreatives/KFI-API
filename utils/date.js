@@ -19,15 +19,15 @@ exports.validateDateInput = date => {
   return date;
 };
 
-exports.getNextWednesdayDate = date => {
+exports.getNextFridayDate = date => {
   const today = DateTime.fromISO(date);
-  const thisWeekWednesday = today.set({ weekday: 3 });
+  const thisWeekWednesday = today.set({ weekday: 5 });
 
-  return today.weekday >= 3 ? thisWeekWednesday.plus({ weeks: 1 }).toISODate() : thisWeekWednesday.toISODate();
+  return today.weekday >= 5 ? thisWeekWednesday.plus({ weeks: 1 }).toISODate() : thisWeekWednesday.toISODate();
 };
 
-exports.getCoveredWednesdayDates = (noOfWeeks, date) => {
-  const startDate = DateTime.fromISO(this.getNextWednesdayDate(date));
+exports.getCoveredFridaysDate = (noOfWeeks, date) => {
+  const startDate = DateTime.fromISO(this.getNextFridayDate(date));
   const dates = [];
   for (let i = 0; i < noOfWeeks; i++) {
     dates.push(startDate.plus({ weeks: i }).toISODate());
@@ -37,11 +37,12 @@ exports.getCoveredWednesdayDates = (noOfWeeks, date) => {
 
 exports.setPaymentDates = (noOfWeeks, date) => {
   const startDate = DateTime.fromJSDate(new Date(date));
-  const nextWednesday = DateTime.fromISO(this.getNextWednesdayDate(startDate));
+  const nextFriday = DateTime.fromISO(this.getNextFridayDate(startDate));
 
   return Array.from({ length: noOfWeeks }, (_, i) => ({
-    date: nextWednesday.plus({ weeks: i }).toISODate(), // Returns JavaScript Date object
+    date: nextFriday.plus({ weeks: i }).toISODate(), // Returns JavaScript Date object
     paid: false,
+    week: i + 1,
   }));
 };
 
@@ -49,4 +50,9 @@ exports.isSameMonth = (date1, date2) => {
   if (typeof date1 === "string") date1 = new Date(date1);
   if (typeof date2 === "string") date2 = new Date(date2);
   return date1.getFullYear() === date2.getFullYear() && date1.getMonth() === date2.getMonth();
+};
+
+exports.isValidDate = date => {
+  const dt = DateTime.fromFormat(date, "yyyy-MM-dd");
+  return dt.isValid;
 };

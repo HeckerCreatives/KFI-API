@@ -147,7 +147,7 @@ exports.loanReleaseDetailedPrintAll = (datas, from = "", to = "") => {
             { text: "Bank", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
             { text: "Check Date", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
-            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1] },
+            { text: "Amount", fontSize: 10, bold: true, margin: [0, 4.5, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
           ],
           ...loanReleases,
         ],

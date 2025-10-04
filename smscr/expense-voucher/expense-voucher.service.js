@@ -5,6 +5,9 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
+const { isValidDate } = require("../../utils/date.js");
+const Bank = require("../banks/bank.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -387,4 +390,153 @@ exports.print_file = async transactionId => {
   let payTo = `${expense.supplier}`;
 
   return { success: true, expense, entries, payTo };
+};
+
+exports.print_detailed_by_date = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+  if (dateFrom) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+  if (dateTo) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $sort: { date: 1 } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "expensevoucherentries",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$expenseVoucher"] }, deletedAt: null } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        {
+          $lookup: {
+            from: "customers",
+            localField: "client",
+            foreignField: "_id",
+            as: "client",
+            pipeline: [{ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } }, { $addFields: { center: { $arrayElemAt: ["$center", 0] } } }],
+          },
+        },
+        { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] }, client: { $arrayElemAt: ["$client", 0] } } },
+        { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, expenseVoucher: 0 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
+
+  const expenseVouchers = await ExpenseVoucher.aggregate(pipelines).exec();
+
+  return expenseVouchers;
+};
+
+exports.print_summarized_by_date = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] } } });
+  pipelines.push({ $group: { _id: "$date", expenses: { $push: "$$ROOT" } } });
+  pipelines.push({ $sort: { _id: 1 } });
+
+  const expenseVouchers = await ExpenseVoucher.aggregate(pipelines).exec();
+
+  return expenseVouchers;
+};
+
+exports.print_all_by_bank = async bankIds => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "expensevouchers",
+      let: { localField: "$_id" },
+      pipeline: [{ $match: { $expr: { $eq: ["$$localField", "$bankCode"] }, deletedAt: null } }],
+      as: "expenses",
+    },
+  });
+
+  const banks = await Bank.aggregate(pipelines).exec();
+
+  return banks;
+};
+
+exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
+  const pipelines = [];
+  const entryFilter = { deletedAt: null };
+  const accountsFilter = { deletedAt: null, _id: { $in: accounts } };
+
+  if (dateFrom || dateTo) entryFilter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    entryFilter.$and.push({ "expense.date": { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    entryFilter.$and.push({ "expense.date": { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: accountsFilter });
+  pipelines.push({ $sort: { code: 1 } });
+  pipelines.push({
+    $lookup: {
+      from: "expensevoucherentries",
+      let: { acctCodeId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$acctCode", "$$acctCodeId"] } } },
+        { $lookup: { from: "expensevouchers", localField: "expenseVoucher", foreignField: "_id", as: "expense" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        {
+          $addFields: {
+            expense: { $arrayElemAt: ["$expense", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+          },
+        },
+        { $match: entryFilter },
+        { $sort: { "expense.date": 1 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  const expenseVouchers = await ChartOfAccount.aggregate(pipelines).exec();
+
+  return expenseVouchers;
 };

@@ -10,25 +10,31 @@ const {
   updateEmergencyLoanRules,
 } = require("./emergency-loan.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
-const { emergencyLoanEntryIdRules, emergencyLoanEntryRules } = require("./entries/emergency-loan-entry.validation.js");
 
 const emergencyLoanRoutes = express.Router();
 
 emergencyLoanRoutes
   .get("/print/by-document/detailed", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllDetailed)
-
   .get("/print/by-document/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummary)
+  .get("/print/by-date/detailed", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllDetailedByDate)
+  .get("/print/by-date/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printAllSummarizedByDate)
+  .post("/print/by-accounts/detailed", isAuthorize("emergency loan", "print"), emergencyLoanController.printByAccountCodeDetailed)
+  .post("/print/by-accounts/summary", isAuthorize("emergency loan", "print"), emergencyLoanController.printByAccountCodeSummarized)
 
-  // .get("/print/detailed/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printDetailedById)
-  // .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
+  .get("/export/by-document/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllSummary)
+  .get("/export/by-document/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailed)
+  .get("/export/by-date/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllSummarizedByDate)
+  .get("/export/by-date/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailedByDate)
+  .post("/export/by-accounts/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportByAccountCodeSummarized)
+  .post("/export/by-accounts/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportByAccountCodeDetailed)
 
   .get("/print/file/:id", isAuthorize("emergency loan", "print"), emergencyLoanIdRules, validateData, emergencyLoanController.printFile)
   .get("/export/file/:id", isAuthorize("emergency loan", "export"), emergencyLoanIdRules, validateData, emergencyLoanController.exportFile)
 
-  .get("/export-all/summary", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllSummary)
-  .get("/export/summary/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportSummaryById)
-  .get("/export-all/detailed", isAuthorize("emergency loan", "export"), emergencyLoanController.exportAllDetailed)
-  .get("/export/detailed/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportDetailedById)
+  // .get("/print/detailed/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("emergency loan", "print"), emergencyLoanController.printSummaryById)
+  // .get("/export/summary/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportSummaryById)
+  // .get("/export/detailed/:id", isAuthorize("emergency loan", "export"), emergencyLoanController.exportDetailedById)
 
   .get("/selection", emergencyLoanController.getSelections)
 

@@ -17,17 +17,28 @@ const damayanFundRoutes = express.Router();
 damayanFundRoutes
   .get("/print/by-document/detailed", isAuthorize("damayan fund", "print"), damayanFundController.printAllDetailed)
   .get("/print/by-document/summary", isAuthorize("damayan fund", "print"), damayanFundController.printAllSummary)
+  .get("/print/by-date/detailed", isAuthorize("damayan fund", "print"), damayanFundController.printAllDetailedByDate)
+  .get("/print/by-date/summary", isAuthorize("damayan fund", "print"), damayanFundController.printAllSummarizedByDate)
+  .post("/print/by-accounts/detailed", isAuthorize("damayan fund", "print"), damayanFundController.printByAccountCodeDetailed)
+  .post("/print/by-accounts/summary", isAuthorize("damayan fund", "print"), damayanFundController.printByAccountCodeSummarized)
 
-  // .get("/print/detailed/:id", isAuthorize("damayan fund", "print"), damayanFundController.printDetailedById)
-  // .get("/print/summary/:id", isAuthorize("damayan fund", "print"), damayanFundController.printSummaryById)
+  .get("/export/by-document/summary", isAuthorize("damayan fund", "export"), damayanFundController.exportAllSummary)
+  .get("/export/by-document/detailed", isAuthorize("damayan fund", "export"), damayanFundController.exportAllDetailed)
+  .get("/export/by-date/summary", isAuthorize("damayan fund", "export"), damayanFundController.exportAllSummarizedByDate)
+  .get("/export/by-date/detailed", isAuthorize("damayan fund", "export"), damayanFundController.exportAllDetailedByDate)
+  .post("/export/by-accounts/summary", isAuthorize("damayan fund", "export"), damayanFundController.exportByAccountCodeSummarized)
+  .post("/export/by-accounts/detailed", isAuthorize("damayan fund", "export"), damayanFundController.exportByAccountCodeDetailed)
+
+  .post("/print/by-bank", isAuthorize("damayan fund", "print"), damayanFundController.printAllByBank)
+  .post("/export/by-bank", isAuthorize("damayan fund", "export"), damayanFundController.exportAllByBank)
 
   .get("/print/file/:id", isAuthorize("acknowledgement", "print"), damayanFundIdRules, validateData, damayanFundController.printFile)
   .get("/export/file/:id", isAuthorize("acknowledgement", "export"), damayanFundIdRules, validateData, damayanFundController.exportFile)
 
-  .get("/export-all/summary", isAuthorize("damayan fund", "export"), damayanFundController.exportAllSummary)
-  .get("/export/summary/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportSummaryById)
-  .get("/export-all/detailed", isAuthorize("damayan fund", "export"), damayanFundController.exportAllDetailed)
-  .get("/export/detailed/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportDetailedById)
+  // .get("/print/detailed/:id", isAuthorize("damayan fund", "print"), damayanFundController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("damayan fund", "print"), damayanFundController.printSummaryById)
+  // .get("/export/summary/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportSummaryById)
+  // .get("/export/detailed/:id", isAuthorize("damayan fund", "export"), damayanFundController.exportDetailedById)
 
   .get("/selection", damayanFundController.getSelections)
   .post("/load-entries", damayanLoadEntriesRules, validateData, damayanFundController.loadEntries)

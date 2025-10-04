@@ -8,6 +8,7 @@ const chartOfAccountRoutes = express.Router();
 
 chartOfAccountRoutes
   .get("/selection", chartOfAcountController.getSelections)
+  .get("/list", chartOfAcountController.getAllNoPagination)
   .get("/print-all", isAuthorize("chart of account", "print"), chartOfAcountController.printAll)
   .get("/export-all", isAuthorize("chart of account", "export"), chartOfAcountController.exportAll)
   .get("/", isAuthorize("chart of account", "visible"), chartOfAcountController.getChartOfAccounts)

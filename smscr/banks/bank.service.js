@@ -22,6 +22,14 @@ exports.get_selections = async (keyword, limit, page, offset) => {
   };
 };
 
+exports.get_all_no_pagination = async () => {
+  const banks = await Bank.find().select("code description").sort({ code: 1 }).lean().exec();
+  return {
+    success: true,
+    banks,
+  };
+};
+
 exports.get_all = async (limit, page, offset, keyword, sort) => {
   const filter = { deletedAt: null };
   if (keyword) filter.$or = [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }];

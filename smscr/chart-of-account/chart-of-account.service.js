@@ -2,6 +2,14 @@ const { default: CustomError } = require("../../utils/custom-error.js");
 const ChartOfAccount = require("./chart-of-account.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.get_all_no_pagination = async () => {
+  const chartOfAccounts = await ChartOfAccount.find().select("code description").sort({ code: 1 }).lean().exec();
+  return {
+    success: true,
+    chartOfAccounts,
+  };
+};
+
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, $or: [{ code: new RegExp(keyword, "i") }, { description: new RegExp(keyword, "i") }] };
 

@@ -8,6 +8,10 @@ const LoanReleaseEntryParam = require("../system-parameters/loan-release-entry-p
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
 const Center = require("../center/center.schema.js");
+const { setPaymentDates, isValidDate } = require("../../utils/date.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const Bank = require("../banks/bank.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -163,6 +167,20 @@ exports.create_loan_release = async (data, author) => {
         });
       })
     );
+
+    const dueDates = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
+    const paymentSchedules = dueDates.map(due => ({
+      loanRelease: newLoanRelease._id,
+      week: due.week,
+      date: due.date,
+      paid: due.paid,
+    }));
+
+    const dues = await PaymentSchedule.insertMany(paymentSchedules, { session });
+
+    if (dues.length !== paymentSchedules.length) {
+      throw new CustomError("Failed to create due dates. Please try again", 500);
+    }
 
     await session.commitTransaction();
     return {
@@ -471,6 +489,29 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
   return transactions;
 };
 
+exports.print_all_by_bank = async bankIds => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "transactions",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$bank"] }, deletedAt: null } },
+        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } },
+        { $addFields: { center: { $arrayElemAt: ["$center", 0] } } },
+      ],
+      as: "transactions",
+    },
+  });
+
+  const banks = await Bank.aggregate(pipelines).exec();
+
+  return banks;
+};
+
 exports.print_all_summary_by_date = async (dateFrom, dateTo) => {
   const pipelines = [];
   const filter = { deletedAt: null };
@@ -612,4 +653,55 @@ exports.print_file = async transactionId => {
     entries,
     payTo,
   };
+};
+
+exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
+  const pipelines = [];
+  const loanReleaseFilter = { deletedAt: null };
+  const accountsFilter = { deletedAt: null, _id: { $in: accounts } };
+
+  if (dateFrom || dateTo) loanReleaseFilter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    loanReleaseFilter.$and.push({ "transaction.date": { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    loanReleaseFilter.$and.push({ "transaction.date": { $lte: new Date(toDate) } });
+  }
+
+  console.log(loanReleaseFilter);
+
+  pipelines.push({ $match: accountsFilter });
+  pipelines.push({ $sort: { code: 1 } });
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { acctCodeId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$acctCode", "$$acctCodeId"] } } },
+        { $lookup: { from: "transactions", localField: "transaction", foreignField: "_id", as: "transaction" } },
+        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        {
+          $addFields: {
+            transaction: { $arrayElemAt: ["$transaction", 0] },
+            center: { $arrayElemAt: ["$center", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+          },
+        },
+        { $match: loanReleaseFilter },
+        { $sort: { "transaction.date": 1 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  const loanReleases = await ChartOfAccount.aggregate(pipelines).exec();
+
+  return loanReleases;
 };

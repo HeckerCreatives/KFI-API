@@ -4,6 +4,11 @@ const JournalVoucher = require("./journal-voucher.schema.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const { DateTime } = require("luxon");
+const { isValidDate } = require("../../utils/date.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
+const Bank = require("../banks/bank.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -323,6 +328,88 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
   return journalVouchers;
 };
 
+exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+  if (dateFrom || dateTo) filter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $sort: { date: 1 } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, supplier: { $arrayElemAt: ["$supplier", 0] } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "journalvoucherentries",
+      let: { localField: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$$localField", "$journalVoucher"] }, deletedAt: null } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        {
+          $lookup: {
+            from: "customers",
+            localField: "client",
+            foreignField: "_id",
+            as: "client",
+            pipeline: [{ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } }, { $addFields: { center: { $arrayElemAt: ["$center", 0] } } }],
+          },
+        },
+        { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] }, client: { $arrayElemAt: ["$client", 0] } } },
+        { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, expenseVoucher: 0 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  pipelines.push({ $project: { createdAt: 0, updatedAt: 0, __v: 0, type: 0, encodedBy: 0 } });
+
+  const journalVouchers = await JournalVoucher.aggregate(pipelines).exec();
+
+  return journalVouchers;
+};
+
+exports.print_all_summarized_by_date = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+  pipelines.push({ $group: { _id: "$date", journals: { $push: "$$ROOT" } } });
+  pipelines.push({ $sort: { _id: 1 } });
+
+  const journalVouchers = await JournalVoucher.aggregate(pipelines).exec();
+
+  return journalVouchers;
+};
+
 exports.print_detailed_by_id = async journalVoucherId => {
   const pipelines = [];
   const filter = { deletedAt: null, _id: new mongoose.Types.ObjectId(journalVoucherId) };
@@ -379,4 +466,70 @@ exports.print_file = async transactionId => {
   let payTo = `${journal.nature}`;
 
   return { success: true, journal, entries, payTo };
+};
+
+exports.print_all_by_bank = async bankIds => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "journalvouchers",
+      let: { localField: "$_id" },
+      pipeline: [{ $match: { $expr: { $eq: ["$$localField", "$bankCode"] }, deletedAt: null } }],
+      as: "journals",
+    },
+  });
+
+  const banks = await Bank.aggregate(pipelines).exec();
+
+  return banks;
+};
+
+exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
+  const pipelines = [];
+  const journalFilter = { deletedAt: null };
+  const accountsFilter = { deletedAt: null, _id: { $in: accounts } };
+
+  if (dateFrom || dateTo) journalFilter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    journalFilter.$and.push({ "journal.date": { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    journalFilter.$and.push({ "journal.date": { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: accountsFilter });
+  pipelines.push({ $sort: { code: 1 } });
+  pipelines.push({
+    $lookup: {
+      from: "journalvoucherentries",
+      let: { acctCodeId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$acctCode", "$$acctCodeId"] } } },
+        { $lookup: { from: "journalvouchers", localField: "journalVoucher", foreignField: "_id", as: "journal" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        {
+          $addFields: {
+            journal: { $arrayElemAt: ["$journal", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+          },
+        },
+        { $match: journalFilter },
+        { $sort: { "journal.date": 1 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  const journalVouchers = await ChartOfAccount.aggregate(pipelines).exec();
+
+  return journalVouchers;
 };

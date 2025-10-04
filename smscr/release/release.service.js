@@ -6,6 +6,8 @@ const ReleaseEntry = require("./entries/release-entries.schema.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
 
+exports.loan_entries = async () => {};
+
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
 

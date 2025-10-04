@@ -10,6 +10,15 @@ const { completeNumberDate } = require("../../utils/date.js");
 const { getToken } = require("../../utils/get-token.js");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 
+exports.getAllNoPagination = async (req, res, next) => {
+  try {
+    const result = await chartOfAccountService.get_all_no_pagination();
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getSelections = async (req, res, next) => {
   try {
     const { page, limit, keyword, center } = req.query;

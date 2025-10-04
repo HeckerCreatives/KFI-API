@@ -11,22 +11,31 @@ const transactionRoutes = express.Router();
 transactionRoutes
   .get("/print/by-document/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailedByDocument)
   .get("/print/by-date/detailed", isAuthorize("loan release", "print"), transactionCtrl.printAllDetailedByDate)
-
   .get("/print/by-document/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummaryByDocument)
   .get("/print/by-date/summary", isAuthorize("loan release", "print"), transactionCtrl.printAllSummaryByDate)
 
-  // .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
-  // .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
+  .post("/print/by-bank", isAuthorize("loan release", "print"), transactionCtrl.printAllByBank)
+  .post("/print/by-accounts/detailed", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodes)
+  .post("/print/by-accounts/summary", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodeSummarized)
 
   .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
   .get("/print/file-format/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.print2ndFormatFile)
   .get("/export/file/:transaction", isAuthorize("loan release", "export"), printFileRules, validateData, transactionCtrl.exportFile)
   .get("/export/file-format/:transaction", isAuthorize("loan release", "export"), printFileRules, validateData, transactionCtrl.export2ndFormatFile)
 
-  .get("/export-all/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
-  .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)
-  .get("/export-all/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailed)
-  .get("/export/detailed/:id", isAuthorize("loan release", "export"), transactionCtrl.exportDetailedById)
+  .get("/export/by-document/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummary)
+  .get("/export/by-date/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummaryByDate)
+  .get("/export/by-document/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailed)
+  .get("/export/by-date/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailedByDate)
+
+  .post("/export/by-bank", isAuthorize("loan release", "export"), transactionCtrl.exportAllByBank)
+  .post("/export/by-accounts/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportByAccountCodes)
+  .post("/export/by-accounts/summary", isAuthorize("loan release", "export"), transactionCtrl.exportByAccountCodeSummarized)
+
+  // .get("/print/detailed/:id", isAuthorize("loan release", "print"), transactionCtrl.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("loan release", "print"), transactionCtrl.printSummaryById)
+  // .get("/export/summary/:id", isAuthorize("loan release", "export"), transactionCtrl.exportSummaryById)
+  // .get("/export/detailed/:id", isAuthorize("loan release", "export"), transactionCtrl.exportDetailedById)
 
   .get("/selection", transactionCtrl.getSelections)
   .get("/entries/selection", entryCtrl.getSelections)

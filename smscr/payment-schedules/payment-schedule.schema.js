@@ -8,6 +8,7 @@ const paymentScheduleSchema = new mongoose.Schema(
     emergencyLoanEntry: { type: mongoose.Schema.Types.ObjectId, ref: "EmergencyLoanEntry" },
     date: { type: Date, required: true },
     paid: { type: Boolean, required: true, default: false },
+    week: { type: Number },
   },
   { timestamps: true }
 );

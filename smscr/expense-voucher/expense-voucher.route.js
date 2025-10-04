@@ -4,25 +4,34 @@ const entryCtrl = require("./entries/expense-voucher.entries.controller.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { expenseVoucherIdRules, expenseVoucherRules, updateExpenseVoucherRules } = require("./expense-voucher.validation.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
-const { expenseVoucherEntryRules, expenseVoucherEntryIdRules } = require("./entries/expense-voucher-entries.validation.js");
 
 const expenseVoucherRoutes = express.Router();
 
 expenseVoucherRoutes
-  .get("/print/by-document/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllDetailed)
-
   .get("/print/by-document/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummary)
+  .get("/print/by-document/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllDetailed)
+  .get("/print/by-date/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllDetailedByDate)
+  .get("/print/by-date/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllSummarizedByDate)
+  .post("/print/by-accounts/detailed", isAuthorize("expense voucher", "print"), expenseVoucherController.printByAccountCodeDetailed)
+  .post("/print/by-accounts/summary", isAuthorize("expense voucher", "print"), expenseVoucherController.printByAccountCodeSummarized)
 
-  // .get("/print/detailed/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printDetailedById)
-  // .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
+  .get("/export/by-document/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllSummary)
+  .get("/export/by-document/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllDetailed)
+  .get("/export/by-date/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllDetailedByDate)
+  .get("/export/by-date/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllSummarizedByDate)
+  .post("/export/by-accounts/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportByAccountCodeDetailed)
+  .post("/export/by-accounts/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportByAccountCodeSummarized)
+
+  .post("/print/by-bank", isAuthorize("expense voucher", "print"), expenseVoucherController.printAllByBank)
+  .post("/export/by-bank", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllByBank)
 
   .get("/print/file/:id", isAuthorize("expense voucher", "print"), expenseVoucherIdRules, validateData, expenseVoucherController.printFile)
   .get("/export/file/:id", isAuthorize("expense voucher", "export"), expenseVoucherIdRules, validateData, expenseVoucherController.exportFile)
 
-  .get("/export-all/summary", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllSummary)
-  .get("/export/summary/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportSummaryById)
-  .get("/export-all/detailed", isAuthorize("expense voucher", "export"), expenseVoucherController.exportAllDetailed)
-  .get("/export/detailed/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportDetailedById)
+  // .get("/export/summary/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportSummaryById)
+  // .get("/export/detailed/:id", isAuthorize("expense voucher", "export"), expenseVoucherController.exportDetailedById)
+  // .get("/print/detailed/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printDetailedById)
+  // .get("/print/summary/:id", isAuthorize("expense voucher", "print"), expenseVoucherController.printSummaryById)
 
   .get("/selection", expenseVoucherController.getSelections)
   .get("/", isAuthorize("expense voucher", "visible"), expenseVoucherController.getExpenseVouchers)

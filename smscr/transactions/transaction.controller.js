@@ -10,15 +10,24 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx-js-style");
 const { loanReleaseSummaryPrintAll } = require("./print/print_all_summary.js");
 const { formatNumber } = require("../../utils/number.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const { loanReleasePrintFile } = require("./print/print_file.js");
 const { loanReleaseExportFile } = require("./print/export_file.js");
 const { loanReleasePrintFormat2File } = require("./print/print_file_format_2.js");
 const { loanReleaseExportFormat2File } = require("./print/export_file_format.js");
-const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 const { loanReleaseDetailedByDate } = require("./print/print_all_detailed_by_date.js");
 const { loanReleaseSummarizedByDate } = require("./print/print_all_summary_by_date.js");
+const Bank = require("../banks/bank.schema.js");
+const { loanReleasePrintByBank } = require("./print/print_all_by_bank.js");
+const { exportDetailedByDate } = require("./print/export_all_detailed_by_date.js");
+const { exportSummarizedByDate } = require("./print/export_all_summarized_by_date.js");
+const { exportAllByBanks } = require("./print/export_all_by_banks.js");
+const { lrPrintByAccounts } = require("./print/print_by_account_codes.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { lrExportByAccounts } = require("./print/export_by_account_codes.js");
+const { lrPrintSummarizedByAccounts } = require("./print/print_summarized_by_account_codes.js");
+const { lrExportSummarizedByAccounts } = require("./print/export_summarized_by_account_codes.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -115,33 +124,6 @@ exports.printAllSummaryByDocument = async (req, res, next) => {
   }
 };
 
-exports.printAllSummaryByDate = async (req, res, next) => {
-  try {
-    const { dateFrom, dateTo } = req.query;
-    const transactions = await transactionServ.print_all_summary_by_date(dateFrom, dateTo);
-    const printer = new PdfPrinter(pmFonts);
-
-    const docDefinition = loanReleaseSummarizedByDate(transactions, dateFrom, dateTo);
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-    res.setHeader("Content-Type", "application/pdf");
-
-    const author = getToken(req);
-    await activityLogServ.create({
-      author: author._id,
-      username: author.username,
-      activity: `printed loan release ( Summarized By Date )`,
-      resource: `loan release`,
-    });
-
-    pdfDoc.pipe(res);
-    pdfDoc.end();
-  } catch (error) {
-    next(error);
-  }
-};
-
 exports.printAllDetailedByDocument = async (req, res, next) => {
   try {
     const { docNoFrom, docNoTo } = req.query;
@@ -161,35 +143,6 @@ exports.printAllDetailedByDocument = async (req, res, next) => {
       author: author._id,
       username: author.username,
       activity: `printed all loan release ( Detailed )`,
-      resource: `loan release`,
-    });
-
-    pdfDoc.pipe(res);
-    pdfDoc.end();
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.printAllDetailedByDate = async (req, res, next) => {
-  try {
-    const { dateFrom, dateTo } = req.query;
-
-    const transactions = await transactionServ.print_all_detailed_by_date(dateFrom, dateTo);
-
-    const printer = new PdfPrinter(pmFonts);
-
-    const docDefinition = loanReleaseDetailedByDate(transactions, dateFrom, dateTo);
-
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-    res.setHeader("Content-Type", "application/pdf");
-
-    const author = getToken(req);
-    await activityLogServ.create({
-      author: author._id,
-      username: author.username,
-      activity: `printed all loan release ( Detailed By Date )`,
       resource: `loan release`,
     });
 
@@ -449,6 +402,8 @@ const export_excel_detailed = (data, res, docNoFrom, docNoTo) => {
   return res.send(excelBuffer);
 };
 
+//  PRINT AND EXPORT FORMAT 1 and 2 Starts
+
 exports.printFile = async (req, res, next) => {
   try {
     const { transaction } = req.params;
@@ -554,3 +509,361 @@ exports.export2ndFormatFile = async (req, res, next) => {
     next(error);
   }
 };
+//  PRINT AND EXPORT FORMAT 1 and 2 ENDS
+
+// PRINT AND EXPORT BY DATE STARTS
+exports.printAllSummaryByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const transactions = await transactionServ.print_all_summary_by_date(dateFrom, dateTo);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseSummarizedByDate(transactions, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release ( Summarized By Date )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllSummaryByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const transactions = await transactionServ.print_all_summary_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportSummarizedByDate(transactions, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases-by-dates.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported loan release ( Summarized By Date )`,
+      resource: `loan release`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const transactions = await transactionServ.print_all_detailed_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleaseDetailedByDate(transactions, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all loan release ( Detailed By Date )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const transactions = await transactionServ.print_all_detailed_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportDetailedByDate(transactions, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases-by-dates.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported loan release ( Detailed By Date )`,
+      resource: `loan release`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+// PRINT AND EXPORT BY DATE ENDS
+
+// PRINT AND EXPORT BY BANKS START
+
+exports.printAllByBank = async (req, res, next) => {
+  try {
+    const bankIds = req?.body?.bankIds;
+
+    if (!bankIds || !Array.isArray(bankIds)) throw new CustomError("Bank ids must be an array", 400);
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      throw new CustomError("Bank ids must be a non-empty array", 400);
+    }
+
+    const uniqueBankIds = [...new Set(bankIds)];
+
+    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) {
+      throw new CustomError("All bank ids must be valid ObjectIds", 400);
+    }
+
+    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
+    if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
+
+    const banks = await transactionServ.print_all_by_bank(bankObjectIds);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = loanReleasePrintByBank(banks);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release by bank`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllByBank = async (req, res, next) => {
+  try {
+    const bankIds = req?.body?.bankIds;
+
+    if (!bankIds || !Array.isArray(bankIds)) throw new CustomError("Bank ids must be an array", 400);
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      throw new CustomError("Bank ids must be a non-empty array", 400);
+    }
+
+    const uniqueBankIds = [...new Set(bankIds)];
+
+    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) {
+      throw new CustomError("All bank ids must be valid ObjectIds", 400);
+    }
+
+    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
+    if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
+
+    const banks = await transactionServ.print_all_by_bank(bankObjectIds);
+
+    const excelBuffer = exportAllByBanks(banks);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="loan-releases-by-banks.xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported loan release by bank`,
+      resource: `loan release`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// PRINT AND EXPORT BY BANKS ENDS
+
+// PRINT AND EXPORT BY ACCOUNT CODES STARTS
+
+exports.printByAccountCodes = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await transactionServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = lrPrintByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release by accounts ( detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodes = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await transactionServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = lrExportByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Loan Release By Accounts (Sort By Client).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported loan release by accounts ( detailed )`,
+    resource: `loan release`,
+  });
+
+  return res.send(excelBuffer);
+};
+
+exports.printByAccountCodeSummarized = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await transactionServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = lrPrintSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release by accounts ( detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodeSummarized = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await transactionServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = lrExportSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Loan Release By Accounts (Sort By Client).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported loan release by accounts ( summarized )`,
+    resource: `loan release`,
+  });
+
+  return res.send(excelBuffer);
+};
+
+// PRINT AND EXPORT BY ACCOUNT CODES ENDS

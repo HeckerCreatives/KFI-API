@@ -7,7 +7,7 @@ const { emergencyLoanSummaryPrintAll } = require("./prints/print_all_summary.js"
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { emergencyLoanDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const { formatNumber } = require("../../utils/number.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const signatureParamServ = require("../system-parameters/system-parameter.service.js");
 
 const PdfPrinter = require("pdfmake");
@@ -15,6 +15,15 @@ const XLSX = require("xlsx");
 const { pmFonts } = require("../../constants/fonts.js");
 const { emergencyLoanPrintFile } = require("./prints/print_file.js");
 const { emergencyLoanExportFile } = require("./prints/export_file.js");
+const { elPrintDetailedByDate } = require("./prints/print_detailed_by_date.js");
+const { elPrintSummarizedByDate } = require("./prints/print_summarized_by_date.js");
+const { exportELDetailedByDate } = require("./prints/export_by_date_detailed.js");
+const { exportELSummarizedByDate } = require("./prints/export_by_date_summarized.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { elPrintDetailedByAccounts } = require("./prints/print_detailed_by_account_codes.js");
+const { elPrintSummarizedByAccounts } = require("./prints/print_summarized_by_account_codes.js");
+const { elExportByAccounts } = require("./prints/export_detailed_by_account_codes.js");
+const { elExportSummarizedByAccounts } = require("./prints/export_summarized_by_account_codes.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -442,4 +451,264 @@ exports.exportFile = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.printAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const emergencyLoans = await emergencyLoanService.print_detailed_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = elPrintDetailedByDate(emergencyLoans, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all emergency loan ( Detailed By Date )`,
+      resource: `emergency loan`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllSummarizedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const emergencyLoans = await emergencyLoanService.print_summarized_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = elPrintSummarizedByDate(emergencyLoans, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all emergecy loan ( Detailed By Date )`,
+      resource: `emergency loan`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const emergencyLoans = await emergencyLoanService.print_detailed_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportELDetailedByDate(emergencyLoans, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Emergency Loan ( Detailed By Date ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported all emergency loan ( Detailed By Date )`,
+      resource: `emergency loan`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllSummarizedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const emergencyLoans = await emergencyLoanService.print_summarized_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportELSummarizedByDate(emergencyLoans, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Emergency Loan ( Summarized By Date ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported all emergency loan ( Detailed By Date )`,
+      resource: `emergency loan`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByAccountCodeDetailed = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await emergencyLoanService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = elPrintDetailedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed emergency loan by accounts ( sort by supplier )`,
+      resource: `emergency loan`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByAccountCodeSummarized = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await emergencyLoanService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = elPrintSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed emergency loan by accounts ( sort by client )`,
+      resource: `emergency loan`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodeDetailed = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await emergencyLoanService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = elExportByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Emergency Loan By Accounts (Sort By Supplier).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported emergency loan by accounts ( by supplier )`,
+    resource: `emergency loan`,
+  });
+
+  return res.send(excelBuffer);
+};
+
+exports.exportByAccountCodeSummarized = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await emergencyLoanService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = elExportSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Emergency Loan By Accounts (Sort By Client).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported emergency loan by accounts ( by client )`,
+    resource: `emergency loan`,
+  });
+
+  return res.send(excelBuffer);
 };

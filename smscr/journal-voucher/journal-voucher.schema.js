@@ -3,7 +3,6 @@ const mongoose = require("mongoose");
 const journalVoucherSchema = new mongoose.Schema(
   {
     code: { type: String },
-    // supplier: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     nature: { type: String },
     remarks: { type: String },
     date: { type: Date },

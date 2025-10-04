@@ -4,7 +4,7 @@ const { validatePaginationParams } = require("../../utils/paginate-validate.js")
 const journalVoucherService = require("./journal-voucher.service.js");
 const { pmFonts } = require("../../constants/fonts.js");
 const { journalVoucherSummaryPrintAll } = require("./prints/print_all_summary.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const { journalVoucherDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const CustomError = require("../../utils/custom-error.js");
 const { getToken } = require("../../utils/get-token.js");
@@ -15,6 +15,18 @@ const XLSX = require("xlsx");
 const { journalVoucherPrintFile } = require("./prints/print_file.js");
 const { journalVoucherExportFile } = require("./prints/export_file.js");
 const signatureParamServ = require("../system-parameters/system-parameter.service.js");
+const { jvPrintDetailedByDate } = require("./prints/print_detailed_by_date.js");
+const { exportJVDetailedByDate } = require("./prints/export_by_date_detailed.js");
+const { jvPrintSummarizedByDate } = require("./prints/print_summarized_by_date.js");
+const { exportJVSummarizedByDate } = require("./prints/export_by_date_summarized.js");
+const Bank = require("../banks/bank.schema.js");
+const { jvPrintByBank } = require("./prints/print_all_by_bank.js");
+const { jVExportByBanks } = require("./prints/export_all_by_bank.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { jvPrintDetailedByAccounts } = require("./prints/print_detailed_by_account_codes.js");
+const { jvPrintSummarizedByAccounts } = require("./prints/print_summarized_by_account_codes.js");
+const { jvExportByAccounts } = require("./prints/export_detailed_by_account_codes.js");
+const { jvExportSummarizedByAccounts } = require("./prints/export_summarized_by_account_codes.js");
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -167,6 +179,114 @@ exports.printAllDetailed = async (req, res, next) => {
 
     pdfDoc.pipe(res);
     pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const journalVouchers = await journalVoucherService.print_all_detailed_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = jvPrintDetailedByDate(journalVouchers, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed all journal voucher ( Detailed )`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllDetailedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const journalVouchers = await journalVoucherService.print_all_detailed_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportJVDetailedByDate(journalVouchers, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Journal Vouchers ( Detailed By Date ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported journal voucher ( Detailed By Date )`,
+      resource: `journal voucher`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printAllSummarizedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const journalVouchers = await journalVoucherService.print_all_summarized_by_date(dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = jvPrintSummarizedByDate(journalVouchers, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed journal voucher ( Summarized By Date )`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllSummarizedByDate = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+
+    const journalVouchers = await journalVoucherService.print_all_summarized_by_date(dateFrom, dateTo);
+
+    const excelBuffer = exportJVSummarizedByDate(journalVouchers, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Journal Vouchers ( Summarized By Date ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported journal voucher ( Detailed By Date )`,
+      resource: `journal voucher`,
+    });
+
+    return res.send(excelBuffer);
   } catch (error) {
     next(error);
   }
@@ -442,4 +562,246 @@ exports.exportFile = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+};
+
+exports.printAllByBank = async (req, res, next) => {
+  try {
+    const bankIds = req?.body?.bankIds;
+
+    if (!bankIds || !Array.isArray(bankIds)) throw new CustomError("Bank ids must be an array", 400);
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      throw new CustomError("Bank ids must be a non-empty array", 400);
+    }
+
+    const uniqueBankIds = [...new Set(bankIds)];
+
+    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) {
+      throw new CustomError("All bank ids must be valid ObjectIds", 400);
+    }
+
+    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
+    if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
+
+    const banks = await journalVoucherService.print_all_by_bank(bankObjectIds);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = jvPrintByBank(banks);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed journal voucher by bank`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportAllByBank = async (req, res, next) => {
+  try {
+    const bankIds = req?.body?.bankIds;
+
+    if (!bankIds || !Array.isArray(bankIds)) throw new CustomError("Bank ids must be an array", 400);
+
+    if (!Array.isArray(bankIds) || bankIds.length === 0) {
+      throw new CustomError("Bank ids must be a non-empty array", 400);
+    }
+
+    const uniqueBankIds = [...new Set(bankIds)];
+
+    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) {
+      throw new CustomError("All bank ids must be valid ObjectIds", 400);
+    }
+
+    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
+    if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
+
+    const banks = await journalVoucherService.print_all_by_bank(bankObjectIds);
+
+    const excelBuffer = jVExportByBanks(banks);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Journal Voucher ( By Banks ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported journal voucher by bank`,
+      resource: `journal voucher`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByAccountCodeDetailed = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await journalVoucherService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = jvPrintDetailedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed journal voucher by accounts ( sort by supplier )`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByAccountCodeSummarized = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const chartOfAccounts = await journalVoucherService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = jvPrintSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed journal voucher by accounts ( sort by client )`,
+      resource: `journal voucher`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodeDetailed = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await journalVoucherService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = jvExportByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Journal Voucher By Accounts (Sort By Supplier).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported journal voucher by accounts ( by supplier )`,
+    resource: `journal voucher`,
+  });
+
+  return res.send(excelBuffer);
+};
+
+exports.exportByAccountCodeSummarized = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await journalVoucherService.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = jvExportSummarizedByAccounts(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Journal Voucher By Accounts (Sort By Client).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported journal voucher by accounts ( by client )`,
+    resource: `journal voucher`,
+  });
+
+  return res.send(excelBuffer);
 };
