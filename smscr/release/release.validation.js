@@ -1,4 +1,4 @@
-const { param, body } = require("express-validator");
+const { param, body, query } = require("express-validator");
 const Bank = require("../banks/bank.schema.js");
 const { isValidObjectId, default: mongoose } = require("mongoose");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
@@ -11,6 +11,53 @@ const ReleaseEntry = require("./entries/release-entries.schema.js");
 const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const { types, categories } = require("../../constants/aror-load-entry.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+
+exports.loadEntryRules = [
+  query("dueDateId")
+    .trim()
+    .notEmpty()
+    .withMessage("Due date id is required")
+    .isMongoId()
+    .withMessage("Invalid due date id")
+    .bail()
+    .custom(async value => {
+      const exists = await PaymentSchedule.exists({ _id: value, deletedAt: null }).exec();
+      if (!exists) throw new Error("Due date not found");
+      return true;
+    }),
+  query("center")
+    .trim()
+    .notEmpty()
+    .withMessage("Center id is required")
+    .isMongoId()
+    .withMessage("Invalid center id")
+    .bail()
+    .custom(async value => {
+      const exists = await Center.exists({ _id: value, deletedAt: null }).exec();
+      if (!exists) throw new Error("Center not found");
+      return true;
+    }),
+  query("type")
+    .trim()
+    .notEmpty()
+    .withMessage("Type is required")
+    .bail()
+    .custom(value => {
+      if (!types.includes(value)) throw Error("Invalid type");
+      return true;
+    }),
+  query("category")
+    .trim()
+    .notEmpty()
+    .withMessage("Category is required")
+    .bail()
+    .custom(value => {
+      if (!categories.includes(value)) throw Error("Invalid category");
+      return true;
+    }),
+];
 
 exports.releaseIdRules = [
   param("id")

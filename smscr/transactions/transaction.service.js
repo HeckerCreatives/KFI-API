@@ -705,3 +705,15 @@ exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
 
   return loanReleases;
 };
+
+exports.get_by_center = async centerId => {
+  const filter = { deletedAt: null, center: centerId };
+  const loanReleases = await Transaction.find(filter).select("code").lean().exec();
+  return { success: true, loanReleases };
+};
+
+exports.get_due_dates_by_id = async loanReleaseId => {
+  const filter = { deletedAt: null, loanRelease: loanReleaseId };
+  const dueDates = await PaymentSchedule.find(filter).populate({ path: "loanRelease", select: "code" }).sort({ week: 1 }).select("loanRelease date week").lean().exec();
+  return { success: true, dueDates };
+};

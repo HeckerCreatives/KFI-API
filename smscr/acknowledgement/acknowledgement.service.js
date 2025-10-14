@@ -5,6 +5,55 @@ const { default: mongoose } = require("mongoose");
 const AcknowledgementEntry = require("./entries/acknowledgement-entries.schema.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const Transaction = require("../transactions/transaction.schema.js");
+const Entry = require("../transactions/entries/entry.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { orEntryCodes } = require("../../constants/entry-codes.js");
+const { completeNumberDate, isValidDate } = require("../../utils/date.js");
+const Bank = require("../banks/bank.schema.js");
+
+exports.load_entries = async dueDateId => {
+  const dueDate = await PaymentSchedule.findById(dueDateId).lean().exec();
+  if (!dueDate) throw new CustomError("Payment Schedule not Found");
+
+  const [loanRelease, loanReleaseEntries] = await Promise.all([
+    Transaction.findById(dueDate.loanRelease).lean().exec(),
+    Entry.find({ transaction: dueDate.loanRelease, client: { $ne: null } })
+      .populate({ path: "client", select: "name" })
+      .lean()
+      .exec(),
+  ]);
+
+  const accountCodes = await ChartOfAccount.find({ code: { $in: orEntryCodes } })
+    .lean()
+    .exec();
+
+  const entries = loanReleaseEntries.reduce((acc, entry) => {
+    const clientExists = acc.find(e => e.clientId === entry.client._id);
+    if (!clientExists) {
+      orEntryCodes.map(code => {
+        let coa = accountCodes.find(e => e.code === code);
+        acc.push({
+          clientId: entry.client._id,
+          clientName: entry.client.name,
+          loanReleaseId: loanRelease._id,
+          cvNo: loanRelease.code,
+          dueDate: completeNumberDate(dueDate.date),
+          weekNo: dueDate.week,
+          acctCodeId: coa._id,
+          acctCode: coa.code,
+          acctCodeDesc: coa.description,
+          debit: 0,
+          credit: 0,
+        });
+      });
+    }
+    return acc;
+  }, []);
+
+  return { success: true, entries };
+};
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -106,6 +155,8 @@ exports.create = async (data, author) => {
       line: entry.line,
       acknowledgement: newAcknowledgement._id,
       loanReleaseEntryId: entry.loanReleaseEntryId || null,
+      client: entry?.clientId || null,
+      week: entry?.week,
       dueDate: entry.dueDate,
       acctCode: entry.acctCodeId,
       particular: entry.particular,
@@ -209,7 +260,9 @@ exports.update = async (id, data, author) => {
         line: entry.line,
         acknowledgement: updated._id,
         loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        client: entry?.clientId || null,
         dueDate: entry.dueDate,
+        week: entry?.week,
         acctCode: entry.acctCodeId,
         particular: entry.particular,
         debit: entry.debit,
@@ -242,6 +295,8 @@ exports.update = async (id, data, author) => {
             $set: {
               line: entry.line,
               loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              client: entry?.clientId || null,
+              week: entry?.week,
               dueDate: entry.dueDate,
               acctCode: entry.acctCodeId,
               particular: entry.particular,
@@ -398,4 +453,140 @@ exports.print_file = async id => {
   let payTo = `${officialReceipt.center.centerNo}${officialReceipt.center.description ? "- " + officialReceipt.center.centerNo : ""}`;
 
   return { success: true, officialReceipt, entries, payTo };
+};
+
+exports.print_by_date_summarized = async (dateFrom, dateTo) => {
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  const officialReceipts = await Acknowledgement.find(filter).populate("center").lean().exec();
+
+  return officialReceipts;
+};
+
+exports.print_by_date_account_officer = async (dateFrom, dateTo) => {
+  const pipelines = [];
+  const filter = { deletedAt: null };
+
+  if (dateFrom || dateTo) filter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    filter.$and.push({ date: { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    filter.$and.push({ date: { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: filter });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+
+  pipelines.push({ $unwind: "$center" });
+
+  pipelines.push({ $unwind: "$bankCode" });
+
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgemententries",
+      let: { acknowledgementId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$acknowledgement", "$$acknowledgementId"] } } },
+        { $lookup: { from: "entries", localField: "loanReleaseEntryId", foreignField: "_id", as: "loanReleaseEntryId" } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+      ],
+      as: "entries",
+    },
+  });
+
+  pipelines.push({ $group: { _id: "$acctOfficer", acknowledgements: { $push: "$$ROOT" } } });
+
+  const officialReceipts = await Acknowledgement.aggregate(pipelines).exec();
+
+  return officialReceipts;
+};
+
+exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
+  const pipelines = [];
+  const entryFilter = { deletedAt: null };
+  const accountsFilter = { deletedAt: null, _id: { $in: accounts } };
+
+  if (dateFrom || dateTo) entryFilter.$and = [];
+
+  if (dateFrom && isValidDate(dateFrom)) {
+    let fromDate = new Date(dateFrom);
+    fromDate.setHours(0, 0, 0, 0);
+    entryFilter.$and.push({ "acknowledgement.date": { $gte: fromDate } });
+  }
+
+  if (dateTo && isValidDate(dateTo)) {
+    let toDate = new Date(dateTo);
+    toDate.setHours(23, 59, 59, 999);
+    entryFilter.$and.push({ "acknowledgement.date": { $lte: new Date(toDate) } });
+  }
+
+  pipelines.push({ $match: accountsFilter });
+  pipelines.push({ $sort: { code: 1 } });
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgemententries",
+      let: { acctCodeId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$acctCode", "$$acctCodeId"] } } },
+        { $lookup: { from: "acknowledgements", localField: "acknowledgement", foreignField: "_id", as: "acknowledgement" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        {
+          $addFields: {
+            acknowledgement: { $arrayElemAt: ["$acknowledgement", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+          },
+        },
+        { $match: entryFilter },
+        { $sort: { "acknowledgement.date": 1 } },
+      ],
+      as: "entries",
+    },
+  });
+
+  const officialReceipts = await ChartOfAccount.aggregate(pipelines).exec();
+
+  return officialReceipts;
+};
+
+exports.print_all_by_bank = async bankIds => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgements",
+      let: { bankId: "$_id" },
+      pipeline: [{ $match: { $expr: { $eq: ["$bankCode", "$$bankId"] } } }],
+      as: "acknowledgements",
+    },
+  });
+
+  const banks = await Bank.aggregate(pipelines).exec();
+
+  return banks;
 };

@@ -5,8 +5,56 @@ const { default: mongoose } = require("mongoose");
 const ReleaseEntry = require("./entries/release-entries.schema.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
+const Transaction = require("../transactions/transaction.schema.js");
+const Entry = require("../transactions/entries/entry.schema.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { arEntryCodes } = require("../../constants/entry-codes.js");
+const { completeNumberDate } = require("../../utils/date.js");
 
-exports.loan_entries = async () => {};
+exports.load_entries = async (dueDateId, type) => {
+  const dueDate = await PaymentSchedule.findById(dueDateId).lean().exec();
+  if (!dueDate) throw new CustomError("Payment Schedule not Found");
+
+  const [loanRelease, loanReleaseEntries] = await Promise.all([
+    Transaction.findById(dueDate.loanRelease).lean().exec(),
+    Entry.find({ transaction: dueDate.loanRelease, client: { $ne: null } })
+      .populate({ path: "client", select: "name" })
+      .lean()
+      .exec(),
+  ]);
+
+  const codes = arEntryCodes(type);
+
+  const accountCodes = await ChartOfAccount.find({ code: { $in: codes } })
+    .lean()
+    .exec();
+
+  const entries = loanReleaseEntries.reduce((acc, entry) => {
+    const clientExists = acc.find(e => e.clientId === entry.client._id);
+    if (!clientExists) {
+      codes.map(code => {
+        let coa = accountCodes.find(e => e.code === code);
+        acc.push({
+          clientId: entry.client._id,
+          clientName: entry.client.name,
+          loanReleaseId: loanRelease._id,
+          cvNo: loanRelease.code,
+          dueDate: completeNumberDate(dueDate.date),
+          weekNo: dueDate.week,
+          acctCodeId: coa._id,
+          acctCode: coa.code,
+          acctCodeDesc: coa.description,
+          debit: 0,
+          credit: 0,
+        });
+      });
+    }
+    return acc;
+  }, []);
+
+  return { success: true, entries };
+};
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };

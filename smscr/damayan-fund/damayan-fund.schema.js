@@ -4,6 +4,7 @@ const damayanFundSchema = new mongoose.Schema(
   {
     code: { type: String, unique: true, required: true },
     name: { type: String },
+    center: { type: mongoose.Schema.Types.ObjectId, ref: "Center", required: true },
     nature: { type: String },
     refNo: { type: String },
     remarks: { type: String },

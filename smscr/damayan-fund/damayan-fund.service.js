@@ -49,6 +49,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
 
   const countPromise = DamayanFund.countDocuments(filter);
   const damayanFundsPromise = query
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "bankCode", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
@@ -73,6 +74,7 @@ exports.get_all = async (limit, page, offset, keyword, sort, to, from) => {
 
 exports.get_single = async filter => {
   const damayanFund = await DamayanFund.findOne(filter)
+    .populate({ path: "center", select: "centerNo description" })
     .populate({ path: "bankCode", select: "code description" })
     .populate({ path: "encodedBy", select: "-_id username" })
     .lean()
@@ -92,6 +94,7 @@ exports.create = async (data, author) => {
     const newDamayanFund = await new DamayanFund({
       code: data.code.toUpperCase(),
       nature: data.nature,
+      center: data.center,
       name: data.name,
       refNo: data.refNo,
       remarks: data.remarks,
@@ -132,6 +135,7 @@ exports.create = async (data, author) => {
     const _ids = newEntries.map(entry => entry._id);
 
     const damayanFund = await DamayanFund.findById(newDamayanFund._id)
+      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "bankCode", select: "code description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .session(session)
@@ -188,6 +192,7 @@ exports.update = async (filter, data, author) => {
         $set: {
           code: data.code.toUpperCase(),
           nature: data.nature,
+          center: data.center,
           name: data.name,
           refNo: data.refNo,
           remarks: data.remarks,
@@ -202,6 +207,7 @@ exports.update = async (filter, data, author) => {
       },
       { new: true }
     )
+      .populate({ path: "center", select: "centerNo description" })
       .populate({ path: "bankCode", select: "code description" })
       .populate({ path: "encodedBy", select: "-_id username" })
       .exec();
@@ -412,23 +418,43 @@ exports.print_summary_by_id = async damayanFundId => {
 exports.load_entries = async (center, amount, includeAllCentersActiveMembers, resignedIncluded) => {
   const filter = { deletedAt: null };
   const statuses = ["Active-Existing", "Active-New", "Active-PastDue", "Active-Returnee"];
-  if (!includeAllCentersActiveMembers) filter.center = center;
+  if (!includeAllCentersActiveMembers) filter.center = new mongoose.Types.ObjectId(center);
   if (resignedIncluded) statuses.push("Resigned");
-  filter.status = { $in: statuses };
+  filter.memberStatus = { $in: statuses };
 
-  const clients = await Customer.find(filter).select("name center").populate("center").lean().exec();
   const acctCode = await ChartOfAccount.findOne({ deletedAt: null, code: "2010D" }).lean().exec();
   if (!acctCode) throw new CustomError("Invalid account code");
 
-  const entries = clients.map(client => ({
-    client: client._id,
-    clientName: client.name,
-    particular: `${client.center.centerNo} - ${client.name}`,
-    acctCode: acctCode._id,
-    acctCodeLabel: acctCode.description,
-    debit: Number(amount),
-    credit: 0,
-  }));
+  // const clients = await Customer.find(filter).select("name center").populate("center").lean().exec();
+  // const entries = clients.map(client => ({
+  //   client: client._id,
+  //   clientName: client.name,
+  //   particular: `${client.center.centerNo} - ${client.name}`,
+  //   acctCode: acctCode._id,
+  //   acctCodeLabel: acctCode.description,
+  //   debit: Number(amount),
+  //   credit: 0,
+  // }));
+
+  const pipelines = [];
+
+  pipelines.push({ $match: filter });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+  pipelines.push({ $unwind: "$center" });
+  pipelines.push({
+    $project: {
+      _id: 0,
+      client: "$_id",
+      clientName: "$name",
+      particular: { $concat: [`$center.centerNo`, `-`, `$name`] },
+      acctCodeId: `${acctCode._id}`,
+      acctCodeLabel: `${acctCode.description}`,
+      debit: `${Number(amount)}`,
+      credit: `${Number(0)}`,
+    },
+  });
+
+  const entries = await Customer.aggregate(pipelines).exec();
 
   return {
     success: true,
@@ -447,9 +473,9 @@ exports.print_file = async id => {
   };
 };
 
-exports.print_detailed_by_date = async (dateFrom, dateTo) => {
+exports.print_detailed_by_date = async (dateFrom, dateTo, type) => {
   const pipelines = [];
-  const filter = { deletedAt: null };
+  const filter = { deletedAt: null, code: new RegExp(type === "cv" ? "CV#" : "JV#") };
 
   if (dateFrom || dateTo) filter.$and = [];
   if (dateFrom && isValidDate(dateFrom)) {
@@ -501,9 +527,9 @@ exports.print_detailed_by_date = async (dateFrom, dateTo) => {
   return damayanFunds;
 };
 
-exports.print_summarized_by_date = async (dateFrom, dateTo) => {
+exports.print_summarized_by_date = async (dateFrom, dateTo, type) => {
   const pipelines = [];
-  const filter = { deletedAt: null };
+  const filter = { deletedAt: null, code: new RegExp(type === "cv" ? "CV#" : "JV#") };
 
   if (dateFrom || dateTo) filter.$and = [];
 

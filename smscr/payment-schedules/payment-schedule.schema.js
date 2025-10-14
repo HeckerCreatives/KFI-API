@@ -9,6 +9,7 @@ const paymentScheduleSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     paid: { type: Boolean, required: true, default: false },
     week: { type: Number },
+    deletedAt: { type: Date },
   },
   { timestamps: true }
 );

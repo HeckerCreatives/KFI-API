@@ -13,6 +13,7 @@ exports.exportDFSummarizedByDate = (expenseVouchers, from, to) => {
     { v: "Date", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
     { v: "Doc. No.", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
     { v: "Supplier", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
+    { v: "Nature", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
     { v: "Particulars", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
     { v: "Bank", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
     { v: "Check No.", t: "s", s: { font: { bold: true }, alignment: { vertical: "center" }, border: topBottomBorder } },
@@ -28,6 +29,7 @@ exports.exportDFSummarizedByDate = (expenseVouchers, from, to) => {
         { v: `${completeNumberDate(damayan.date)}`, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${damayan?.code}`, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${damayan?.supplier || ""}`, t: "s", s: { alignment: { vertical: "center" } } },
+        { v: `${damayan?.nature || ""}`, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${damayan?.remarks || ""}`, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${damayan?.bank.code || ""}`, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${damayan?.checkNo || ""}`, t: "s", s: { alignment: { vertical: "center" } } },
@@ -45,13 +47,15 @@ exports.exportDFSummarizedByDate = (expenseVouchers, from, to) => {
         { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
         { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
         { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
+        { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
         { v: `${formatNumber(totalPerDate)}`, t: "s", s: { alignment: { vertical: "center", horizontal: "right" }, border: topBottomBorder } },
       ],
-      Array.from({ length: 8 }, () => ({ v: ``, t: "s", s: { alignment: { vertical: "center" } } }))
+      Array.from({ length: 9 }, () => ({ v: ``, t: "s", s: { alignment: { vertical: "center" } } }))
     );
   });
 
   expenses.push([
+    { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
     { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
     { v: ``, t: "s", s: { alignment: { vertical: "center" } } },
     { v: ``, t: "s", s: { alignment: { vertical: "center" } } },

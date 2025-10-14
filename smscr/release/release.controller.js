@@ -15,6 +15,26 @@ const { releaseDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const { acknowledgementReceiptPrintFile } = require("./prints/print_file.js");
 const { acknowledgementReceiptExportFile } = require("./prints/export_file.js");
 const signatureParamServ = require("../system-parameters/system-parameter.service.js");
+const { types, categories } = require("../../constants/aror-load-entry.js");
+
+exports.loadEntries = async (req, res, next) => {
+  try {
+    const { dueDateId, type, category } = req.query;
+    if (!dueDateId) throw new CustomError("Due date id is required", 400);
+    if (!type) throw new CustomError("Type is required", 400);
+    if (!category) throw new CustomError("Category is required", 400);
+
+    if (!isValidObjectId(dueDateId)) throw new CustomError("Invalid due date id", 400);
+    if (!types.includes(type)) throw new CustomError("Invalid type", 400);
+    if (!categories.includes(category)) throw new CustomError("Invalid category", 400);
+
+    const result = await releaseService.load_entries(dueDateId, type);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getSelections = async (req, res, next) => {
   try {

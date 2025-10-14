@@ -18,6 +18,7 @@ exports.dfPrintSummarizedByDate = (datas, from = "", to = "") => {
         { text: `${completeNumberDate(damayan.date)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: `${damayan.code}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: `${damayan?.supplier || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+        { text: `${damayan?.nature || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: `${damayan?.remarks || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: `${damayan?.bank?.code || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: `${damayan?.checkNo || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -35,13 +36,15 @@ exports.dfPrintSummarizedByDate = (datas, from = "", to = "") => {
         { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
+        { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
         { text: formatNumber(totalPerDate), fontSize, margin: [0, 0, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
       ],
-      Array.from({ length: 8 }, () => ({ text: ``, fontSize, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] }))
+      Array.from({ length: 9 }, () => ({ text: ``, fontSize, margin: [0, 1, 0, 1], border: [0, 0, 0, 0] }))
     );
   });
 
   damayanFunds.push([
+    { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -64,12 +67,13 @@ exports.dfPrintSummarizedByDate = (datas, from = "", to = "") => {
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["7%", "10%", "20%", "20%", "16%", "10%", "7%", "10%"],
+        widths: ["7%", "8%", "14%", "15%", "15%", "16%", "8%", "7%", "10%"],
         body: [
           [
             { text: "Date", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Doc. No.", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Supplier", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
+            { text: "Nature", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Particular", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Bank", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Check No.", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },

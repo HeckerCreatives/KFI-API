@@ -8,13 +8,34 @@ const PdfPrinter = require("pdfmake");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const XLSX = require("xlsx");
 const { formatNumber } = require("../../utils/number.js");
-const { isValidObjectId } = require("mongoose");
+const { isValidObjectId, default: mongoose } = require("mongoose");
 const CustomError = require("../../utils/custom-error.js");
 const { acknowledgementSummaryPrintAll } = require("./prints/print_all_summary.js");
 const { acknowledgementDetailedPrintAll } = require("./prints/print_all_detailed.js");
 const { officialReceiptPrintFile } = require("./prints/print_file.js");
 const { officialReceiptExportFile } = require("./prints/export_file.js");
-const signatureParamServ = require("../system-parameters/system-parameter.service.js");
+const { exportDetailedByDateByAccountOfficer } = require("./prints/by-date-account-officer-export.js");
+const { printByDateByAccountOfficer } = require("./prints/by-date-account-officer-print.js");
+const { ackPrintByDateSummarized } = require("./prints/by-date-summarized-print.js");
+const { ackExportByDateSummarized } = require("./prints/by-date-summarized-export.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const { ackPrintByAccountsSummarized } = require("./prints/by-accounts-summarized-print.js");
+const { ackExportByAccountsSummarized } = require("./prints/by-accounts-summarized-export.js");
+
+exports.loadEntries = async (req, res, next) => {
+  try {
+    const { dueDateId } = req.query;
+    if (!dueDateId) throw new CustomError("Due date id is required", 400);
+
+    if (!isValidObjectId(dueDateId)) throw new CustomError("Invalid due date id", 400);
+
+    const result = await acknowledgementServ.load_entries(dueDateId);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 
 exports.getSelections = async (req, res, next) => {
   try {
@@ -420,6 +441,212 @@ exports.exportFile = async (req, res, next) => {
     });
 
     return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByDateSummarized = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const officialReceipts = await acknowledgementServ.print_by_date_summarized(dateFrom, dateTo);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = ackPrintByDateSummarized(officialReceipts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed official receipt by date ( summarized )`,
+      resource: `official receipt`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByDateSummarized = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const officialReceipts = await acknowledgementServ.print_by_date_summarized(dateFrom, dateTo);
+
+    const excelBuffer = ackExportByDateSummarized(officialReceipts, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Official Receipt By Date ( Summarized ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported official receipt by date ( summarized )`,
+      resource: `official receipt`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByDateAccountOfficer = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const officialReceipts = await acknowledgementServ.print_by_date_account_officer(dateFrom, dateTo);
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = printByDateByAccountOfficer(officialReceipts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed official receipt by date ( account officer )`,
+      resource: `official receipt`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByDateAccountOfficer = async (req, res, next) => {
+  try {
+    const { dateFrom, dateTo } = req.query;
+    const officialReceipts = await acknowledgementServ.print_by_date_account_officer(dateFrom, dateTo);
+
+    const excelBuffer = exportDetailedByDateByAccountOfficer(officialReceipts, dateFrom, dateTo);
+
+    res.setHeader("Content-Disposition", 'attachment; filename="Official Receipt By Date ( Account Officer ).xlsx"');
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported official receipt by date ( account officer )`,
+      resource: `official receipt`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByAccountCodeSummarized = async (req, res, next) => {
+  try {
+    const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+    if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+    if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+    const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+    const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+    if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+    const officialReceipts = await acknowledgementServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = ackPrintByAccountsSummarized(officialReceipts, dateFrom, dateTo);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed  by accounts ( summarized )`,
+      resource: `official receipt`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodeSummarized = async (req, res, next) => {
+  const { chartOfAccountsIds, dateFrom, dateTo } = req.body;
+
+  if (!chartOfAccountsIds || !Array.isArray(chartOfAccountsIds)) throw new CustomError("Account code ids must be an array", 400);
+  if (!Array.isArray(chartOfAccountsIds) || chartOfAccountsIds.length === 0) throw new CustomError("Account code ids must be a non-empty array", 400);
+
+  const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
+
+  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
+
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+
+  const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
+  if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
+
+  const chartOfAccounts = await acknowledgementServ.print_by_accounts(charOfAccountObjectIds, dateFrom, dateTo);
+
+  const excelBuffer = ackExportByAccountsSummarized(chartOfAccounts, dateFrom, dateTo);
+
+  res.setHeader("Content-Disposition", 'attachment; filename="Official Receipt By Accounts ( Summarized ).xlsx"');
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+  const author = getToken(req);
+  await activityLogServ.create({
+    author: author._id,
+    username: author.username,
+    activity: `exported official receipt by accounts ( by client )`,
+    resource: `official receipt`,
+  });
+
+  return res.send(excelBuffer);
+};
+
+exports.printByAccountCodeDetailed = async (req, res, next) => {
+  try {
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByAccountCodeDetailed = async (req, res, next) => {
+  try {
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printByBanks = async (req, res, next) => {
+  try {
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportByBanks = async (req, res, next) => {
+  try {
   } catch (error) {
     next(error);
   }

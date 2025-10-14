@@ -29,6 +29,30 @@ const { lrExportByAccounts } = require("./print/export_by_account_codes.js");
 const { lrPrintSummarizedByAccounts } = require("./print/print_summarized_by_account_codes.js");
 const { lrExportSummarizedByAccounts } = require("./print/export_summarized_by_account_codes.js");
 
+exports.getByCenter = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) throw new CustomError("Center id is required");
+    if (!isValidObjectId(id)) throw new CustomError("Must be a valid center id");
+    const result = await transactionServ.get_by_center(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getDueDatesById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!id) throw new CustomError("Loan release id is required");
+    if (!isValidObjectId(id)) throw new CustomError("Must be a valid loan release id");
+    const result = await transactionServ.get_due_dates_by_id(id);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getSelections = async (req, res, next) => {
   try {
     const { page, limit, keyword: search, center } = req.query;

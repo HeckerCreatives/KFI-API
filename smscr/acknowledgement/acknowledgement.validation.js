@@ -10,6 +10,7 @@ const AcknowledgementEntry = require("./entries/acknowledgement-entries.schema.j
 const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
+const Customer = require("../customer/customer.schema.js");
 
 exports.acknowledgementIdRules = [
   param("id")
@@ -157,7 +158,18 @@ exports.acknowledgementRules = [
     .withMessage("Due Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
-  body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.week").trim().notEmpty().withMessage("Week is required").isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.name")
+    .if(body("entries.*.name").notEmpty())
+    .custom(async (value, { req, path }) => {
+      const index = path.match(/entries\[(\d+)\]\.client/)[1];
+      const entries = req.body.entries;
+      if (!Array.isArray(entries)) throw new Error("Invalid entries");
+      const clientId = entries[index].client;
+      const exists = await Customer.exists({ _id: clientId, deletedAt: null });
+      if (!exists) throw new Error("Client not found");
+      return true;
+    }),
   body("entries.*.acctCode")
     .trim()
     .notEmpty()
@@ -324,7 +336,18 @@ exports.updateAcknowledgementRules = [
     .withMessage("Due Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
-  body("entries.*.particular").if(body("entries.*.particular").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.week").trim().notEmpty().withMessage("Week is required").isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
+  body("entries.*.name")
+    .if(body("entries.*.name").notEmpty())
+    .custom(async (value, { req, path }) => {
+      const index = path.match(/entries\[(\d+)\]\.client/)[1];
+      const entries = req.body.entries;
+      if (!Array.isArray(entries)) throw new Error("Invalid entries");
+      const clientId = entries[index].client;
+      const exists = await Customer.exists({ _id: clientId, deletedAt: null });
+      if (!exists) throw new Error("Client not found");
+      return true;
+    }),
   body("entries.*.acctCode")
     .trim()
     .notEmpty()

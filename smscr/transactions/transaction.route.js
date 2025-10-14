@@ -39,6 +39,8 @@ transactionRoutes
 
   .get("/selection", transactionCtrl.getSelections)
   .get("/entries/selection", entryCtrl.getSelections)
+  .get("/by-center/:id", transactionCtrl.getByCenter)
+  .get("/due-dates/:id", transactionCtrl.getDueDatesById)
 
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
   .post("/entries/load", entryLoadRules, validateData, entryCtrl.loadEntries)

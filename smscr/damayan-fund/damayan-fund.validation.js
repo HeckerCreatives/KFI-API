@@ -38,8 +38,8 @@ exports.damayanFundCodeRules = [
       if (!isUnique) throw new Error("JV No. already exists");
       return true;
     })
-    .matches(/^JV#[\d-]+$/i)
-    .withMessage("JV# must start with JV# followed by numbers or hyphens"),
+    .matches(/^(JV|CV)#[\d-]+$/i)
+    .withMessage("Must be CV# or JV# followed by numbers or hyphens"),
   ,
 ];
 
@@ -52,14 +52,17 @@ exports.updateDamayanFundCodeRules = [
     .withMessage("JV No must only consist of 1 to 255 characters")
     .custom(async (value, { req }) => {
       const damayanFund = await DamayanFund.findById(req.params.id).lean().exec();
-      const newValue = damayanFund.code.toUpperCase().startsWith("JV#") ? damayanFund.code : `JV#${damayanFund.code}`;
+      const isJV = damayanFund.code.toUpperCase().startsWith("JV#");
+      const isCV = damayanFund.code.toUpperCase().startsWith("CV#");
+      const newValue = isJV || isCV ? damayanFund.code : `${isJV ? "JV#" : "CV#"}${damayanFund.code}`;
+
       if (newValue.toUpperCase() !== value.toUpperCase()) {
         const isUnique = await isCodeUnique(value);
-        if (!isUnique) throw new Error("JV No. already exists");
+        if (!isUnique) throw new Error("JV No. / CV No. already exists");
       }
       return true;
     })
-    .matches(/^JV#[\d-]+$/i)
+    .matches(/^(JV|CV)#[\d-]+$/i)
     .withMessage("JV# must start with JV# followed by numbers or hyphens"),
 ];
 
@@ -78,6 +81,17 @@ exports.damayanFundIdRules = [
 ];
 
 exports.damayanFundRules = [
+  body("centerLabel")
+    .trim()
+    .notEmpty()
+    .withMessage("Center is required")
+    .custom(async (value, { req }) => {
+      const centerId = req.body.center;
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
+      return true;
+    }),
   body("nature").trim().notEmpty().withMessage("Nature is required").isLength({ min: 1, max: 255 }).withMessage("Nature must consist of only 1 to 255 characters."),
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 1, max: 255 }).withMessage("Name must consist of only 1 to 255 characters."),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),
@@ -166,7 +180,7 @@ exports.damayanFundRules = [
       if (!exists) throw new Error("Client not found / deleted");
       return true;
     }),
-  body("entries.*.acctCode")
+  body("entries.*.acctCodeLabel")
     .trim()
     .notEmpty()
     .withMessage("Account code is required")
@@ -200,6 +214,17 @@ exports.damayanFundRules = [
 ];
 
 exports.updateDamayanFundRules = [
+  body("centerLabel")
+    .trim()
+    .notEmpty()
+    .withMessage("Center is required")
+    .custom(async (value, { req }) => {
+      const centerId = req.body.center;
+      if (!isValidObjectId(centerId)) throw new Error("Invalid center");
+      const exists = await Center.exists({ _id: centerId, deletedAt: null });
+      if (!exists) throw new Error("Center not found");
+      return true;
+    }),
   body("nature").trim().notEmpty().withMessage("Nature is required").isLength({ min: 1, max: 255 }).withMessage("Nature must consist of only 1 to 255 characters."),
   body("name").trim().notEmpty().withMessage("Name is required").isLength({ min: 1, max: 255 }).withMessage("Name must consist of only 1 to 255 characters."),
   body("refNo").if(body("refNo").notEmpty()).isLength({ min: 1, max: 255 }).withMessage("Reference No. must only consist of 1 to 255 characters"),

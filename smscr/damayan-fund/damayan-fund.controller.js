@@ -470,9 +470,10 @@ exports.exportFile = async (req, res, next) => {
 
 exports.printAllDetailedByDate = async (req, res, next) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, type } = req.query;
+    const validatedType = type ? type : "jv";
 
-    const damayanFunds = await damayanFundService.print_detailed_by_date(dateFrom, dateTo);
+    const damayanFunds = await damayanFundService.print_detailed_by_date(dateFrom, dateTo, validatedType);
 
     const printer = new PdfPrinter(pmFonts);
 
@@ -499,9 +500,10 @@ exports.printAllDetailedByDate = async (req, res, next) => {
 
 exports.printAllSummarizedByDate = async (req, res, next) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, type } = req.query;
+    const validatedType = type ? type : "jv";
 
-    const damayanFunds = await damayanFundService.print_summarized_by_date(dateFrom, dateTo);
+    const damayanFunds = await damayanFundService.print_summarized_by_date(dateFrom, dateTo, validatedType);
 
     const printer = new PdfPrinter(pmFonts);
 
@@ -528,9 +530,10 @@ exports.printAllSummarizedByDate = async (req, res, next) => {
 
 exports.exportAllDetailedByDate = async (req, res, next) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, type } = req.query;
+    const validatedType = type ? type : "jv";
 
-    const damayanFunds = await damayanFundService.print_detailed_by_date(dateFrom, dateTo);
+    const damayanFunds = await damayanFundService.print_detailed_by_date(dateFrom, dateTo, validatedType);
 
     const excelBuffer = exportDFDetailedByDate(damayanFunds, dateFrom, dateTo);
 
@@ -553,9 +556,10 @@ exports.exportAllDetailedByDate = async (req, res, next) => {
 
 exports.exportAllSummarizedByDate = async (req, res, next) => {
   try {
-    const { dateFrom, dateTo } = req.query;
+    const { dateFrom, dateTo, type } = req.query;
+    const validatedType = type ? type : "jv";
 
-    const damayanFunds = await damayanFundService.print_summarized_by_date(dateFrom, dateTo);
+    const damayanFunds = await damayanFundService.print_summarized_by_date(dateFrom, dateTo, validatedType);
 
     const excelBuffer = exportDFSummarizedByDate(damayanFunds, dateFrom, dateTo);
 
