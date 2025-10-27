@@ -6,6 +6,7 @@ const releaseEntrySchema = new mongoose.Schema(
     release: { type: mongoose.Schema.Types.ObjectId, ref: "Release" },
     loanReleaseEntryId: { type: mongoose.Schema.Types.ObjectId, ref: "Entry" },
     dueDate: { type: Date },
+    week: { type: Number },
     acctCode: { type: mongoose.Schema.Types.ObjectId, ref: "ChartOfAccount", required: true },
     debit: { type: Number, required: true },
     credit: { type: Number, required: true },

@@ -12,6 +12,72 @@ const { setPaymentDates, isValidDate } = require("../../utils/date.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const Bank = require("../banks/bank.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const LoanCode = require("../loan-code/loan-code.schema.js");
+
+exports.load_entries = async data => {
+  const clients = await Customer.find({ center: data.center, deletedAt: null, _id: { $in: data.clients } })
+    .populate({ path: "center" })
+    .lean()
+    .exec();
+
+  // const loans = await LoanReleaseEntryParam.find()
+  //   .sort("sort")
+  //   .select("-createdAt -updatedAt -__v")
+  //   .populate({
+  //     path: "accountCode",
+  //     select: "_id description",
+  //   })
+  //   .lean()
+  //   .exec();
+
+  // const entries = [];
+
+  // clients.map(client => {
+  //   loans.map(loan => {
+  //     entries.push({
+  //       clientId: client._id,
+  //       client: client.name,
+  //       particular: `${client.center.centerNo} - ${client.name}`,
+  //       acctCodeId: loan.accountCode._id,
+  //       acctCode: loan.code,
+  //       description: loan.accountCode.description,
+  //       debit: "",
+  //       credit: "",
+  //       interest: "",
+  //       cycle: "",
+  //       checkNo: "",
+  //     });
+  //   });
+  // });
+
+  const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
+  const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
+
+  const entries = [];
+
+  clients.map(client => {
+    loans.map(loan => {
+      entries.push({
+        clientId: client._id,
+        client: client.name,
+        particular: `${client.center.centerNo} - ${client.name}`,
+        acctCodeId: loan.acctCode._id,
+        acctCode: loan.acctCode.code,
+        description: loan.acctCode.description,
+        debit: "",
+        credit: "",
+        interest: "",
+        cycle: "",
+        checkNo: "",
+      });
+    });
+  });
+
+  return {
+    success: true,
+    entries,
+  };
+};
 
 exports.get_selections = async (keyword, limit, page, offset) => {
   const filter = { deletedAt: null, code: new RegExp(keyword, "i") };
@@ -306,71 +372,6 @@ exports.update_loan_release = async (id, data, author) => {
   } finally {
     await session.endSession();
   }
-};
-
-exports.load_entries = async data => {
-  const clients = await Customer.find({ center: data.center, deletedAt: null, _id: { $in: data.clients } })
-    .populate({ path: "center" })
-    .lean()
-    .exec();
-
-  const loans = await LoanReleaseEntryParam.find()
-    .sort("sort")
-    .select("-createdAt -updatedAt -__v")
-    .populate({
-      path: "accountCode",
-      select: "_id description",
-    })
-    .lean()
-    .exec();
-
-  const entries = [];
-
-  clients.map(client => {
-    loans.map(loan => {
-      entries.push({
-        clientId: client._id,
-        client: client.name,
-        particular: `${client.center.centerNo} - ${client.name}`,
-        acctCodeId: loan.accountCode._id,
-        acctCode: loan.code,
-        description: loan.accountCode.description,
-        debit: "",
-        credit: "",
-        interest: "",
-        cycle: "",
-        checkNo: "",
-      });
-    });
-  });
-
-  // const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
-  // const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
-
-  // const entries = [];
-
-  // clients.map(client => {
-  //   loans.map(loan => {
-  //     entries.push({
-  //       clientId: client._id,
-  //       client: client.name,
-  //       particular: `${client.center.centerNo} - ${client.name}`,
-  //       acctCodeId: loan.acctCode._id,
-  //       acctCode: loan.acctCode.code,
-  //       description: loan.acctCode.description,
-  //       debit: "",
-  //       credit: "",
-  //       interest: "",
-  //       cycle: "",
-  //       checkNo: "",
-  //     });
-  //   });
-  // });
-
-  return {
-    success: true,
-    entries,
-  };
 };
 
 exports.delete_loan_release = async (filter, author) => {

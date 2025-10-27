@@ -18,12 +18,16 @@ acknowledgementRoutes
   .get("/print/by-date/account-officer", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printByDateAccountOfficer)
   .get("/print/by-date/summary", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printByDateSummarized)
   .post("/print/by-accounts/summary", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printByAccountCodeSummarized)
+  .post("/print/by-accounts/detailed", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printByAccountCodeDetailed)
+  .post("/print/by-banks", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printByBanks)
 
   .get("/export/by-document/summary", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportAllSummary)
   .get("/export/by-document/detailed", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportAllDetailed)
   .get("/export/by-date/account-officer", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportByDateAccountOfficer)
   .get("/export/by-date/summary", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportByDateSummarized)
   .post("/export/by-accounts/summary", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportByAccountCodeSummarized)
+  .post("/export/by-accounts/detailed", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportByAccountCodeDetailed)
+  .post("/export/by-banks", isAuthorize("acknowledgement", "export"), acknowledgementCtrl.exportByBanks)
 
   // .get("/print/detailed/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printDetailedById)
   // .get("/print/summary/:id", isAuthorize("acknowledgement", "print"), acknowledgementCtrl.printSummaryById)

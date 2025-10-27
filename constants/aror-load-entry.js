@@ -1,3 +1,1 @@
-exports.types = ["payments", "cgt"];
-
-exports.categories = ["individual", "group", "seasonal"];
+exports.categories = ["payments", "cgt"];

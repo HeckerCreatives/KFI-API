@@ -12,28 +12,71 @@ const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js")
 const { orEntryCodes } = require("../../constants/entry-codes.js");
 const { completeNumberDate, isValidDate } = require("../../utils/date.js");
 const Bank = require("../banks/bank.schema.js");
+const Loan = require("../loan/loan.schema.js");
 
-exports.load_entries = async dueDateId => {
+exports.load_entries = async (dueDateId, type) => {
   const dueDate = await PaymentSchedule.findById(dueDateId).lean().exec();
   if (!dueDate) throw new CustomError("Payment Schedule not Found");
 
+  const pipelines = [];
+
+  pipelines.push({ $match: { _id: dueDate.loanRelease } });
+
+  pipelines.push({
+    $lookup: {
+      from: "loans",
+      let: { loanId: "$loan" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$loanId"] } } },
+        {
+          $lookup: {
+            from: "loancodes",
+            let: { loanCodeIds: "$loanCodes" },
+            pipeline: [
+              { $match: { $expr: { $in: ["$_id", "$$loanCodeIds"] } } },
+              { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+              { $unwind: "$acctCode" },
+            ],
+            as: "loanCodes",
+          },
+        },
+        {
+          $project: {
+            loanCodes: {
+              $filter: {
+                input: "$loanCodes",
+                as: "code",
+                cond: { $eq: ["$$code.module", "OR"], $eq: ["$$code.loanType", type] },
+              },
+            },
+          },
+        },
+        { $project: { loanCodes: { $sortArray: { input: "$loanCodes", sortBy: { sortOrder: 1 } } } } },
+      ],
+      as: "loan",
+    },
+  });
+
+  pipelines.push({ $unwind: "$loan" });
+
   const [loanRelease, loanReleaseEntries] = await Promise.all([
-    Transaction.findById(dueDate.loanRelease).lean().exec(),
+    Transaction.aggregate(pipelines).exec(),
     Entry.find({ transaction: dueDate.loanRelease, client: { $ne: null } })
       .populate({ path: "client", select: "name" })
       .lean()
       .exec(),
   ]);
 
-  const accountCodes = await ChartOfAccount.find({ code: { $in: orEntryCodes } })
-    .lean()
-    .exec();
+  const accountCodes = loanRelease[0].loan.loanCodes;
+
+  // const accountCodes = await ChartOfAccount.find({ code: { $in: orEntryCodes } })
+  //   .lean()
+  //   .exec();
 
   const entries = loanReleaseEntries.reduce((acc, entry) => {
     const clientExists = acc.find(e => e.clientId === entry.client._id);
     if (!clientExists) {
-      orEntryCodes.map(code => {
-        let coa = accountCodes.find(e => e.code === code);
+      accountCodes.map(code => {
         acc.push({
           clientId: entry.client._id,
           clientName: entry.client.name,
@@ -41,9 +84,9 @@ exports.load_entries = async dueDateId => {
           cvNo: loanRelease.code,
           dueDate: completeNumberDate(dueDate.date),
           weekNo: dueDate.week,
-          acctCodeId: coa._id,
-          acctCode: coa.code,
-          acctCodeDesc: coa.description,
+          acctCodeId: code.acctCode._id,
+          acctCode: code.acctCode.code,
+          acctCodeDesc: code.acctCode.description,
           debit: 0,
           credit: 0,
         });
@@ -552,14 +595,20 @@ exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
       let: { acctCodeId: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$acctCode", "$$acctCodeId"] } } },
-        { $lookup: { from: "acknowledgements", localField: "acknowledgement", foreignField: "_id", as: "acknowledgement" } },
-        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
         {
-          $addFields: {
-            acknowledgement: { $arrayElemAt: ["$acknowledgement", 0] },
-            client: { $arrayElemAt: ["$client", 0] },
+          $lookup: {
+            from: "acknowledgements",
+            let: { acknowledgementId: "$acknowledgement" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$acknowledgementId"] } } },
+              { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } },
+              { $unwind: "$center" },
+            ],
+            as: "acknowledgement",
           },
         },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $addFields: { acknowledgement: { $arrayElemAt: ["$acknowledgement", 0] }, client: { $arrayElemAt: ["$client", 0] } } },
         { $match: entryFilter },
         { $sort: { "acknowledgement.date": 1 } },
       ],
@@ -581,7 +630,11 @@ exports.print_all_by_bank = async bankIds => {
     $lookup: {
       from: "acknowledgements",
       let: { bankId: "$_id" },
-      pipeline: [{ $match: { $expr: { $eq: ["$bankCode", "$$bankId"] } } }],
+      pipeline: [
+        { $match: { $expr: { $eq: ["$bankCode", "$$bankId"] } } },
+        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } },
+        { $unwind: "$center" },
+      ],
       as: "acknowledgements",
     },
   });
