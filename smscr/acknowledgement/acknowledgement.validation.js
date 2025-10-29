@@ -11,6 +11,7 @@ const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const Customer = require("../customer/customer.schema.js");
+const Transaction = require("../transactions/transaction.schema.js");
 
 exports.acknowledgementIdRules = [
   param("id")
@@ -135,6 +136,14 @@ exports.acknowledgementRules = [
     .withMessage("Line must be a number")
     .isFloat({ min: 1 })
     .withMessage("1 is the minimum for Line"),
+  body("entries.*.week")
+    .trim()
+    .notEmpty()
+    .withMessage("Week is required")
+    .isNumeric()
+    .withMessage("Week must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Week"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -144,8 +153,8 @@ exports.acknowledgementRules = [
       const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const entryId = entries[index].loanReleaseEntryId;
-      const exists = await Entry.exists({ _id: entryId, deletedAt: null });
+      const loanReleaseId = entries[index].loanReleaseId;
+      const exists = await Transaction.exists({ _id: loanReleaseId, deletedAt: null });
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),
@@ -158,7 +167,6 @@ exports.acknowledgementRules = [
     .withMessage("Due Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
-  body("entries.*.week").trim().notEmpty().withMessage("Week is required").isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.name")
     .if(body("entries.*.name").notEmpty())
     .custom(async (value, { req, path }) => {
@@ -313,6 +321,14 @@ exports.updateAcknowledgementRules = [
     .withMessage("Line must be a number")
     .isFloat({ min: 1 })
     .withMessage("1 is the minimum for Line"),
+  body("entries.*.week")
+    .trim()
+    .notEmpty()
+    .withMessage("Week is required")
+    .isNumeric()
+    .withMessage("Week must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Week"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -322,8 +338,8 @@ exports.updateAcknowledgementRules = [
       const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const entryId = entries[index].loanReleaseEntryId;
-      const exists = await Entry.exists({ _id: entryId, deletedAt: null });
+      const loanReleaseId = entries[index].loanReleaseId;
+      const exists = await Transaction.exists({ _id: loanReleaseId, deletedAt: null });
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),
@@ -336,7 +352,6 @@ exports.updateAcknowledgementRules = [
     .withMessage("Due Date must only consist of 1 to 255 characters")
     .isDate({ format: "YYYY-MM-DD" })
     .withMessage("Due Date must be a valid date (YYYY-MM-DD)"),
-  body("entries.*.week").trim().notEmpty().withMessage("Week is required").isLength({ min: 1, max: 255 }).withMessage("Particular must only contain 1 to 255 characters"),
   body("entries.*.name")
     .if(body("entries.*.name").notEmpty())
     .custom(async (value, { req, path }) => {

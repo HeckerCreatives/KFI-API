@@ -75,10 +75,10 @@ exports.load_entries = async (dueDateId, type, category) => {
         acc.push({
           clientId: entry.client._id,
           clientName: entry.client.name,
-          loanReleaseId: loanRelease._id,
-          cvNo: loanRelease.code,
+          loanReleaseId: loanRelease[0]._id,
+          cvNo: loanRelease[0].code,
           dueDate: completeNumberDate(dueDate.date),
-          weekNo: dueDate.week,
+          week: dueDate.week,
           acctCodeId: code.acctCode._id,
           acctCode: code.acctCode.code,
           acctCodeDesc: code.acctCode.description,
@@ -192,7 +192,8 @@ exports.create = async (data, author) => {
     const entries = data.entries.map(entry => ({
       line: entry.line,
       release: newRelease._id,
-      loanReleaseEntryId: entry.loanReleaseEntryId || null,
+      client: entry.clientId || null,
+      loanReleaseId: entry.loanReleaseId || null,
       dueDate: entry.dueDate,
       acctCode: entry.acctCodeId,
       particular: entry.particular,
@@ -297,7 +298,8 @@ exports.update = async (id, data, author) => {
       const newEntries = entryToCreate.map(entry => ({
         line: entry.line,
         release: updated._id,
-        loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        client: entry.clientId || null,
+        loanReleaseId: entry.loanReleaseId || null,
         dueDate: entry.dueDate,
         acctCode: entry.acctCodeId,
         particular: entry.particular,
@@ -327,7 +329,8 @@ exports.update = async (id, data, author) => {
           update: {
             $set: {
               line: entry.line,
-              loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              client: entry.clientId || null,
+              loanReleaseId: entry.loanReleaseId || null,
               dueDate: entry.dueDate,
               acctCode: entry.acctCodeId,
               particular: entry.particular,
@@ -542,7 +545,6 @@ exports.print_by_date_account_officer = async (dateFrom, dateTo) => {
       let: { releaseId: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$release", "$$releaseId"] } } },
-        { $lookup: { from: "entries", localField: "loanReleaseEntryId", foreignField: "_id", as: "loanReleaseEntryId" } },
         { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
       ],
       as: "entries",

@@ -13,6 +13,7 @@ const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const { types, categories } = require("../../constants/aror-load-entry.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const Transaction = require("../transactions/transaction.schema.js");
 
 exports.loadEntryRules = [
   query("dueDateId")
@@ -184,6 +185,15 @@ exports.releaseRules = [
     .withMessage("Line must be a number")
     .isFloat({ min: 1 })
     .withMessage("1 is the minimum for Line"),
+  body("entries.*.week")
+    .if(body("entries.*.week").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Week is required")
+    .isNumeric()
+    .withMessage("Week must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Week"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -193,8 +203,8 @@ exports.releaseRules = [
       const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const entryId = entries[index].loanReleaseEntryId;
-      const exists = await Entry.exists({ _id: entryId, deletedAt: null });
+      const loanReleaseId = entries[index].loanReleaseId;
+      const exists = await Transaction.exists({ _id: loanReleaseId, deletedAt: null });
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),
@@ -355,6 +365,15 @@ exports.updateReleaseRules = [
     .withMessage("Line must be a number")
     .isFloat({ min: 1 })
     .withMessage("1 is the minimum for Line"),
+  body("entries.*.week")
+    .if(body("entries.*.week").notEmpty())
+    .trim()
+    .notEmpty()
+    .withMessage("Week is required")
+    .isNumeric()
+    .withMessage("Week must be a number")
+    .isFloat({ min: 1 })
+    .withMessage("1 is the minimum for Week"),
   body("entries.*.cvNo")
     .if(body("entries.*.cvNo").notEmpty())
     .trim()
@@ -364,8 +383,8 @@ exports.updateReleaseRules = [
       const index = path.match(/entries\[(\d+)\]\.cvNo/)[1];
       const entries = req.body.entries;
       if (!Array.isArray(entries)) throw new Error("Invalid entries");
-      const entryId = entries[index].loanReleaseEntryId;
-      const exists = await Entry.exists({ _id: entryId, deletedAt: null });
+      const loanReleaseId = entries[index].loanReleaseId;
+      const exists = await Transaction.exists({ _id: loanReleaseId, deletedAt: null });
       if (!exists) throw new Error("CV# not found / deleted");
       return true;
     }),

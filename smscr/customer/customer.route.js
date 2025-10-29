@@ -14,8 +14,12 @@ customerRoutes
   .get("/selection", customerController.getSelections)
   .get("/print-all", isAuthorize("clients", "print"), customerController.printAll)
   .get("/print/:id", isAuthorize("clients", "print"), customerIdRules, validateData, customerController.print)
+  .get("/print/soa/:id", isAuthorize("clients", "print"), customerIdRules, validateData, customerController.printSOA)
+
   .get("/export-all", isAuthorize("clients", "export"), customerController.exportAll)
   .get("/export/:id", isAuthorize("clients", "export"), customerIdRules, validateData, customerController.export)
+  .get("/export/soa/:id", isAuthorize("clients", "export"), customerIdRules, validateData, customerController.exportSOA)
+
   .get("/", isAuthorize("clients", "visible"), customerController.getCustomers)
   .get("/:id", isAuthorize("clients", "read"), customerIdRules, validateData, customerController.getCustomer)
 

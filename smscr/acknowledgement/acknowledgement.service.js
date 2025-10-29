@@ -9,10 +9,8 @@ const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js
 const Transaction = require("../transactions/transaction.schema.js");
 const Entry = require("../transactions/entries/entry.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
-const { orEntryCodes } = require("../../constants/entry-codes.js");
 const { completeNumberDate, isValidDate } = require("../../utils/date.js");
 const Bank = require("../banks/bank.schema.js");
-const Loan = require("../loan/loan.schema.js");
 
 exports.load_entries = async (dueDateId, type) => {
   const dueDate = await PaymentSchedule.findById(dueDateId).lean().exec();
@@ -69,19 +67,16 @@ exports.load_entries = async (dueDateId, type) => {
 
   const accountCodes = loanRelease[0].loan.loanCodes;
 
-  // const accountCodes = await ChartOfAccount.find({ code: { $in: orEntryCodes } })
-  //   .lean()
-  //   .exec();
-
   const entries = loanReleaseEntries.reduce((acc, entry) => {
     const clientExists = acc.find(e => e.clientId === entry.client._id);
     if (!clientExists) {
       accountCodes.map(code => {
+        if (code.acctCode.code !== "4045") return;
         acc.push({
           clientId: entry.client._id,
           clientName: entry.client.name,
-          loanReleaseId: loanRelease._id,
-          cvNo: loanRelease.code,
+          loanReleaseId: loanRelease[0]._id,
+          cvNo: loanRelease[0].code,
           dueDate: completeNumberDate(dueDate.date),
           weekNo: dueDate.week,
           acctCodeId: code.acctCode._id,
@@ -197,7 +192,7 @@ exports.create = async (data, author) => {
     const entries = data.entries.map(entry => ({
       line: entry.line,
       acknowledgement: newAcknowledgement._id,
-      loanReleaseEntryId: entry.loanReleaseEntryId || null,
+      loanReleaseId: entry.loanReleaseId || null,
       client: entry?.clientId || null,
       week: entry?.week,
       dueDate: entry.dueDate,
@@ -302,7 +297,7 @@ exports.update = async (id, data, author) => {
       const newEntries = entryToCreate.map(entry => ({
         line: entry.line,
         acknowledgement: updated._id,
-        loanReleaseEntryId: entry.loanReleaseEntryId || null,
+        loanReleaseId: entry.loanReleaseId || null,
         client: entry?.clientId || null,
         dueDate: entry.dueDate,
         week: entry?.week,
@@ -337,7 +332,7 @@ exports.update = async (id, data, author) => {
           update: {
             $set: {
               line: entry.line,
-              loanReleaseEntryId: entry.loanReleaseEntryId || null,
+              loanReleaseId: entry.loanReleaseId || null,
               client: entry?.clientId || null,
               week: entry?.week,
               dueDate: entry.dueDate,
@@ -554,7 +549,6 @@ exports.print_by_date_account_officer = async (dateFrom, dateTo) => {
       let: { acknowledgementId: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$acknowledgement", "$$acknowledgementId"] } } },
-        { $lookup: { from: "entries", localField: "loanReleaseEntryId", foreignField: "_id", as: "loanReleaseEntryId" } },
         { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
       ],
       as: "entries",

@@ -4,7 +4,8 @@ const releaseEntrySchema = new mongoose.Schema(
   {
     line: { type: Number },
     release: { type: mongoose.Schema.Types.ObjectId, ref: "Release" },
-    loanReleaseEntryId: { type: mongoose.Schema.Types.ObjectId, ref: "Entry" },
+    client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
+    loanReleaseId: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
     dueDate: { type: Date },
     week: { type: Number },
     acctCode: { type: mongoose.Schema.Types.ObjectId, ref: "ChartOfAccount", required: true },

@@ -4,6 +4,10 @@ const activityLogServ = require("../activity-logs/activity-log.service.js");
 const { default: mongoose } = require("mongoose");
 const fs = require("fs");
 const path = require("path");
+const Entry = require("../transactions/entries/entry.schema.js");
+const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
+const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
+const Transaction = require("../transactions/transaction.schema.js");
 
 exports.get_clients_by_center = async center => {
   const filter = { deletedAt: null, center };
@@ -343,4 +347,63 @@ exports.printAll = async filter => {
   const customers = await Customer.aggregate(pipelines).exec();
 
   return customers;
+};
+
+exports.print_soa = async (loanReleaseId, clientId, type) => {
+  const acctCodes = await ChartOfAccount.find({ code: { $in: ["2000B", "2000A"] } })
+    .lean()
+    .exec();
+
+  const codeIds = acctCodes.map(code => code._id);
+
+  const principal = await Entry.findOne({ transaction: loanReleaseId, client: clientId, acctCode: { $in: codeIds } })
+    .lean()
+    .exec();
+
+  const loanRelease = await Transaction.findById(loanReleaseId).populate("loan").lean().exec();
+
+  const client = await Customer.findById(clientId).populate("center").lean().exec();
+
+  const payments = await PaymentSchedule.aggregate([
+    { $match: { loanRelease: principal.transaction } },
+    {
+      $lookup: {
+        from: "releaseentries",
+        let: { transactionId: "$loanRelease", weekNo: "$week" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$loanReleaseId", "$$transactionId"] } } },
+          { $match: { client: client._id } },
+          { $match: { $expr: { $eq: ["$week", "$$weekNo"] } } },
+          { $lookup: { from: "releases", foreignField: "_id", localField: "release", as: "release" } },
+          { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+          { $unwind: "$release" },
+          { $unwind: "$acctCode" },
+        ],
+        as: "ars",
+      },
+    },
+    {
+      $lookup: {
+        from: "acknowledgemententries",
+        let: { transactionId: "$loanRelease", weekNo: "$week" },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$loanReleaseId", "$$transactionId"] } } },
+          { $match: { client: client._id } },
+          { $match: { $expr: { $eq: ["$week", "$$weekNo"] } } },
+          { $lookup: { from: "acknowledgements", foreignField: "_id", localField: "acknowledgement", as: "acknowledgement" } },
+          { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+          { $unwind: "$acknowledgement" },
+          { $unwind: "$acctCode" },
+        ],
+        as: "ors",
+      },
+    },
+  ]);
+
+  return {
+    payments,
+    client,
+    principal,
+    loanRelease,
+  };
 };

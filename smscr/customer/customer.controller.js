@@ -12,6 +12,7 @@ const { isValidObjectId, default: mongoose } = require("mongoose");
 const { formatNumber } = require("../../utils/number.js");
 const { capitalize } = require("../../utils/letters.js");
 const CustomError = require("../../utils/custom-error.js");
+const { printClientSOA } = require("./print/print_soa.js");
 
 exports.getClientsByCenter = async (req, res, next) => {
   try {
@@ -355,4 +356,54 @@ const export_excel = (datas, res) => {
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
 
   return res.send(excelBuffer);
+};
+
+exports.printSOA = async (req, res, next) => {
+  try {
+    const { loanReleaseId, type } = req.query;
+    const { id } = req.params;
+
+    if (!loanReleaseId) throw new CustomError("Loan Release ID is required", 400);
+    if (!isValidObjectId(loanReleaseId)) throw new CustomError("Invalid Loan Release ID", 400);
+
+    const soa = await customerService.print_soa(loanReleaseId, id, type ? "individual" : "group");
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = printClientSOA(soa);
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed a client SOA`,
+      resource: `clients`,
+      dataId: soa.client._id,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportSOA = async (req, res, next) => {
+  try {
+    const { loanReleaseId, type } = req.query;
+    const { id } = req.params;
+
+    if (!loanReleaseId) throw new CustomError("Loan Release ID is required", 400);
+    if (!isValidObjectId(loanReleaseId)) throw new CustomError("Invalid Loan Release ID", 400);
+
+    const result = await customerService.print_soa(loanReleaseId, id, type);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
 };

@@ -4,7 +4,7 @@ const acknowledgementEntrySchema = new mongoose.Schema(
   {
     line: { type: Number },
     acknowledgement: { type: mongoose.Schema.Types.ObjectId, ref: "Acknowledgement" },
-    loanReleaseEntryId: { type: mongoose.Schema.Types.ObjectId, ref: "Entry" },
+    loanReleaseId: { type: mongoose.Schema.Types.ObjectId, ref: "Transaction" },
     client: { type: mongoose.Schema.Types.ObjectId, ref: "Customer" },
     dueDate: { type: Date },
     week: { type: Number },
