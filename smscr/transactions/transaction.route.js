@@ -2,7 +2,15 @@ const express = require("express");
 const transactionCtrl = require("./transaction.controller.js");
 const entryCtrl = require("./entries/entry.controller.js");
 
-const { loadEntryRules, createTransactionRules, transactionIdRules, updateTransactionRules, entryLoadRules, printFileRules } = require("./transaction.validation.js");
+const {
+  loadEntryRules,
+  createTransactionRules,
+  transactionIdRules,
+  updateTransactionRules,
+  entryLoadRules,
+  printFileRules,
+  printPastDueRules,
+} = require("./transaction.validation.js");
 const { validateData } = require("../../validation/validate-data.js");
 const { isAuthorize } = require("../../middlewares/authorized.js");
 
@@ -17,6 +25,7 @@ transactionRoutes
   .post("/print/by-bank", isAuthorize("loan release", "print"), transactionCtrl.printAllByBank)
   .post("/print/by-accounts/detailed", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodes)
   .post("/print/by-accounts/summary", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodeSummarized)
+  .post("/print/past-dues", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.printPastDues)
 
   .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
   .get("/print/file-format/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.print2ndFormatFile)
@@ -27,6 +36,7 @@ transactionRoutes
   .get("/export/by-date/summary", isAuthorize("loan release", "export"), transactionCtrl.exportAllSummaryByDate)
   .get("/export/by-document/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailed)
   .get("/export/by-date/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailedByDate)
+  .post("/export/past-dues", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.exportPastDues)
 
   .post("/export/by-bank", isAuthorize("loan release", "export"), transactionCtrl.exportAllByBank)
   .post("/export/by-accounts/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportByAccountCodes)

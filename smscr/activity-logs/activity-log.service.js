@@ -1,3 +1,4 @@
+const { session } = require("passport");
 const ActivityLog = require("./activity-log.schema.js");
 
 exports.create = async data => {
@@ -9,6 +10,22 @@ exports.create = async data => {
     resource: data.resource,
     dataId: data.dataId,
   }).save(options);
+};
+
+exports.bulk_create = async data => {
+  const options = data?.session ? { session: data.session } : {};
+  await ActivityLog.insertMany(
+    data.ids.map(
+      id => ({
+        author: data.author,
+        username: data.username,
+        activity: data.activity,
+        resource: data.resource,
+        dataId: id,
+      }),
+      options
+    )
+  );
 };
 
 exports.get_all = async (limit, page, offset, keyword) => {

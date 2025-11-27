@@ -13,6 +13,9 @@ const { formatNumber } = require("../../utils/number.js");
 const { capitalize } = require("../../utils/letters.js");
 const CustomError = require("../../utils/custom-error.js");
 const { printClientSOA } = require("./print/print_soa.js");
+const { exportClientSOA } = require("./print/export_soa.js");
+const { printClientSummaryPDF } = require("./print/print_client_summary.js");
+const { exportClientSummaryExcel } = require("./print/export_client_summary.js");
 
 exports.getClientsByCenter = async (req, res, next) => {
   try {
@@ -376,13 +379,11 @@ exports.printSOA = async (req, res, next) => {
     res.setHeader("Content-Type", "application/pdf");
 
     const author = getToken(req);
-
     await activityLogServ.create({
       author: author._id,
       username: author.username,
-      activity: `printed a client SOA`,
+      activity: `printed client soa ( ${soa.client.name} )`,
       resource: `clients`,
-      dataId: soa.client._id,
     });
 
     pdfDoc.pipe(res);
@@ -402,7 +403,72 @@ exports.exportSOA = async (req, res, next) => {
     if (!isValidObjectId(loanReleaseId)) throw new CustomError("Invalid Loan Release ID", 400);
 
     const result = await customerService.print_soa(loanReleaseId, id, type);
-    return res.status(200).json(result);
+
+    const excelBuffer = exportClientSOA(result);
+
+    res.setHeader("Content-Disposition", `attachment; filename="Statement Of Account ( ${result.client.name} ).xlsx"`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported client soa ( ${result.client.name} )`,
+      resource: `clients`,
+    });
+
+    return res.send(excelBuffer);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.printClientSummary = async (req, res, next) => {
+  try {
+    const clientId = req.query.id;
+    const summaries = await customerService.print_customer_summary(clientId);
+
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = printClientSummaryPDF(summaries);
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed client summary ( ${summaries[0].name} )`,
+      resource: `clients`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportClientSummary = async (req, res, next) => {
+  try {
+    const clientId = req.query.id;
+    const summaries = await customerService.print_customer_summary(clientId);
+
+    const excelBuffer = exportClientSummaryExcel(summaries);
+
+    res.setHeader("Content-Disposition", `attachment; filename="Client Summary ( ${summaries[0].name} ).xlsx"`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `exported client summary( ${summaries[0].name} )`,
+      resource: `clients`,
+    });
+
+    return res.send(excelBuffer);
   } catch (error) {
     next(error);
   }

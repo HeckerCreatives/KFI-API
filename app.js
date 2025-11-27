@@ -20,7 +20,7 @@ app.use(morgan("dev"));
 app.use(passport.initialize());
 
 app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 global.rootDir = path.resolve(__dirname);
 

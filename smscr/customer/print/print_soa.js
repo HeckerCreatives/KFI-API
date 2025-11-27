@@ -13,7 +13,7 @@ const getValue = (entries, code) => {
   return Number(value ? value?.debit || value?.credit : 0);
 };
 
-exports.printClientSOA = ({ payments, client, principal, loanRelease }) => {
+exports.printClientSOA = ({ payments, client, principal, loanRelease, signatures }) => {
   const info = { title: "Client SOA" };
 
   let rows = [];
@@ -176,6 +176,19 @@ exports.printClientSOA = ({ payments, client, principal, loanRelease }) => {
             { text: "", style: "cellStyle", border: [0, 0, 0, 0], alignment: "right" },
           ],
           ...rows,
+        ],
+      },
+    },
+    {
+      margin: [0, 20, 0, 0],
+      table: {
+        widths: ["*", "*", "*"],
+        body: [
+          [
+            { text: `PREPARED BY:  `, margin: [0, 3, 0, 3], fontSize: 8, bold: true, border: [0, 0, 0, 0] },
+            { text: `CHECKED BY:  ${signatures.checkedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, border: [0, 0, 0, 0] },
+            { text: `NOTED BY:  ${signatures.approvedBy}`, margin: [0, 3, 0, 3], fontSize: 8, bold: true, border: [0, 0, 0, 0] },
+          ],
         ],
       },
     },

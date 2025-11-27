@@ -891,3 +891,27 @@ exports.exportByAccountCodeSummarized = async (req, res, next) => {
 };
 
 // PRINT AND EXPORT BY ACCOUNT CODES ENDS
+
+exports.printPastDues = async (req, res, next) => {
+  try {
+    const { centers = null, clients = null, loanReleaseDate = null, paymentDate = null } = req.body || {};
+
+    const pastDues = await transactionServ.get_loan_release_past_dues(centers, clients, loanReleaseDate, paymentDate);
+
+    return res.status(200).json({ success: true, pastDues });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.exportPastDues = async (req, res, next) => {
+  try {
+    const { centers = null, clients = null, loanReleaseDate = null, paymentDate = null } = req.body || {};
+
+    const pastDues = await transactionServ.get_loan_release_past_dues(centers, clients, loanReleaseDate, paymentDate);
+
+    return res.status(200).json({ success: true, pastDues });
+  } catch (error) {
+    next(error);
+  }
+};

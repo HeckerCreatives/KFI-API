@@ -675,8 +675,6 @@ exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
     loanReleaseFilter.$and.push({ "transaction.date": { $lte: new Date(toDate) } });
   }
 
-  console.log(loanReleaseFilter);
-
   pipelines.push({ $match: accountsFilter });
   pipelines.push({ $sort: { code: 1 } });
   pipelines.push({
@@ -717,4 +715,151 @@ exports.get_due_dates_by_id = async loanReleaseId => {
   const filter = { deletedAt: null, loanRelease: loanReleaseId };
   const dueDates = await PaymentSchedule.find(filter).populate({ path: "loanRelease", select: "code" }).sort({ week: 1 }).select("loanRelease date week").lean().exec();
   return { success: true, dueDates };
+};
+
+exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDate, paymentDate) => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { client: { $exists: true, $ne: null }, cycle: { $exists: true, $ne: null } } });
+
+  pipelines.push({ $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } });
+
+  pipelines.push({ $unwind: "$acctCode" });
+
+  pipelines.push({ $sort: { cycle: -1 } });
+
+  pipelines.push({ $group: { _id: "$client", transaction: { $first: "$$ROOT.transaction" }, currentLoan: { $first: "$$ROOT" } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "customers",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$clientId"] } } },
+        { $lookup: { from: "centers", foreignField: "_id", localField: "center", as: "center" } },
+        { $unwind: "$center" },
+      ],
+      as: "client",
+    },
+  });
+
+  pipelines.push({ $unwind: "$client" });
+
+  pipelines.push({
+    $lookup: {
+      from: "paymentschedules",
+      let: { transactionId: "$transaction" },
+      pipeline: [{ $match: { $expr: { $eq: ["$loanRelease", "$$transactionId"] } } }, { $sort: { week: -1 } }],
+      as: "lastPaymentDue",
+    },
+  });
+
+  pipelines.push({ $addFields: { lastPaymentDue: { $arrayElemAt: ["$lastPaymentDue", 0] } } });
+
+  pipelines.push({ $match: { "lastPaymentDue.date": { $exists: true, $ne: null, $gt: new Date() } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$transaction", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "lrs",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgemententries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "ors",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "releaseentries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "ars",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "transactions",
+      let: { transactionId: "$transaction" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$transactionId"] } } },
+        { $lookup: { from: "loans", foreignField: "_id", localField: "loan", as: "loan" } },
+        { $unwind: "$loan" },
+      ],
+      as: "transaction",
+    },
+  });
+
+  pipelines.push({ $unwind: "$transaction" });
+
+  // FILTERS HERE
+  if (clients) {
+    pipelines.push({ $match: { _id: { $in: clients.map(e => new mongoose.Types.ObjectId(e)) } } });
+  }
+
+  if (centers) {
+    pipelines.push({ $match: { "transaction.center": { $in: centers.map(e => new mongoose.Types.ObjectId(e)) } } });
+  }
+
+  if (loanReleaseDate) {
+    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDate) } } });
+  }
+
+  if (paymentDate) {
+    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDate) } } });
+  }
+
+  const pastDues = await Entry.aggregate(pipelines).exec();
+
+  return pastDues;
 };

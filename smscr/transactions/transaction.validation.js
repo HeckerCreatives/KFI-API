@@ -11,6 +11,7 @@ const { default: mongoose } = require("mongoose");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const { hasBankEntry } = require("../../utils/bank-entry-checker.js");
 const { isAmountTally } = require("../../utils/tally-amount.js");
+const { isValidDate } = require("../../utils/date.js");
 
 exports.printFileRules = [
   param("transaction")
@@ -306,6 +307,44 @@ exports.updateTransactionRules = [
         throw new Error("Please check all the deleted values");
       }
 
+      return true;
+    }),
+];
+
+exports.printPastDueRules = [
+  body("centers")
+    .if(body("center").isArray().notEmpty())
+    .custom(async value => {
+      if (!Array.isArray(value)) throw new Error("Invalid centers");
+      if (value.length < 1) throw new Error("Atleast 1 center is required");
+      const exists = await Center.countDocuments({ _id: { $in: value } })
+        .lean()
+        .exec();
+      if (exists !== value.length) throw new Error("Some center is not found");
+      return true;
+    }),
+  body("clients")
+    .if(body("clients").isArray().notEmpty())
+    .custom(async value => {
+      console.log(value);
+      if (!Array.isArray(value)) throw new Error("Invalid clients");
+      if (value.length < 1) throw new Error("Atleast 1 client is required");
+      const exists = await Customer.countDocuments({ _id: { $in: value } })
+        .lean()
+        .exec();
+      if (exists !== value.length) throw new Error("Some client is not found");
+      return true;
+    }),
+  body("loanReleaseDate")
+    .if(body("loanReleaseDate").notEmpty())
+    .custom(value => {
+      if (!isValidDate(value)) throw new Error("Invalid loan release date");
+      return true;
+    }),
+  body("paymentDate")
+    .if(body("paymentDate").notEmpty())
+    .custom(value => {
+      if (!isValidDate(value)) throw new Error("Invalid payment date");
       return true;
     }),
 ];

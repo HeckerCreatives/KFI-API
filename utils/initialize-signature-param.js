@@ -9,6 +9,7 @@ exports.initializeSignatureParams = async () => {
     { type: "acknowledgement receipt", approvedBy: "ABE", checkedBy: "MGP", receivedBy: "" },
     { type: "damayan fund", approvedBy: "ABE", checkedBy: "MGP", receivedBy: "" },
     { type: "emergency loan", approvedBy: "ABE", checkedBy: "MGP", receivedBy: "" },
+    { type: "soa", approvedBy: "ABE", checkedBy: "MGP", receivedBy: "" },
   ];
 
   await SignatureParam.insertMany(signatures);

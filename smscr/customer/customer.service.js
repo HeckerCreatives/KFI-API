@@ -8,6 +8,7 @@ const Entry = require("../transactions/entries/entry.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const Transaction = require("../transactions/transaction.schema.js");
+const SignatureParam = require("../system-parameters/signature-param.js");
 
 exports.get_clients_by_center = async center => {
   const filter = { deletedAt: null, center };
@@ -400,10 +401,168 @@ exports.print_soa = async (loanReleaseId, clientId, type) => {
     },
   ]);
 
+  const signatures = await SignatureParam.findOne({ type: "soa" }).lean().exec();
+
   return {
     payments,
     client,
     principal,
     loanRelease,
+    signatures,
   };
+};
+
+exports.print_customer_summary = async clientId => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null, _id: new mongoose.Types.ObjectId(clientId) } });
+
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+
+  pipelines.push({ $unwind: "$center" });
+
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$client", "$$clientId"] }, { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] }] } } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+        { $group: { _id: "$transaction", entries: { $push: "$$ROOT" } } },
+        {
+          $lookup: {
+            from: "transactions",
+            let: { transactionId: "$_id" },
+            pipeline: [
+              { $match: { $expr: { $eq: ["$_id", "$$transactionId"] } } },
+              { $lookup: { from: "loans", localField: "loan", foreignField: "_id", as: "loan" } },
+              { $unwind: "$loan" },
+            ],
+            as: "loanRelease",
+          },
+        },
+        { $unwind: "$loanRelease" },
+        { $project: { _id: 0, loanRelease: 1, lrs: "$entries" } },
+        { $lookup: { from: "paymentschedules", foreignField: "loanRelease", localField: "loanRelease._id", as: "paymentschedules" } },
+        {
+          $lookup: {
+            from: "acknowledgemententries",
+            let: { loanReleaseId: "$loanRelease._id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                      { $eq: ["$client", "$$clientId"] },
+                      { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+                    ],
+                  },
+                },
+              },
+              { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+              { $unwind: "$acctCode" },
+            ],
+            as: "ors",
+          },
+        },
+        {
+          $lookup: {
+            from: "releaseentries",
+            let: { loanReleaseId: "$loanRelease._id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                      { $eq: ["$client", "$$clientId"] },
+                      { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+                    ],
+                  },
+                },
+              },
+              { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+              { $unwind: "$acctCode" },
+            ],
+            as: "ars",
+          },
+        },
+      ],
+      as: "loanReleases",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "journalvoucherentries",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$client", "$$clientId"] }, { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] }] } } },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+        { $group: { _id: "$journalVoucher", entries: { $push: "$$ROOT" } } },
+        { $lookup: { from: "journalvouchers", foreignField: "_id", localField: "_id", as: "journalVoucher" } },
+        { $unwind: "$journalVoucher" },
+        { $project: { _id: 0, journalVoucher: 1, journals: "$entries" } },
+      ],
+      as: "journalvouchers",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "expensevoucherentries",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$client", "$$clientId"] }, { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] }] } } },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+        { $group: { _id: "$expenseVoucher", entries: { $push: "$$ROOT" } } },
+        { $lookup: { from: "expensevouchers", foreignField: "_id", localField: "_id", as: "expenseVoucher" } },
+        { $unwind: "$expenseVoucher" },
+        { $project: { _id: 0, expenseVoucher: 1, expenses: "$entries" } },
+      ],
+      as: "expensevouchers",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "damayanfundentries",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$client", "$$clientId"] }, { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] }] } } },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+        { $group: { _id: "$damayanFund", entries: { $push: "$$ROOT" } } },
+        { $lookup: { from: "damayanfunds", foreignField: "_id", localField: "_id", as: "damayanFund" } },
+        { $unwind: "$damayanFund" },
+        { $project: { _id: 0, damayanFund: 1, damayans: "$entries" } },
+      ],
+      as: "damayanfunds",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "emergencyloanentries",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $and: [{ $eq: ["$client", "$$clientId"] }, { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] }] } } },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+        { $group: { _id: "emergencyLoan", entries: { $push: "$$ROOT" } } },
+        { $lookup: { from: "emergencyloans", foreignField: "_id", localField: "_id", as: "emergencyLoan" } },
+        { $unwind: "$emergencyLoan" },
+        { $project: { _id: 0, emergencyLoan: 1, emergencies: "$entries" } },
+      ],
+      as: "emergencyloans",
+    },
+  });
+
+  const summaries = await Customer.aggregate(pipelines).exec();
+
+  return summaries;
 };

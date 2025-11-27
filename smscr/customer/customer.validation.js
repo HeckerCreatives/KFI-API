@@ -1,8 +1,22 @@
 const Center = require("../center/center.schema.js");
 const BusinessType = require("../business-type/business-type.schema.js");
 const Customer = require("./customer.schema.js");
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 const { memberStatuses } = require("../../constants/member-status.js");
+
+exports.printClientSummaryRules = [
+  query("id")
+    .trim()
+    .notEmpty()
+    .withMessage("Client id is required")
+    .isMongoId()
+    .withMessage("Invalid client id")
+    .custom(async value => {
+      const exists = await Customer.exists({ _id: value, deletedAt: null });
+      if (!exists) throw new Error("Customer not found");
+      return true;
+    }),
+];
 
 exports.customerIdRules = [
   param("id")
