@@ -11,6 +11,13 @@ const { suppliersUploadRules } = require("./validations/sync.suppliers.validatio
 const { naturesUploadRules } = require("./validations/sync.natures.validation.js");
 const { uploadSignaturesRules } = require("./validations/sync.signatures.validation.js");
 const { loanProductsUploadRules } = require("./validations/sync.loan-products.validation.js");
+const { loanReleaseUploadRules } = require("./validations/sync.loan-release.validation.js");
+const { journalVouchersUploadRules } = require("./validations/sync.journal-voucher.validation.js");
+const { expenseVouchersUploadRules } = require("./validations/sync.expense-voucher.validation.js");
+const { officialReceiptsUploadRules } = require("./validations/sync.official-receipt.validation.js");
+const { acknowledgementReceiptUploadRules } = require("./validations/sync.acknowledgement-receipt.validation.js");
+const { emergencyLoansUploadRules } = require("./validations/sync.emergency-loan.validation.js");
+const { damayanFundsUploadRules } = require("./validations/sync.damayan-fund.validation.js");
 
 const syncRoutes = express.Router();
 
@@ -52,17 +59,24 @@ syncRoutes
   .put("/upload/group-of-accounts", groupAccountsUploadRules, validateData, syncCtrl.syncGroupOfAccounts)
 
   .get("/loan-releases", syncCtrl.downloadLoanReleasesWithEntries)
+  .put("/upload/loan-releases", loanReleaseUploadRules, validateData, syncCtrl.syncLoanReleasesWithEntries)
 
   .get("/journal-vouchers", syncCtrl.downloadJournalVouchersWithEntries)
+  .put("/upload/journal-vouchers", journalVouchersUploadRules, validateData, syncCtrl.syncJournalVouchersWithEntries)
 
   .get("/expense-vouchers", syncCtrl.downloadExpenseVouchersWithEntries)
+  .put("/upload/expense-vouchers", expenseVouchersUploadRules, validateData, syncCtrl.syncExpenseVouchersWithEntries)
 
   .get("/official-receipts", syncCtrl.downloadOfficialReceiptsWithEntries)
+  .put("/upload/official-receipts", officialReceiptsUploadRules, validateData, syncCtrl.syncOfficialReceiptsWithEntries)
 
   .get("/acknowledgement-receipts", syncCtrl.downloadAcknowledgementReceiptsWithEntries)
+  .put("/upload/acknowledgement-receipts", acknowledgementReceiptUploadRules, validateData, syncCtrl.syncAcknowledgementReceiptsWithEntries)
 
   .get("/emergency-loans", syncCtrl.downloadEmergencyLoansWithEntries)
+  .put("/upload/emergency-loans", emergencyLoansUploadRules, validateData, syncCtrl.syncEmergencyLoansWithEntries)
 
-  .get("/damayan-funds", syncCtrl.downloadDamayanFundsWithEntries);
+  .get("/damayan-funds", syncCtrl.downloadDamayanFundsWithEntries)
+  .put("/upload/damayan-funds", damayanFundsUploadRules, validateData, syncCtrl.syncDamayanFundsWithEntries);
 
 module.exports = syncRoutes;

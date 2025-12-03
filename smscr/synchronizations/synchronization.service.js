@@ -29,6 +29,17 @@ const CustomError = require("../../utils/custom-error");
 const activityLogServ = require("../activity-logs/activity-log.service.js");
 const WeeklySaving = require("../weekly-saving/weekly-saving.schema.js");
 const GroupAccount = require("../group-account/group-account.schema.js");
+const { createLoanReleasesHelper, updateLoanReleasesHelper, deleteLoanReleasesHelper } = require("./helpers/sync.loan-release.helper.js");
+const { createJournalVoucherHelper, updateJournalVoucherHelper, deleteJournalVoucherHelper } = require("./helpers/sync.journal-voucher.helper.js");
+const { createExpenseVoucherHelper, updateExpenseVoucherHelper, deleteExpenseVoucherHelper } = require("./helpers/sync.expense-voucher.helper.js");
+const { createOfficialReceiptHelper, updateOfficialReceiptHelper, deleteOfficialReceiptHelper } = require("./helpers/sync.official-receipt.helper.js");
+const {
+  createAcknowledgemenetReceiptsHelper,
+  updateAcknowledgemenetReceiptsHelper,
+  deleteAcknowledgemenetReceiptsHelper,
+} = require("./helpers/sync.acknowledgement-receipt.helper.js");
+const { createDamayanFundsHelper, updateDamayanFundsHelper, deleteDamayanFundsHelper } = require("./helpers/sync.damayan-fund.helper.js");
+const { createEmergencyLoansHelper, updateEmergencyLoansHelper, deleteEmergencyLoansHelper } = require("./helpers/sync.emergency-loan.helper.js");
 
 exports.download_banks = async () => {
   const pipelines = [];
@@ -1044,10 +1055,18 @@ exports.download_loan_release_with_entries = async (dateFrom, dateTo) => {
       from: "entries",
       let: { transactionId: "$_id" },
       pipeline: [
-        { $match: { $expr: { $eq: ["$transaction", "$$transactionId"] } } },
+        { $match: { $and: [{ $expr: { $eq: ["$transaction", "$$transactionId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
         { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
         { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
-        { $addFields: { client: { $arrayElemAt: ["$client", 0] }, acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
+        {
+          $addFields: {
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
       ],
       as: "entries",
     },
@@ -1063,6 +1082,31 @@ exports.download_loan_release_with_entries = async (dateFrom, dateTo) => {
   return { success: true, loanReleases, dueDates };
 };
 
+exports.sync_loan_release_with_entries = async (loanReleases, author) => {
+  const toCreate = loanReleases.filter(e => e.action === "create");
+  const toUpdate = loanReleases.filter(e => e.action === "update");
+  const toDelete = loanReleases.filter(e => e.action === "delete");
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createLoanReleasesHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateLoanReleasesHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteLoanReleasesHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync loan releases", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
+};
+
 exports.download_journal_voucher_with_entries = async (dateFrom, dateTo) => {
   let fromDate = new Date(dateFrom);
   fromDate.setHours(0, 0, 0, 0);
@@ -1075,17 +1119,93 @@ exports.download_journal_voucher_with_entries = async (dateFrom, dateTo) => {
   const pipelines = [];
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
+  pipelines.push({
+    $project: {
+      bank: "$bankCode._id",
+      bankLabel: "$bankCode.code",
+      acctMonth: 1,
+      acctYear: 1,
+      amount: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      checkNo: 1,
+      code: 1,
+      encodedBy: 1,
+      nature: 1,
+      remarks: 1,
+      createdBy: 1,
+      updatedBy: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "journalvoucherentries",
+      let: { journalVoucherId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$journalVoucher", "$$journalVoucherId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        {
+          $addFields: {
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            client: { $ifNull: ["$client._id", null] },
+            clientLabel: { $ifNull: ["$client.name", null] },
+            particular: 1,
+            acctCodeId: "$acctCode._id",
+            acctCode: "$acctCode.code",
+            description: 1,
+            debit: 1,
+            credit: 1,
+            cvForRecompute: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const journalVouchers = await JournalVoucher.aggregate(pipelines).exec();
 
-  const journalVoucherIds = journalVouchers.map(journal => journal._id);
+  return { success: true, journalVouchers };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { journalVoucher: { $in: journalVoucherIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
+exports.sync_journal_voucher_with_entries = async (journalVouchers, author) => {
+  const toCreate = journalVouchers.filter(e => e.action === "create");
+  const toUpdate = journalVouchers.filter(e => e.action === "update");
+  const toDelete = journalVouchers.filter(e => e.action === "delete");
 
-  const entries = await JournalVoucherEntry.aggregate(pipelines).exec();
+  const session = await mongoose.startSession();
 
-  return { success: true, journalVouchers, entries };
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createJournalVoucherHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateJournalVoucherHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteJournalVoucherHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync journal vouchers", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_expense_voucher_with_entries = async (dateFrom, dateTo) => {
@@ -1100,16 +1220,93 @@ exports.download_expense_voucher_with_entries = async (dateFrom, dateTo) => {
   const pipelines = [];
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] } } });
+  pipelines.push({
+    $project: {
+      code: 1,
+      supplier: 1,
+      refNo: 1,
+      remarks: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      acctMonth: 1,
+      acctYear: 1,
+      checkNo: 1,
+      bank: "$bankCode._id",
+      bankLabel: "$bankCode.code",
+      amount: 1,
+      createdAt: 1,
+      deletedAt: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "expensevoucherentries",
+      let: { expenseVoucherId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$expenseVoucher", "$$expenseVoucherId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        {
+          $addFields: {
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            client: { $ifNull: ["$client._id", null] },
+            clientLabel: { $ifNull: ["$client.name", null] },
+            particular: 1,
+            acctCodeId: "$acctCode._id",
+            acctCode: "$acctCode.code",
+            description: 1,
+            debit: 1,
+            credit: 1,
+            cvForRecompute: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const expenseVouchers = await ExpenseVoucher.aggregate(pipelines).exec();
 
-  const expenseVoucherIds = expenseVouchers.map(expense => expense._id);
+  return { success: true, expenseVouchers };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { expenseVoucher: { $in: expenseVoucherIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
-  const entries = await ExpenseVoucherEntry.aggregate(pipelines).exec();
+exports.sync_expense_voucher_with_entries = async (expenseVouchers, author) => {
+  const toCreate = expenseVouchers.filter(e => e.action === "create");
+  const toUpdate = expenseVouchers.filter(e => e.action === "update");
+  const toDelete = expenseVouchers.filter(e => e.action === "delete");
 
-  return { success: true, expenseVouchers, entries };
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createExpenseVoucherHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateExpenseVoucherHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteExpenseVoucherHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync expense vouchers", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_official_receipt_with_entries = async (dateFrom, dateTo) => {
@@ -1124,16 +1321,105 @@ exports.download_official_receipt_with_entries = async (dateFrom, dateTo) => {
   const pipelines = [];
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+  pipelines.push({
+    $addFields: {
+      bankCode: { $arrayElemAt: ["$bankCode", 0] },
+      center: { $arrayElemAt: ["$center", 0] },
+    },
+  });
+  pipelines.push({
+    $project: {
+      code: 1,
+      center: "$center._id",
+      centerLabel: "$center.centerNo",
+      centerName: "$center.centerNo $center.description",
+      remarks: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      acctMonth: 1,
+      acctYear: 1,
+      acctOfficer: 1,
+      checkNo: 1,
+      bankCode: "$bankCode._id",
+      bankCodeLabel: "$bankCode.code",
+      type: 1,
+      amount: 1,
+      cashCollection: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgemententries",
+      let: { acknowledgementId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$acknowledgement", "$$acknowledgementId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        { $lookup: { from: "transactions", localField: "loanReleaseId", foreignField: "_id", as: "loanReleaseId" } },
+        {
+          $addFields: {
+            loanReleaseId: { $arrayElemAt: ["$loanReleaseId", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            clientId: { $ifNull: ["$client._id", null] },
+            clientName: { $ifNull: ["$client.name", null] },
+            loanReleaseId: "$loanReleaseId._id",
+            cvNo: "$loanReleaseId.code",
+            dueDate: 1,
+            week: 1,
+            acctCodeId: "$acctCode._id",
+            acctCode: "$acctCode.code",
+            acctCodeDesc: "$acctCode.description",
+            debit: 1,
+            credit: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const officialReceipts = await Acknowledgement.aggregate(pipelines).exec();
 
-  const officialReceiptIds = officialReceipts.map(official => official._id);
+  return { success: true, officialReceipts };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { acknowledgement: { $in: officialReceiptIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
-  const entries = await AcknowledgementEntry.aggregate(pipelines).exec();
+exports.sync_official_receipt_with_entries = async (officialReceipts, author) => {
+  const toCreate = officialReceipts.filter(e => e.action === "create");
+  const toUpdate = officialReceipts.filter(e => e.action === "update");
+  const toDelete = officialReceipts.filter(e => e.action === "delete");
 
-  return { success: true, officialReceipts, entries };
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createOfficialReceiptHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateOfficialReceiptHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteOfficialReceiptHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync official receipts", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_acknowledgement_receipt_with_entries = async (dateFrom, dateTo) => {
@@ -1148,16 +1434,105 @@ exports.download_acknowledgement_receipt_with_entries = async (dateFrom, dateTo)
   const pipelines = [];
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+  pipelines.push({
+    $addFields: {
+      bankCode: { $arrayElemAt: ["$bankCode", 0] },
+      center: { $arrayElemAt: ["$center", 0] },
+    },
+  });
+  pipelines.push({
+    $project: {
+      code: 1,
+      center: "$center._id",
+      centerLabel: "$center.centerNo",
+      centerName: "$center.centerNo $center.description",
+      remarks: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      acctMonth: 1,
+      acctYear: 1,
+      acctOfficer: 1,
+      checkNo: 1,
+      bankCode: "$bankCode._id",
+      bankCodeLabel: "$bankCode.code",
+      type: 1,
+      amount: 1,
+      cashCollection: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "releaseentries",
+      let: { releaseId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$release", "$$releaseId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        { $lookup: { from: "transactions", localField: "loanReleaseId", foreignField: "_id", as: "loanReleaseId" } },
+        {
+          $addFields: {
+            loanReleaseId: { $arrayElemAt: ["$loanReleaseId", 0] },
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            clientId: { $ifNull: ["$client._id", null] },
+            clientName: { $ifNull: ["$client.name", null] },
+            loanReleaseId: "$loanReleaseId._id",
+            cvNo: "$loanReleaseId.code",
+            dueDate: 1,
+            week: 1,
+            acctCodeId: "$acctCode._id",
+            acctCode: "$acctCode.code",
+            acctCodeDesc: "$acctCode.description",
+            debit: 1,
+            credit: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const acknowledgementReceipts = await Release.aggregate(pipelines).exec();
 
-  const acknowledgementReceiptIds = acknowledgementReceipts.map(acknowledgement => acknowledgement._id);
+  return { success: true, acknowledgementReceipts };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { release: { $in: acknowledgementReceiptIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
-  const entries = await ReleaseEntry.aggregate(pipelines).exec();
+exports.sync_acknowledgement_receipt_with_entries = async (acknowledgementReceipts, author) => {
+  const toCreate = acknowledgementReceipts.filter(e => e.action === "create");
+  const toUpdate = acknowledgementReceipts.filter(e => e.action === "update");
+  const toDelete = acknowledgementReceipts.filter(e => e.action === "delete");
 
-  return { success: true, acknowledgementReceipts, entries };
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createAcknowledgemenetReceiptsHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateAcknowledgemenetReceiptsHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteAcknowledgemenetReceiptsHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync acknowledgement receipts", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_emergency_loan_with_entries = async (dateFrom, dateTo) => {
@@ -1167,21 +1542,95 @@ exports.download_emergency_loan_with_entries = async (dateFrom, dateTo) => {
   let toDate = new Date(dateTo);
   toDate.setHours(23, 59, 59, 999);
 
-  const filter = { deletedAt: null, $and: [{ date: { $gte: fromDate } }, { date: { $lte: new Date(toDate) } }] };
-
   const pipelines = [];
+  const filter = { deletedAt: null, $and: [{ date: { $gte: fromDate } }, { date: { $lte: new Date(toDate) } }] };
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, client: { $arrayElemAt: ["$client", 0] } } });
+  pipelines.push({
+    $project: {
+      code: 1,
+      clientLabel: "$client.name",
+      clientValue: "$client._id",
+      refNo: 1,
+      remarks: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      acctMonth: 1,
+      acctYear: 1,
+      checkNo: 1,
+      bankCode: "$bankCode._id",
+      bankCodeLabel: "$bankCode.code",
+      amount: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "emergencyloanentries",
+      let: { emergencyLoanId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$emergencyLoan", "$$emergencyLoanId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        {
+          $addFields: {
+            client: { $arrayElemAt: ["$client", 0] },
+            acctCode: { $arrayElemAt: ["$acctCode", 0] },
+            action: "retain",
+            _synced: false,
+          },
+        },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            client: { $ifNull: ["$client._id", null] },
+            clientLabel: { $ifNull: ["$client.name", null] },
+            acctCodeId: "$acctCode._id",
+            acctCode: "$acctCode.code",
+            description: "$acctCode.description",
+            debit: 1,
+            credit: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const emergencyLoans = await EmergencyLoan.aggregate(pipelines).exec();
 
-  const emergencyLoanIds = emergencyLoans.map(emergency => emergency._id);
+  return { success: true, emergencyLoans };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { emergencyLoan: { $in: emergencyLoanIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
-  const entries = await EmergencyLoanEntry.aggregate(pipelines).exec();
+exports.sync_emergency_loan_with_entries = async (emergencyLoans, author) => {
+  const toCreate = emergencyLoans.filter(e => e.action === "create");
+  const toUpdate = emergencyLoans.filter(e => e.action === "update");
+  const toDelete = emergencyLoans.filter(e => e.action === "delete");
 
-  return { success: true, emergencyLoans, entries };
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createEmergencyLoansHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateEmergencyLoansHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteEmergencyLoansHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync acknowledgement receipts", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_damayan_fund_with_entries = async (dateFrom, dateTo) => {
@@ -1192,18 +1641,88 @@ exports.download_damayan_fund_with_entries = async (dateFrom, dateTo) => {
   toDate.setHours(23, 59, 59, 999);
 
   const filter = { deletedAt: null, $and: [{ date: { $gte: fromDate } }, { date: { $lte: new Date(toDate) } }] };
-
   const pipelines = [];
+
   pipelines.push({ $match: filter });
   pipelines.push({ $addFields: { _synced: true } });
+  pipelines.push({ $lookup: { from: "banks", localField: "bankCode", foreignField: "_id", as: "bankCode" } });
+  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center" } });
+  pipelines.push({ $addFields: { bankCode: { $arrayElemAt: ["$bankCode", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
+  pipelines.push({
+    $project: {
+      code: 1,
+      nature: 1,
+      name: 1,
+      centerLabel: { $concat: [{ $ifNull: ["$center.code", ""] }, " ", { $ifNull: ["$center.description", ""] }] },
+      center: "$center._id",
+      refNo: 1,
+      remarks: 1,
+      date: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }, null] },
+      checkDate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$checkDate", timezone: "UTC" } }, null] },
+      acctMonth: 1,
+      acctYear: 1,
+      checkNo: 1,
+      bankCode: "$bankCode._id",
+      bankCodeLabel: "$bankCode.code",
+      amount: 1,
+      _synced: 1,
+    },
+  });
+  pipelines.push({
+    $lookup: {
+      from: "damayanfundentries",
+      let: { damayanFundId: "$_id" },
+      pipeline: [
+        { $match: { $and: [{ $expr: { $eq: ["$damayanFund", "$$damayanFundId"] } }, { $or: [{ deletedAt: { $exists: false } }, { deletedAt: null }] }] } },
+        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } },
+        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client" } },
+        { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] }, client: { $arrayElemAt: ["$client", 0] }, action: "retain", _synced: false } },
+        { $sort: { line: 1 } },
+        {
+          $project: {
+            line: 1,
+            client: { $ifNull: ["$client._id", null] },
+            clientName: { $ifNull: ["$client.name", null] },
+            particular: 1,
+            acctCodeId: "$acctCode._id",
+            acctCodeLabel: "$acctCode.description",
+            debit: 1,
+            credit: 1,
+            _synced: 1,
+            action: 1,
+          },
+        },
+      ],
+      as: "entries",
+    },
+  });
+
   const damayanFunds = await DamayanFund.aggregate(pipelines).exec();
 
-  const damayanFundIds = damayanFunds.map(damayan => damayan._id);
+  return { success: true, damayanFunds };
+};
 
-  const entryPipelines = [];
-  entryPipelines.push({ $match: { damayanFund: { $in: damayanFundIds } } });
-  entryPipelines.push({ $addFields: { _synced: true } });
-  const entries = await DamayanFundEntry.aggregate(pipelines).exec();
+exports.sync_damayan_fund_with_entries = async (damayanFunds, author) => {
+  const toCreate = damayanFunds.filter(e => e.action === "create");
+  const toUpdate = damayanFunds.filter(e => e.action === "update");
+  const toDelete = damayanFunds.filter(e => e.action === "delete");
 
-  return { success: true, damayanFunds, entries };
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createDamayanFundsHelper(toCreate, author, session);
+    if (toUpdate.length > 0) await updateDamayanFundsHelper(toUpdate, author, session);
+    if (toDelete.length > 0) await deleteDamayanFundsHelper(toDelete, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    throw new CustomError(error.message || "Failed to sync acknowledgement receipts", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };

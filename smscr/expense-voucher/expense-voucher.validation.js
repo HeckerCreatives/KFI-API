@@ -39,16 +39,6 @@ exports.expenseVoucherRules = [
     .matches(/^CV#[\d-]+$/i)
     .withMessage("CV# must start with CV# followed by numbers or hyphens"),
   body("supplier").trim().notEmpty().withMessage("Supplier is required").isLength({ min: 1, max: 255 }).withMessage("Supplier must only consist of 1 to 255 characters"),
-  // body("supplier")
-  //   .trim()
-  //   .notEmpty()
-  //   .withMessage("Supplier is required")
-  //   .custom(async (value, { req }) => {
-  //     const supplierId = req.body.supplierId;
-  //     const exists = await Supplier.exists({ _id: supplierId, deletedAt: null });
-  //     if (!exists) throw new Error("Supplier not found");
-  //     return true;
-  //   }),
   body("date")
     .trim()
     .notEmpty()

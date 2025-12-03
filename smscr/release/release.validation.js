@@ -68,7 +68,7 @@ exports.releaseIdRules = [
     .isMongoId()
     .withMessage("Invalid acknowledgement id")
     .custom(async value => {
-      const exists = await Acknowledgement.exists({ _id: value, deletedAt: null });
+      const exists = await Release.exists({ _id: value, deletedAt: null });
       if (!exists) throw new Error("Acknowledgement not found");
       return true;
     }),

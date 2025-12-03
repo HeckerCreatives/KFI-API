@@ -235,12 +235,32 @@ exports.downloadLoanReleasesWithEntries = async (req, res, next) => {
   }
 };
 
+exports.syncLoanReleasesWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_loan_release_with_entries(req.body.loanReleases, token);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.downloadJournalVouchersWithEntries = async (req, res, next) => {
   try {
     const { dateFrom, dateTo } = req.query;
     validateSyncDates(dateFrom, dateTo);
 
     const result = await syncService.download_journal_voucher_with_entries(dateFrom, dateTo);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.syncJournalVouchersWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_journal_voucher_with_entries(req.body.journalVouchers, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -259,12 +279,32 @@ exports.downloadExpenseVouchersWithEntries = async (req, res, next) => {
   }
 };
 
+exports.syncExpenseVouchersWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_expense_voucher_with_entries(req.body.expenseVouchers, token);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.downloadOfficialReceiptsWithEntries = async (req, res, next) => {
   try {
     const { dateFrom, dateTo } = req.query;
     validateSyncDates(dateFrom, dateTo);
 
     const result = await syncService.download_official_receipt_with_entries(dateFrom, dateTo);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.syncOfficialReceiptsWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_official_receipt_with_entries(req.body.officialReceipts, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);
@@ -283,6 +323,16 @@ exports.downloadAcknowledgementReceiptsWithEntries = async (req, res, next) => {
   }
 };
 
+exports.syncAcknowledgementReceiptsWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_acknowledgement_receipt_with_entries(req.body.acknowledgementReceipts, token);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.downloadEmergencyLoansWithEntries = async (req, res, next) => {
   try {
     const { dateFrom, dateTo } = req.query;
@@ -295,12 +345,32 @@ exports.downloadEmergencyLoansWithEntries = async (req, res, next) => {
   }
 };
 
+exports.syncEmergencyLoansWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_emergency_loan_with_entries(req.body.emergencyLoans, token);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.downloadDamayanFundsWithEntries = async (req, res, next) => {
   try {
     const { dateFrom, dateTo } = req.query;
     validateSyncDates(dateFrom, dateTo);
 
     const result = await syncService.download_damayan_fund_with_entries(dateFrom, dateTo);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.syncDamayanFundsWithEntries = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_damayan_fund_with_entries(req.body.damayanFunds, token);
     return res.status(200).json(result);
   } catch (error) {
     next(error);

@@ -9,7 +9,7 @@ exports.isAmountTally = (entries, amount) => {
   let haveBankEntry = false;
 
   entries.map(entry => {
-    const acctCode = entry?.acctCode?.code ? entry.acctCode.code : entry.acctCode;
+    const acctCode = entry?.acctCode?.code || entry?.acctCode?.code ? entry.acctCode.code : entry.acctCode;
 
     totalDebit += Number(entry.debit);
     totalCredit += Number(entry.credit);
@@ -19,6 +19,8 @@ exports.isAmountTally = (entries, amount) => {
       haveBankEntry = true;
     }
   });
+
+  console.log(totalDebit, totalCredit, totalBank, totalDeduction);
 
   const netLoanCredit = totalCredit - totalDeduction;
   const netLoanDebit = totalDebit - totalDeduction;
