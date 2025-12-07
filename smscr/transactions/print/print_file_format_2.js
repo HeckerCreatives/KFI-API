@@ -28,6 +28,7 @@ exports.loanReleasePrintFormat2File = async (payTo, loanRelease, entries) => {
     if (isLoanAdded >= 0) {
       if (entry.client && !loans[isLoanAdded].client) {
         loans[isLoanAdded].client = entry.client.name;
+        loans[isLoanAdded].bankAccountNo = entry?.client?.bankAccountNo || "";
         loans[isLoanAdded].business = entry.client.business.type;
         loans[isLoanAdded].checkNo = loanRelease.checkNo;
       }
@@ -48,7 +49,13 @@ exports.loanReleasePrintFormat2File = async (payTo, loanRelease, entries) => {
 
     if (isLoanAdded < 0) {
       if (entry.client) {
-        const newEntry = { client: entry.client.name, clientId: entry.client._id, business: entry.client.business.type, checkNo: loanRelease.checkNo };
+        const newEntry = {
+          client: entry.client.name,
+          bankAccountNo: entry.client.bankAccountNo || "",
+          clientId: entry.client._id,
+          business: entry.client.business.type,
+          checkNo: loanRelease.checkNo,
+        };
         if (loanCodes.includes(entry.acctCode.code)) {
           newEntry.accountCode = entry.acctCode._id;
           newEntry.amountApproved = entry.debit;
@@ -178,7 +185,7 @@ exports.loanReleasePrintFormat2File = async (payTo, loanRelease, entries) => {
             { text: "Group", rowSpan: 2, fontSize: 8, margin: [0, 15, 0, 0], alignment: "center" },
             { text: "Name", rowSpan: 2, fontSize: 8, margin: [0, 15, 0, 0], alignment: "center" },
             { text: "Cycle", rowSpan: 2, fontSize: 8, margin: [0, 15, 0, 0], alignment: "center" },
-            { text: "Project", rowSpan: 2, fontSize: 8, margin: [0, 15, 0, 0], alignment: "center" },
+            { text: "Bank Account No", rowSpan: 2, fontSize: 8, margin: [0, 10, 0, 0], alignment: "center" },
             { text: "Loan Amt Prev Cycle", rowSpan: 2, fontSize: 8, margin: [0, 10, 0, 0], alignment: "center" },
             { text: "Loan Amt Approved", rowSpan: 2, fontSize: 8, margin: [0, 10, 0, 0], alignment: "center" },
             { text: "Weekly Amortization", rowSpan: 2, fontSize: 8, margin: [0, 10, 0, 0], alignment: "center" },
@@ -221,7 +228,7 @@ exports.loanReleasePrintFormat2File = async (payTo, loanRelease, entries) => {
             { text: "", fontSize: 8, margin: [0, 5, 0, 0], alignment: "center" },
             { text: `${loan.client}`, fontSize: 8, margin: [0, 5, 0, 0] },
             { text: `${loan.cycle}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "center" },
-            { text: `${loan.business}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "center" },
+            { text: `${loan.bankAccountNo}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "center" },
             { text: `${formatNumber(loan?.previousAmount || 0)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan?.amountApproved || 0)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },
             { text: `${formatNumber(loan?.weeklyAmortization || 0)}`, fontSize: 8, margin: [0, 5, 0, 0], alignment: "right" },

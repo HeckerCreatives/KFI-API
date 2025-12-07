@@ -20,8 +20,6 @@ exports.isAmountTally = (entries, amount) => {
     }
   });
 
-  console.log(totalDebit, totalCredit, totalBank, totalDeduction);
-
   const netLoanCredit = totalCredit - totalDeduction;
   const netLoanDebit = totalDebit - totalDeduction;
 

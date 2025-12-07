@@ -51,6 +51,12 @@ exports.customerRules = [
     .matches(/^(?:63|0)9\d{9}$/) // +639 or 09 followed by 9 digits
     .withMessage("Invalid mobile number (e.g., 09171234567 or 639171234567)")
     .customSanitizer(value => value.replace(/[^\d]/g, "")),
+  body("bankAccountNo")
+    .trim()
+    .notEmpty()
+    .withMessage("Bank account number is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Bank account number must only consist of 1 to 255 characters"),
   body("zipCode").trim().notEmpty().withMessage("Zip code  is required").isLength({ min: 1, max: 255 }).withMessage("Zip code must only consist of 1 to 255 characters"),
   body("birthdate")
     .trim()
@@ -196,7 +202,6 @@ exports.updateCustomerRules = [
     .withMessage("Telephone no. is required")
     .matches(/^[2-9]\d{6}$/) // 7 digits, starting with 2-9
     .withMessage("Invalid telephone number (e.g., 5231234)"),
-  ,
   body("mobileNo")
     .trim()
     .notEmpty()
@@ -204,6 +209,12 @@ exports.updateCustomerRules = [
     .matches(/^(?:63|0)9\d{9}$/) // 639 or 09 followed by 9 digits
     .withMessage("Invalid mobile number (e.g., 09171234567 or 639171234567)")
     .customSanitizer(value => value.replace(/[^\d]/g, "")),
+  body("bankAccountNo")
+    .trim()
+    .notEmpty()
+    .withMessage("Bank account number is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Bank account number must only consist of 1 to 255 characters"),
   body("zipCode").trim().notEmpty().withMessage("Zip code  is required").isLength({ min: 1, max: 255 }).withMessage("Zip code must only consist of 1 to 255 characters"),
   body("birthdate")
     .trim()

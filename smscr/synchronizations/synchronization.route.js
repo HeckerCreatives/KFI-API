@@ -18,6 +18,9 @@ const { officialReceiptsUploadRules } = require("./validations/sync.official-rec
 const { acknowledgementReceiptUploadRules } = require("./validations/sync.acknowledgement-receipt.validation.js");
 const { emergencyLoansUploadRules } = require("./validations/sync.emergency-loan.validation.js");
 const { damayanFundsUploadRules } = require("./validations/sync.damayan-fund.validation.js");
+const syncClientUploadCheck = require("./file-uploads/sync.customer.upload.js");
+const { clientUploadRules } = require("./validations/sync.clients.validation.js");
+const { parseClientFormData } = require("./middleware/sync.clients.middleware.js");
 
 const syncRoutes = express.Router();
 
@@ -35,6 +38,7 @@ syncRoutes
   .put("/upload/chart-of-accounts", chartAccountsUploadRules, validateData, syncCtrl.syncChartOfAccounts)
 
   .get("/clients", syncCtrl.downloadClients)
+  .put("/upload/clients", syncClientUploadCheck, parseClientFormData, clientUploadRules, validateData, syncCtrl.syncClients)
 
   .get("/loan-codes", syncCtrl.downloadLoanCodes)
 

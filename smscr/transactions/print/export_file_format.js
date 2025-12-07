@@ -27,6 +27,7 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
     if (isLoanAdded >= 0) {
       if (entry.client && !loans[isLoanAdded].client) {
         loans[isLoanAdded].client = entry.client.name;
+        loans[isLoanAdded].bankAccountNo = entry.client.bankAccountNo || "";
         loans[isLoanAdded].business = entry.client.business.type;
         loans[isLoanAdded].checkNo = loanRelease.checkNo;
       }
@@ -44,7 +45,13 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
 
     if (isLoanAdded < 0) {
       if (entry.client) {
-        const newEntry = { client: entry.client.name, clientId: entry.client._id, business: entry.client.business.type, checkNo: loanRelease.checkNo };
+        const newEntry = {
+          client: entry.client.name,
+          bankAccountNo: entry.client.bankAccountNo || "",
+          clientId: entry.client._id,
+          business: entry.client.business.type,
+          checkNo: loanRelease.checkNo,
+        };
         if (loanCodes.includes(entry.acctCode.code)) {
           newEntry.accountCode = entry.acctCode._id;
           newEntry.amountApproved = entry.debit;
@@ -177,7 +184,7 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
     { v: "Group", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
     { v: "Name", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
     { v: "Cycle", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
-    { v: "Project", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
+    { v: "Bank Account No", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
     { v: "Loan Amt Prev Cycle", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
     { v: "Loan Amt Approved", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
     { v: "Weekly Amortization", t: "s", s: { font: { bold: true }, alignment: { vertical: "center", horizontal: "center", wrapText: true }, border: fullBorder } },
@@ -222,7 +229,7 @@ exports.loanReleaseExportFormat2File = async (loanRelease, payTo, entries) => {
       { v: ``, t: "s", s: { alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: `${loan.client}`, t: "s", s: { alignment: { vertical: "center", horizontal: "left" }, border: fullBorder } },
       { v: `${loan.cycle}`, t: "s", s: { alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
-      { v: `${loan.business}`, t: "s", s: { alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
+      { v: `${loan.bankAccountNo}`, t: "s", s: { alignment: { vertical: "center", horizontal: "center" }, border: fullBorder } },
       { v: `${formatNumber(loan.previousAmount)}`, t: "s", s: { alignment: { vertical: "center", horizontal: "right" }, border: fullBorder } },
       { v: `${formatNumber(loan.amountApproved)}`, t: "s", s: { alignment: { vertical: "center", horizontal: "right" }, border: fullBorder } },
       { v: `${formatNumber(loan.weeklyAmortization)}`, t: "s", s: { alignment: { vertical: "center", horizontal: "right" }, border: fullBorder } },

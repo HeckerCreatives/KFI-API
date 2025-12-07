@@ -26,7 +26,6 @@ exports.elPrintDetailedByAccounts = (datas, from = "", to = "") => {
       let stDebit = 0;
       let stCredit = 0;
       loan.entries.map(entry => {
-        console.log(entry);
         stDebit += Number(entry?.debit || 0);
         stCredit += Number(entry?.credit || 0);
         rows.push([

@@ -326,7 +326,6 @@ exports.printPastDueRules = [
   body("clients")
     .if(body("clients").isArray().notEmpty())
     .custom(async value => {
-      console.log(value);
       if (!Array.isArray(value)) throw new Error("Invalid clients");
       if (value.length < 1) throw new Error("Atleast 1 client is required");
       const exists = await Customer.countDocuments({ _id: { $in: value } })

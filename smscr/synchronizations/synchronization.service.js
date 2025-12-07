@@ -40,6 +40,7 @@ const {
 } = require("./helpers/sync.acknowledgement-receipt.helper.js");
 const { createDamayanFundsHelper, updateDamayanFundsHelper, deleteDamayanFundsHelper } = require("./helpers/sync.damayan-fund.helper.js");
 const { createEmergencyLoansHelper, updateEmergencyLoansHelper, deleteEmergencyLoansHelper } = require("./helpers/sync.emergency-loan.helper.js");
+const { createClientsHelper, updateClientsHelper, deleteClientsHelper } = require("./helpers/sync.clients.helper.js");
 
 exports.download_banks = async () => {
   const pipelines = [];
@@ -410,8 +411,45 @@ exports.download_clients = async () => {
       business: { $arrayElemAt: ["$business", 0] },
     },
   });
+  pipelines.push({
+    $addFields: {
+      center: "$center._id",
+      centerLabel: "$center.centerNo",
+      business: "$business._id",
+      businessLabel: "$business.type",
+      memberStatusLabel: "$memberStatus",
+      birthdate: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$birthdate", timezone: "UTC" } }, null] },
+      dateRelease: { $ifNull: [{ $dateToString: { format: "%Y-%m-%d", date: "$dateRelease", timezone: "UTC" } }, null] },
+    },
+  });
   const clients = await Customer.aggregate(pipelines).exec();
   return { success: true, clients };
+};
+
+exports.sync_clients = async (clients, files, author) => {
+  const toCreate = clients.filter(e => e.action === "create");
+  const toUpdate = clients.filter(e => e.action === "update");
+  const toDelete = clients.filter(e => e.action === "delete");
+
+  const session = await mongoose.startSession();
+
+  try {
+    session.startTransaction();
+
+    if (toCreate.length > 0) await createClientsHelper(toCreate, files, author, session);
+    if (toUpdate.length > 0) await updateClientsHelper(toUpdate, files, author, session);
+    if (toDelete.length > 0) await deleteClientsHelper(toDelete, files, author, session);
+
+    await session.commitTransaction();
+
+    return { success: true };
+  } catch (error) {
+    await session.abortTransaction();
+    console.log(error);
+    throw new CustomError(error.message || "Failed to sync clients", error.statusCode || 500);
+  } finally {
+    await session.endSession();
+  }
 };
 
 exports.download_loan_products = async () => {

@@ -10,6 +10,7 @@ const customerSchema = new mongoose.Schema(
     zipCode: { type: String },
     birthdate: { type: Date },
     birthplace: { type: String },
+    bankAccountNo: { type: String, required: true },
     spouse: { type: String },
     memberStatus: { type: String },
     groupNumber: { type: mongoose.Schema.Types.ObjectId, ref: "GroupAccount" },

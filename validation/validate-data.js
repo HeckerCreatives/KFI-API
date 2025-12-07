@@ -7,6 +7,7 @@ exports.validateData = async (req, res, next) => {
 
   if (!errors.isEmpty()) {
     if (req.file) await fs.promises.unlink(req.file.path);
+    if (req.files && req.files.length > 0) await Promise.all(req.files.map(async file => await fs.promises.unlink(file.path)));
     const groupedErrors = errors.array().reduce((acc, error) => {
       if (!acc[error.path]) {
         acc[error.path] = [];

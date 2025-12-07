@@ -89,6 +89,16 @@ exports.downloadClients = async (req, res, next) => {
   }
 };
 
+exports.syncClients = async (req, res, next) => {
+  try {
+    const token = getToken(req);
+    const result = await syncService.sync_clients(req.body.clients, req.files, token);
+    return res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.downloadLoanProducts = async (req, res, next) => {
   try {
     const result = await syncService.download_loan_products();
