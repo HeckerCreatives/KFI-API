@@ -5,6 +5,19 @@ const { memberStatuses } = require("../../../constants/member-status");
 const BusinessType = require("../../business-type/business-type.schema");
 
 exports.clientUploadRules = [
+  body("clients")
+    .isArray()
+    .withMessage("Clients must be an array")
+    .custom(value => {
+      if (!Array.isArray(value)) throw new Error("Clients must be an array");
+      if (value.length < 1) throw new Error("Atleast 1 client is required");
+      if (!value.every(client => !client._synced)) throw new Error("Please make sure that the client sent are not yet synced in the database.");
+      if (!value.every(client => client.action)) throw new Error("Please make sure that the client sent are have an action to make.");
+      if (!value.every(client => ["create", "update", "delete"].includes(client.action)))
+        throw new Error("An invalid action is found. Please make sure that the actions are only create, update and delete");
+
+      return true;
+    }),
   body("clients.*._id")
     .if(body("clients.*.action").custom(value => ["update", "delete"].includes(value)))
     .trim()
