@@ -27,10 +27,10 @@ const { isSyncAuthorize } = require("../../utils/have-permission.js");
 const syncRoutes = express.Router();
 
 syncRoutes
-  .get("/banks", syncCtrl.downloadBanks)
+  .get("/banks", isAuthorize("bank", "visible"), syncCtrl.downloadBanks)
   .put("/upload/banks", isAuthorize("bank", "visible"), isSyncAuthorize("bank", "banks"), banksUploadRules, validateData, syncCtrl.syncBanks)
 
-  .get("/business-types", syncCtrl.downloadBusinessTypes)
+  .get("/business-types", isAuthorize("business type", "visible"), syncCtrl.downloadBusinessTypes)
   .put(
     "/upload/business-types",
     isAuthorize("business type", "visible"),
@@ -40,10 +40,10 @@ syncRoutes
     syncCtrl.syncBusinessTypes
   )
 
-  .get("/centers", syncCtrl.downloadCenters)
+  .get("/centers", isAuthorize("center", "visible"), syncCtrl.downloadCenters)
   .put("/upload/centers", isAuthorize("center", "visible"), isSyncAuthorize("center", "centers"), centersUploadRules, validateData, syncCtrl.syncCenters)
 
-  .get("/chart-of-accounts", syncCtrl.downloadChartOfAccounts)
+  .get("/chart-of-accounts", isAuthorize("chart of account", "visible"), syncCtrl.downloadChartOfAccounts)
   .put(
     "/upload/chart-of-accounts",
     isAuthorize("chart of account", "visible"),
@@ -53,7 +53,7 @@ syncRoutes
     syncCtrl.syncChartOfAccounts
   )
 
-  .get("/clients", syncCtrl.downloadClients)
+  .get("/clients", isAuthorize("clients", "visible"), syncCtrl.downloadClients)
   .put(
     "/upload/clients",
     syncClientUploadCheck,
@@ -65,17 +65,16 @@ syncRoutes
     syncCtrl.syncClients
   )
 
-  .get("/loan-codes", syncCtrl.downloadLoanCodes)
+  // .get("/loan-codes", syncCtrl.downloadLoanCodes)
+  // .get("/payment-schedules", syncCtrl.downloadPaymentSchedules)
 
-  .get("/loan-products", syncCtrl.downloadLoanProducts)
+  .get("/loan-products", isAuthorize("product", "visible"), syncCtrl.downloadLoanProducts)
   .put("/upload/loan-products", isAuthorize("product", "visible"), isSyncAuthorize("product", "products"), loanProductsUploadRules, validateData, syncCtrl.syncLoanProducts)
 
-  .get("/natures", syncCtrl.downloadNatures)
+  .get("/natures", isAuthorize("nature", "visible"), syncCtrl.downloadNatures)
   .put("/upload/natures", isAuthorize("nature", "visible"), isSyncAuthorize("nature", "natures"), naturesUploadRules, validateData, syncCtrl.syncNatures)
 
-  .get("/payment-schedules", syncCtrl.downloadPaymentSchedules)
-
-  .get("/suppliers", syncCtrl.downloadSuppliers)
+  .get("/suppliers", isAuthorize("business supplier", "visible"), syncCtrl.downloadSuppliers)
   .put(
     "/upload/suppliers",
     isAuthorize("business supplier", "visible"),
@@ -85,7 +84,7 @@ syncRoutes
     syncCtrl.syncSuppliers
   )
 
-  .get("/system-parameters", syncCtrl.downloadSystemParams)
+  .get("/system-parameters", isAuthorize("parameters", "visible"), syncCtrl.downloadSystemParams)
   .put(
     "/upload/system-parameters",
     isAuthorize("parameters", "visible"),
@@ -95,7 +94,7 @@ syncRoutes
     syncCtrl.syncSystemParams
   )
 
-  .get("/weekly-savings", syncCtrl.downloadWeeklySavings)
+  .get("/weekly-savings", isAuthorize("weekly savings", "visible"), syncCtrl.downloadWeeklySavings)
   .put(
     "/upload/weekly-savings",
     isAuthorize("weekly savings", "visible"),
@@ -105,7 +104,7 @@ syncRoutes
     syncCtrl.syncWeeklySavings
   )
 
-  .get("/group-of-accounts", syncCtrl.downloadGroupOfAccounts)
+  .get("/group-of-accounts", isAuthorize("group of account", "visible"), syncCtrl.downloadGroupOfAccounts)
   .put(
     "/upload/group-of-accounts",
     isAuthorize("group of account", "visible"),
@@ -115,7 +114,7 @@ syncRoutes
     syncCtrl.syncGroupOfAccounts
   )
 
-  .get("/loan-releases", syncCtrl.downloadLoanReleasesWithEntries)
+  .get("/loan-releases", isAuthorize("loan release", "visible"), syncCtrl.downloadLoanReleasesWithEntries)
   .put(
     "/upload/loan-releases",
     isAuthorize("loan release", "visible"),
@@ -125,7 +124,7 @@ syncRoutes
     syncCtrl.syncLoanReleasesWithEntries
   )
 
-  .get("/journal-vouchers", syncCtrl.downloadJournalVouchersWithEntries)
+  .get("/journal-vouchers", isAuthorize("journal voucher", "visible"), syncCtrl.downloadJournalVouchersWithEntries)
   .put(
     "/upload/journal-vouchers",
     isAuthorize("journal voucher", "visible"),
@@ -135,7 +134,7 @@ syncRoutes
     syncCtrl.syncJournalVouchersWithEntries
   )
 
-  .get("/expense-vouchers", syncCtrl.downloadExpenseVouchersWithEntries)
+  .get("/expense-vouchers", isAuthorize("expense voucher", "visible"), syncCtrl.downloadExpenseVouchersWithEntries)
   .put(
     "/upload/expense-vouchers",
     isAuthorize("expense voucher", "visible"),
@@ -145,7 +144,7 @@ syncRoutes
     syncCtrl.syncExpenseVouchersWithEntries
   )
 
-  .get("/official-receipts", syncCtrl.downloadOfficialReceiptsWithEntries)
+  .get("/official-receipts", isAuthorize("acknowledgement", "visible"), syncCtrl.downloadOfficialReceiptsWithEntries)
   .put(
     "/upload/official-receipts",
     isAuthorize("acknowledgement", "visible"),
@@ -155,7 +154,7 @@ syncRoutes
     syncCtrl.syncOfficialReceiptsWithEntries
   )
 
-  .get("/acknowledgement-receipts", syncCtrl.downloadAcknowledgementReceiptsWithEntries)
+  .get("/acknowledgement-receipts", isAuthorize("release", "visible"), syncCtrl.downloadAcknowledgementReceiptsWithEntries)
   .put(
     "/upload/acknowledgement-receipts",
     isAuthorize("release", "visible"),
@@ -165,7 +164,7 @@ syncRoutes
     syncCtrl.syncAcknowledgementReceiptsWithEntries
   )
 
-  .get("/emergency-loans", syncCtrl.downloadEmergencyLoansWithEntries)
+  .get("/emergency-loans", isAuthorize("emergency loan", "visible"), syncCtrl.downloadEmergencyLoansWithEntries)
   .put(
     "/upload/emergency-loans",
     isAuthorize("emergency loan", "visible"),
@@ -175,7 +174,7 @@ syncRoutes
     syncCtrl.syncEmergencyLoansWithEntries
   )
 
-  .get("/damayan-funds", syncCtrl.downloadDamayanFundsWithEntries)
+  .get("/damayan-funds", isAuthorize("damayan fund", "visible"), syncCtrl.downloadDamayanFundsWithEntries)
   .put(
     "/upload/damayan-funds",
     isAuthorize("damayan fund", "visible"),
