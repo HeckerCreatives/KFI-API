@@ -24,4 +24,5 @@ exports.ALL_RESOURCES = [
   "emergency loan",
   "damayan fund",
   "nature",
+  "beginning balance",
 ];

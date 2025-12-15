@@ -48,11 +48,8 @@ damayanFundRoutes
   .get("/entries/all/:id", isAuthorize("damayan fund", "visible"), damayanFundIdRules, validateData, entryCtrl.getAllEntries)
 
   .get("/:id", isAuthorize("damayan fund", "read"), damayanFundIdRules, validateData, damayanFundController.getDamayanFund)
-
   .post("/", isAuthorize("damayan fund", "create"), damayanFundCodeRules, damayanFundRules, validateData, damayanFundController.createDamayanFund)
-
   .put("/:id", isAuthorize("damayan fund", "update"), damayanFundIdRules, updateDamayanFundCodeRules, updateDamayanFundRules, validateData, damayanFundController.updateDamayanFund)
-
   .delete("/:id", isAuthorize("damayan fund", "delete"), damayanFundIdRules, validateData, damayanFundController.deleteDamayanFund);
 
 // .post("/entries/:id", isAuthorize("damayan fund", "update"), damayanFundIdRules, damayanFundEntryRules, validateData, entryCtrl.createEntry)
