@@ -56,3 +56,11 @@ exports.isValidDate = date => {
   const dt = DateTime.fromFormat(date, "yyyy-MM-dd");
   return dt.isValid;
 };
+
+exports.getMonth = date => {
+  return new Date(date).getMonth() + 1;
+};
+
+exports.getYear = date => {
+  return new Date(date).getFullYear();
+};
