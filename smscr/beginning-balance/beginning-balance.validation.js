@@ -1,9 +1,8 @@
 const { query, body, param } = require("express-validator");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema");
-const CustomError = require("../../utils/custom-error");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker");
 const BeginningBalance = require("./beginning-balance.schema");
-const { default: mongoose } = require("mongoose");
+const { default: mongoose, Error } = require("mongoose");
 const BeginningBalanceEntry = require("./beginning-balance-entries.schema");
 
 exports.beginningBalanceAccountCodeRules = [
@@ -87,7 +86,7 @@ exports.beginningBalanceRules = [
     .withMessage("Invalid account code id")
     .custom(async value => {
       const exists = await ChartOfAccount.exists({ _id: value }).exec();
-      if (!exists) throw new CustomError("Account code not found.");
+      if (!exists) throw new Error("Account code not found.");
       return true;
     }),
   body("entries.*.debit")

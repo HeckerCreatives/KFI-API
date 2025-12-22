@@ -254,7 +254,6 @@ exports.create_loan_release = async (data, author) => {
       success: true,
     };
   } catch (error) {
-    console.log(error);
     await session.abortTransaction();
     throw new CustomError(error.message || "Failed to create a loan release", error.statusCode || 500);
   } finally {

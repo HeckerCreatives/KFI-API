@@ -9,8 +9,6 @@ exports.clientUploadRules = [
     .isArray()
     .withMessage("Clients must be an array")
     .custom(value => {
-      console.log(value);
-
       if (!Array.isArray(value)) throw new Error("Clients must be an array");
       if (value.length < 1) throw new Error("Atleast 1 client is required");
       if (!value.every(client => client._synced !== "true")) throw new Error("Please make sure that the client sent are not yet synced in the database.");

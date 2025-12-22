@@ -445,7 +445,6 @@ exports.sync_clients = async (clients, files, author) => {
     return { success: true };
   } catch (error) {
     await session.abortTransaction();
-    console.log(error);
     throw new CustomError(error.message || "Failed to sync clients", error.statusCode || 500);
   } finally {
     await session.endSession();

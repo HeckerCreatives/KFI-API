@@ -32,6 +32,7 @@ const systemParamRoutes = require("../smscr/system-parameters/system-parameter.r
 const syncRoutes = require("../smscr/synchronizations/synchronization.route");
 const beginningBalanceRoutes = require("../smscr/beginning-balance/beginning-balance.route");
 const reportRoutes = require("../smscr/reports/report.route");
+const financialStatementRoutes = require("../smscr/financial-statement/financial-statement.route");
 
 exports.routers = app => {
   app.use("/api/v1/auth", authRoutes);
@@ -67,4 +68,5 @@ exports.routers = app => {
   app.use("/api/v1/sync", passport.authenticate("jwt", { session: false }), syncRoutes);
   app.use("/api/v1/beginning-balance", passport.authenticate("jwt", { session: false }), beginningBalanceRoutes);
   app.use("/api/v1/report", passport.authenticate("jwt", { session: false }), reportRoutes);
+  app.use("/api/v1/financial-statement", passport.authenticate("jwt", { session: false }), financialStatementRoutes);
 };

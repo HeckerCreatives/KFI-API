@@ -15,7 +15,6 @@ exports.upsertWallet = async (client, type, amount, session = null) => {
       await new Wallet({ owner: client, type, amount }).save(options);
     }
   } catch (error) {
-    console.log(error);
     throw new CustomError("Failed to create loan release", 500);
   }
 };
