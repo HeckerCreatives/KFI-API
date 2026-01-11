@@ -11,6 +11,7 @@ const Entry = require("../transactions/entries/entry.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const { completeNumberDate, isValidDate } = require("../../utils/date.js");
 const Bank = require("../banks/bank.schema.js");
+const { loanTypeValues } = require("../../constants/loan-types.js");
 
 exports.load_entries = async (dueDateId, type) => {
   const dueDate = await PaymentSchedule.findById(dueDateId).lean().exec();
@@ -44,7 +45,7 @@ exports.load_entries = async (dueDateId, type) => {
               $filter: {
                 input: "$loanCodes",
                 as: "code",
-                cond: { $eq: ["$$code.module", "OR"], $eq: ["$$code.loanType", type] },
+                cond: { $eq: ["$$code.module", "OR"], $eq: ["$$code.loanType", loanTypeValues[type]] },
               },
             },
           },
@@ -84,6 +85,7 @@ exports.load_entries = async (dueDateId, type) => {
           acctCodeDesc: code.acctCode.description,
           debit: 0,
           credit: 0,
+          type,
         });
       });
     }
@@ -201,6 +203,7 @@ exports.create = async (data, author) => {
       debit: entry.debit,
       credit: entry.credit,
       encodedBy: author._id,
+      type: loanTypeValues[entry.type],
     }));
 
     const addedEntries = await AcknowledgementEntry.insertMany(entries, { session });
@@ -306,6 +309,7 @@ exports.update = async (id, data, author) => {
         debit: entry.debit,
         credit: entry.credit,
         encodedBy: author._id,
+        type: loanTypeValues[entry.type],
       }));
 
       const added = await AcknowledgementEntry.insertMany(newEntries, { session });
@@ -340,6 +344,7 @@ exports.update = async (id, data, author) => {
               particular: entry.particular,
               debit: entry.debit,
               credit: entry.credit,
+              type: loanTypeValues[entry.type],
             },
           },
         },

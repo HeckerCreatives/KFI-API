@@ -8,14 +8,14 @@ const LoanReleaseEntryParam = require("../system-parameters/loan-release-entry-p
 const { isAmountTally } = require("../../utils/tally-amount.js");
 const SignatureParam = require("../system-parameters/signature-param.js");
 const Center = require("../center/center.schema.js");
-const { setPaymentDates, isValidDate } = require("../../utils/date.js");
+const { setPaymentDates, isValidDate, completeNumberDate } = require("../../utils/date.js");
 const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js");
 const Bank = require("../banks/bank.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const LoanCode = require("../loan-code/loan-code.schema.js");
 const Loan = require("../loan/loan.schema.js");
 
-exports.load_entries = async (data) => {
+exports.load_entries = async data => {
   const clients = await Customer.find({ center: data.center, deletedAt: null, _id: { $in: data.clients } })
     .populate({ path: "center" })
     .lean()
@@ -26,8 +26,8 @@ exports.load_entries = async (data) => {
 
   const entries = [];
 
-  clients.map((client) => {
-    loans.map((loan) => {
+  clients.map(client => {
+    loans.map(loan => {
       entries.push({
         clientId: client._id,
         client: client.name,
@@ -173,7 +173,7 @@ exports.create_loan_release = async (data, author) => {
       throw new CustomError("Failed to save loan release");
     }
 
-    const _ids = addedEntries.map((entry) => entry._id);
+    const _ids = addedEntries.map(entry => entry._id);
 
     const transaction = await Transaction.findById(newLoanRelease._id)
       .populate({ path: "bank", select: "code description" })
@@ -193,7 +193,7 @@ exports.create_loan_release = async (data, author) => {
     });
 
     await Promise.all(
-      _ids.map(async (id) => {
+      _ids.map(async id => {
         await activityLogServ.create({
           author: author._id,
           username: author.username,
@@ -206,7 +206,7 @@ exports.create_loan_release = async (data, author) => {
     );
 
     const dueDates = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
-    const paymentSchedules = dueDates.map((due) => ({
+    const paymentSchedules = dueDates.map(due => ({
       loanRelease: newLoanRelease._id,
       week: due.week,
       date: due.date,
@@ -235,8 +235,8 @@ exports.create_loan_release = async (data, author) => {
 exports.update_loan_release = async (id, data, author) => {
   const filter = { deletedAt: null, _id: id };
 
-  const entryToUpdate = data.entries.filter((entry) => entry._id);
-  const entryToCreate = data.entries.filter((entry) => !entry._id);
+  const entryToUpdate = data.entries.filter(entry => entry._id);
+  const entryToCreate = data.entries.filter(entry => !entry._id);
 
   const lrUpdates = { $set: { amount: data.amount, interest: data.interestRate, cycle: data.cycle } };
   const lrOptions = { new: true };
@@ -260,7 +260,7 @@ exports.update_loan_release = async (id, data, author) => {
     }
 
     if (entryToCreate.length > 0) {
-      const newEntries = entryToCreate.map((entry) => ({
+      const newEntries = entryToCreate.map(entry => ({
         line: entry.line,
         transaction: updatedLoanRelease._id,
         client: entry.clientId || null,
@@ -290,7 +290,7 @@ exports.update_loan_release = async (id, data, author) => {
     }
 
     if (entryToUpdate.length > 0) {
-      const updates = entryToUpdate.map((entry) => ({
+      const updates = entryToUpdate.map(entry => ({
         updateOne: {
           filter: { _id: entry._id },
           update: {
@@ -502,7 +502,7 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
   return transactions;
 };
 
-exports.print_all_by_bank = async (bankIds) => {
+exports.print_all_by_bank = async bankIds => {
   const pipelines = [];
 
   pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
@@ -584,7 +584,7 @@ exports.print_all_summary_by_date = async (dateFrom, dateTo) => {
   return transactions;
 };
 
-exports.print_detailed_by_id = async (transactionId) => {
+exports.print_detailed_by_id = async transactionId => {
   const pipelines = [];
   const filter = { deletedAt: null, _id: new mongoose.Types.ObjectId(transactionId) };
 
@@ -672,13 +672,13 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   return transactions;
 };
 
-exports.print_summary_by_id = async (transactionId) => {
+exports.print_summary_by_id = async transactionId => {
   const filter = { deletedAt: null, _id: transactionId };
   const transactions = await Transaction.find(filter).populate({ path: "center" }).populate({ path: "bank" }).sort({ code: 1 });
   return transactions;
 };
 
-exports.print_file = async (transactionId) => {
+exports.print_file = async transactionId => {
   const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").populate("bank").lean().exec();
   const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null })
     .sort({ line: 1 })
@@ -693,7 +693,7 @@ exports.print_file = async (transactionId) => {
   let payTo = `CTR#${loanRelease.center.centerNo}`;
 
   const uniqueClientIds = [];
-  entries.map((entry) => {
+  entries.map(entry => {
     if (entry?.client?._id && !uniqueClientIds.includes(`${entry.client._id}`)) uniqueClientIds.push(`${entry.client._id}`);
   });
 
@@ -759,19 +759,194 @@ exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
   return loanReleases;
 };
 
-exports.get_by_center = async (centerId) => {
+exports.get_by_center = async centerId => {
   const filter = { deletedAt: null, center: centerId };
   const loanReleases = await Transaction.find(filter).select("code").lean().exec();
   return { success: true, loanReleases };
 };
 
-exports.get_due_dates_by_id = async (loanReleaseId) => {
+exports.get_due_dates_by_id = async loanReleaseId => {
   const filter = { deletedAt: null, loanRelease: loanReleaseId };
   const dueDates = await PaymentSchedule.find(filter).populate({ path: "loanRelease", select: "code" }).sort({ week: 1 }).select("loanRelease date week").lean().exec();
   return { success: true, dueDates };
 };
 
 exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDateFrom, loanReleaseDateTo, paymentDateFrom, paymentDateTo) => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { client: { $exists: true, $ne: null }, cycle: { $exists: true, $ne: null } } });
+
+  pipelines.push({ $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode" } });
+
+  pipelines.push({ $unwind: "$acctCode" });
+
+  pipelines.push({ $sort: { cycle: -1 } });
+
+  pipelines.push({ $group: { _id: "$client", transaction: { $first: "$$ROOT.transaction" }, currentLoan: { $first: "$$ROOT" } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "customers",
+      let: { clientId: "$_id" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$clientId"] } } },
+        { $lookup: { from: "centers", foreignField: "_id", localField: "center", as: "center" } },
+        { $unwind: "$center" },
+      ],
+      as: "client",
+    },
+  });
+
+  pipelines.push({ $unwind: "$client" });
+
+  pipelines.push({
+    $lookup: {
+      from: "paymentschedules",
+      let: { transactionId: "$transaction" },
+      pipeline: [{ $match: { $expr: { $eq: ["$loanRelease", "$$transactionId"] } } }, { $sort: { week: -1 } }],
+      as: "lastPaymentDue",
+    },
+  });
+
+  pipelines.push({ $addFields: { lastPaymentDue: { $arrayElemAt: ["$lastPaymentDue", 0] } } });
+
+  // Maturity Date Filter
+  pipelines.push({ $match: { "lastPaymentDue.date": { $exists: true, $ne: null, $lt: new Date() } } });
+
+  pipelines.push({
+    $lookup: {
+      from: "entries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$transaction", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "lrs",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "acknowledgemententries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "ors",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "releaseentries",
+      let: { loanReleaseId: "$transaction", clientId: "$_id" },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ["$loanReleaseId", "$$loanReleaseId"] },
+                { $eq: ["$client", "$$clientId"] },
+                { $or: [{ $eq: [{ $type: "$deletedAt" }, "missing"] }, { $eq: ["$deletedAt", null] }] },
+              ],
+            },
+          },
+        },
+        { $lookup: { from: "chartofaccounts", foreignField: "_id", localField: "acctCode", as: "acctCode" } },
+        { $unwind: "$acctCode" },
+      ],
+      as: "ars",
+    },
+  });
+
+  pipelines.push({
+    $lookup: {
+      from: "transactions",
+      let: { transactionId: "$transaction" },
+      pipeline: [
+        { $match: { $expr: { $eq: ["$_id", "$$transactionId"] } } },
+        { $lookup: { from: "loans", foreignField: "_id", localField: "loan", as: "loan" } },
+        { $unwind: "$loan" },
+      ],
+      as: "transaction",
+    },
+  });
+
+  pipelines.push({ $unwind: "$transaction" });
+
+  // FILTERS HERE
+  if (clients) {
+    pipelines.push({ $match: { _id: { $in: clients.map(e => new mongoose.Types.ObjectId(e)) } } });
+  }
+
+  if (centers) {
+    pipelines.push({ $match: { "transaction.center": { $in: centers.map(e => new mongoose.Types.ObjectId(e)) } } });
+  }
+
+  let from = "";
+  let to = "";
+
+  // Loan Release Date Filter
+  if (loanReleaseDateFrom || loanReleaseDateTo) {
+    const query = {};
+    if (loanReleaseDateFrom) {
+      query.$gte = new Date(loanReleaseDateFrom);
+      from = completeNumberDate(loanReleaseDateFrom);
+    }
+    if (loanReleaseDateTo) {
+      query.$lte = new Date(loanReleaseDateTo);
+      to = completeNumberDate(loanReleaseDateTo);
+    }
+    pipelines.push({ $match: { "transaction.date": query } });
+  }
+
+  // Payment Date Filter
+  if (paymentDateFrom || paymentDateTo) {
+    const query = {};
+    if (paymentDateFrom) {
+      query.$gte = new Date(paymentDateFrom);
+      from = completeNumberDate(paymentDateFrom);
+    }
+    if (paymentDateTo) {
+      query.$lte = new Date(paymentDateTo);
+      to = completeNumberDate(paymentDateTo);
+    }
+    pipelines.push({ $match: { "lastPaymentDue.date": query } });
+  }
+
+  const pastDues = await Entry.aggregate(pipelines).exec();
+  const loanCodes = await Loan.find({ deletedAt: null, code: { $in: ["BSK", "GS", "IC", "KELP"] } })
+    .select("code -_id")
+    .lean()
+    .exec();
+
+  return { pastDues, loanCodes, from, to };
+};
+
+exports.get_loan_release_aging_of_loan = async (centers, clients, loanReleaseDateFrom, loanReleaseDateTo, paymentDateFrom, paymentDateTo) => {
   const pipelines = [];
 
   pipelines.push({ $match: { client: { $exists: true, $ne: null }, cycle: { $exists: true, $ne: null } } });
@@ -899,37 +1074,42 @@ exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDateFro
 
   // FILTERS HERE
   if (clients) {
-    pipelines.push({ $match: { _id: { $in: clients.map((e) => new mongoose.Types.ObjectId(e)) } } });
+    pipelines.push({ $match: { _id: { $in: clients.map(e => new mongoose.Types.ObjectId(e)) } } });
   }
 
   if (centers) {
-    pipelines.push({ $match: { "transaction.center": { $in: centers.map((e) => new mongoose.Types.ObjectId(e)) } } });
+    pipelines.push({ $match: { "transaction.center": { $in: centers.map(e => new mongoose.Types.ObjectId(e)) } } });
   }
+
+  let from = "";
+  let to = "";
 
   // Loan Release Date Filter
-  if (loanReleaseDateFrom && loanReleaseDateTo) {
-    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDateFrom), $lte: new Date(loanReleaseDateTo) } } });
-  }
-
-  if (!loanReleaseDateFrom && loanReleaseDateTo) {
-    pipelines.push({ $match: { "transaction.date": { $lte: new Date(loanReleaseDateTo) } } });
-  }
-
-  if (loanReleaseDateFrom && !loanReleaseDateTo) {
-    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDateFrom) } } });
+  if (loanReleaseDateFrom || loanReleaseDateTo) {
+    const query = {};
+    if (loanReleaseDateFrom) {
+      query.$gte = new Date(loanReleaseDateFrom);
+      from = completeNumberDate(loanReleaseDateFrom);
+    }
+    if (loanReleaseDateTo) {
+      query.$lte = new Date(loanReleaseDateTo);
+      to = completeNumberDate(loanReleaseDateTo);
+    }
+    pipelines.push({ $match: { "transaction.date": query } });
   }
 
   // Payment Date Filter
-  if (paymentDateFrom && paymentDateTo) {
-    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDateFrom), $lte: new Date(paymentDateTo) } } });
-  }
-
-  if (!paymentDateFrom && paymentDateTo) {
-    pipelines.push({ $match: { "lastPaymentDue.date": { $lte: new Date(paymentDateTo) } } });
-  }
-
-  if (paymentDateFrom && !paymentDateTo) {
-    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDateFrom) } } });
+  if (paymentDateFrom || paymentDateTo) {
+    const query = {};
+    if (paymentDateFrom) {
+      query.$gte = new Date(paymentDateFrom);
+      from = completeNumberDate(paymentDateFrom);
+    }
+    if (paymentDateTo) {
+      query.$lte = new Date(paymentDateTo);
+      to = completeNumberDate(paymentDateTo);
+    }
+    pipelines.push({ $match: { "lastPaymentDue.date": query } });
   }
 
   const pastDues = await Entry.aggregate(pipelines).exec();
@@ -938,5 +1118,51 @@ exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDateFro
     .lean()
     .exec();
 
-  return { pastDues, loanCodes };
+  return { pastDues, loanCodes, from, to };
+};
+
+exports.get_loan_releases_with_due_dates = async (limit, page, offset) => {
+  const pipelines = [];
+
+  pipelines.push({ $match: { deletedAt: null } });
+
+  pipelines.push({
+    $lookup: {
+      from: "paymentschedules",
+      let: { transactionId: "$_id" },
+      pipeline: [{ $match: { $expr: { $eq: ["$loanRelease", "$$transactionId"] } } }, { $sort: { week: -1 } }],
+      as: "paymentDueDate",
+    },
+  });
+
+  pipelines.push({ $addFields: { paymentDueDate: { $arrayElemAt: ["$paymentDueDate", 0] } } });
+
+  pipelines.push({ $addFields: { paymentDueDate: "$paymentDueDate.date" } });
+
+  pipelines.push({ $project: { loanRelease: "$code", dueDate: "$paymentDueDate" } });
+
+  const countPipelines = [...pipelines];
+  countPipelines.push({ $count: "count" });
+
+  pipelines.push({ $skip: offset });
+  pipelines.push({ $limit: limit });
+
+  const loanReleasesPromise = Transaction.aggregate(pipelines).exec();
+  const loanReleasesCountPromise = Transaction.aggregate(countPipelines).exec();
+
+  const [loanReleases, loanReleasesCount] = await Promise.all([loanReleasesPromise, loanReleasesCountPromise]);
+
+  const count = loanReleasesCount.length > 0 ? loanReleasesCount[0].count : 0;
+
+  const hasNextPage = count > offset + limit;
+  const hasPrevPage = page > 1;
+  const totalPages = Math.ceil(count / limit);
+
+  return {
+    success: true,
+    loanReleases,
+    hasNextPage,
+    hasPrevPage,
+    totalPages,
+  };
 };

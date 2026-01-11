@@ -26,6 +26,7 @@ transactionRoutes
   .post("/print/by-accounts/detailed", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodes)
   .post("/print/by-accounts/summary", isAuthorize("loan release", "print"), transactionCtrl.printByAccountCodeSummarized)
   .post("/print/past-dues", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.printPastDues)
+  .post("/print/aging-of-loans", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.printAgingOfLoans)
 
   .get("/print/file/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.printFile)
   .get("/print/file-format/:transaction", isAuthorize("loan release", "print"), printFileRules, validateData, transactionCtrl.print2ndFormatFile)
@@ -37,6 +38,7 @@ transactionRoutes
   .get("/export/by-document/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailed)
   .get("/export/by-date/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportAllDetailedByDate)
   .post("/export/past-dues", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.exportPastDues)
+  .post("/export/aging-of-loans", isAuthorize("loan release", "print"), printPastDueRules, validateData, transactionCtrl.exportAgingOfLoans)
 
   .post("/export/by-bank", isAuthorize("loan release", "export"), transactionCtrl.exportAllByBank)
   .post("/export/by-accounts/detailed", isAuthorize("loan release", "export"), transactionCtrl.exportByAccountCodes)
@@ -51,6 +53,7 @@ transactionRoutes
   .get("/entries/selection", entryCtrl.getSelections)
   .get("/by-center/:id", transactionCtrl.getByCenter)
   .get("/due-dates/:id", transactionCtrl.getDueDatesById)
+  .get("/due-dates", transactionCtrl.getLoanReleasesWithDueDates)
 
   .post("/load/entries", loadEntryRules, validateData, transactionCtrl.loadEntries)
   .post("/entries/load", entryLoadRules, validateData, entryCtrl.loadEntries)

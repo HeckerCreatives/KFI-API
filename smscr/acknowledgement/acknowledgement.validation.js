@@ -12,6 +12,7 @@ const { isAmountTally } = require("../../utils/tally-amount.js");
 const { hasDuplicateLines } = require("../../utils/line-duplicate-checker.js");
 const Customer = require("../customer/customer.schema.js");
 const Transaction = require("../transactions/transaction.schema.js");
+const { loanTypes } = require("../../constants/loan-types.js");
 
 exports.acknowledgementIdRules = [
   param("id")
@@ -39,8 +40,6 @@ exports.acknowledgementRules = [
       if (!isUnique) throw new Error("OR No. already exists");
       return true;
     }),
-  // .matches(/^OR#[\d-]+$/i)
-  // .withMessage("OR# must start with OR# followed by numbers or hyphens"),
   body("centerLabel")
     .trim()
     .notEmpty()
@@ -193,6 +192,16 @@ exports.acknowledgementRules = [
     }),
   body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
+  body("entries.*.type")
+    .trim()
+    .notEmpty()
+    .withMessage("Type is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Type must only consist of 1 to 255 characters")
+    .custom(value => {
+      if (!loanTypes.includes(value)) throw Error("Invalid loan type");
+      return true;
+    }),
   body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);
@@ -378,6 +387,16 @@ exports.updateAcknowledgementRules = [
     }),
   body("entries.*.debit").if(body("entries.*.debit").notEmpty()).isNumeric().withMessage("Debit must be a number"),
   body("entries.*.credit").if(body("entries.*.credit").notEmpty()).isNumeric().withMessage("Credit must be a number"),
+  body("entries.*.type")
+    .trim()
+    .notEmpty()
+    .withMessage("Type is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Type must only consist of 1 to 255 characters")
+    .custom(value => {
+      if (!loanTypes.includes(value)) throw Error("Invalid loan type");
+      return true;
+    }),
   body("root").custom(async (value, { req }) => {
     const entries = req.body.entries;
     const amount = Number(req.body.amount);

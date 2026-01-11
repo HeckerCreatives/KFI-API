@@ -41,10 +41,10 @@ const getDamayanFund = ars => {
   }, 0);
 };
 
-exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
-  const info = { title: "Past Dues" };
+exports.pringAgingOfLoansPDF = (datas, loanCodes, from = "", to = "") => {
+  const info = { title: "Aging Of Loans" };
 
-  const pastDues = [];
+  const agingOfLoans = [];
   let totals = { principal: 0, payment: 0, balance: 0, current: 0, d30: 0, d60: 0, d90: 0, d120: 0, d180: 0, d360: 0, over1Year: 0, df: 0 };
   let fontSize = 9;
 
@@ -81,7 +81,8 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
     const damayanFund = getDamayanFund(data?.ars);
     totals.df += Number(damayanFund);
 
-    pastDues.push([
+    agingOfLoans.push([
+      { text: `${truncate(data?.client?.center?.acctOfficer || "", 7)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: `${truncate(data?.client?.center?.centerNo || "", 7)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: `${truncate(data?.client?.center?.description || "", 7)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: `${data?.client?.name || ""}`, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -102,9 +103,10 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
     ]);
   });
 
-  pastDues.push(Array.from({ length: 17 }, () => ({ text: "", border: [0, 0, 0, 0] })));
+  agingOfLoans.push(Array.from({ length: 18 }, () => ({ text: "", border: [0, 0, 0, 0] })));
 
-  pastDues.push([
+  agingOfLoans.push([
+    { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -124,9 +126,10 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
     { text: `${formatNumber(totals.df)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
   ]);
 
-  pastDues.push(Array.from({ length: 17 }, () => ({ text: "", border: [0, 0, 0, 0] })));
+  agingOfLoans.push(Array.from({ length: 18 }, () => ({ text: "", border: [0, 0, 0, 0] })));
 
-  pastDues.push([
+  agingOfLoans.push([
+    { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
     { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -146,11 +149,12 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
     { text: `${formatNumber(totals.df)}`, fontSize, margin: [0, 0, 0, 0], border: [0, 1, 0, 1], alignment: "right" },
   ]);
 
-  pastDues.push(Array.from({ length: 17 }, () => ({ text: "", border: [0, 0, 0, 0] })));
-  pastDues.push(Array.from({ length: 17 }, () => ({ text: "", border: [0, 0, 0, 0] })));
+  agingOfLoans.push(Array.from({ length: 18 }, () => ({ text: "", border: [0, 0, 0, 0] })));
+  agingOfLoans.push(Array.from({ length: 18 }, () => ({ text: "", border: [0, 0, 0, 0] })));
 
   Object.keys(loanCodeTotals).forEach(key => {
-    pastDues.push([
+    agingOfLoans.push([
+      { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
       { text: ``, fontSize, margin: [0, 0, 0, 0], border: [0, 0, 0, 0] },
@@ -184,14 +188,15 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
 
   const contents = [
     { text: "KAALALAY FOUNDATION, INC (LB)", fontSize: 12, bold: true },
-    { text: "Loan Receivable", fontSize: 9 },
+    { text: "Aging Of Loan Receivables", fontSize: 9 },
     { text: title, fontSize: 9 },
     { text: `Date Printed: ${completeNumberDate(new Date())}`, fontSize: 9, margin: [0, 0, 0, 8] },
     {
       table: {
-        widths: ["5.5%", "5.5%", "10%", "5.5%", "6%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%"],
+        widths: ["5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%", "5.5%"],
         body: [
           [
+            { text: "AO", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Ctr #", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Center", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
             { text: "Client", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1] },
@@ -210,7 +215,7 @@ exports.printPastDuesPDF = (datas, loanCodes, from = "", to = "") => {
             { text: "Over 1 Yr", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1], alignment: "right" },
             { text: "DF", fontSize, bold: true, margin: [0, 3, 0, 3], border: [0, 1, 0, 1], alignment: "right" },
           ],
-          ...pastDues,
+          ...agingOfLoans,
         ],
       },
     },

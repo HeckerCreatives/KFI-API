@@ -40,7 +40,7 @@ exports.loadEntries = async (req, res, next) => {
     if (!loanTypes.includes(type)) throw new CustomError("Invalid type", 400);
     if (!categories.includes(category)) throw new CustomError("Invalid category", 400);
 
-    const result = await releaseService.load_entries(dueDateId, loanTypeValues[type], category);
+    const result = await releaseService.load_entries(dueDateId, type, category);
 
     return res.status(200).json(result);
   } catch (error) {

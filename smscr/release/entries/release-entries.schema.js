@@ -14,6 +14,7 @@ const releaseEntrySchema = new mongoose.Schema(
     particular: { type: String },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     deletedAt: { type: Date },
+    type: { type: String, enum: ["SEA", "GRP", "IND"], uppercase: true },
   },
   { timestamps: true }
 );

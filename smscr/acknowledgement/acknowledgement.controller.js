@@ -30,13 +30,13 @@ const { loanTypes, loanTypeValues } = require("../../constants/loan-types.js");
 
 exports.loadEntries = async (req, res, next) => {
   try {
-    const { dueDateId, type } = req.query;
+    const { dueDateId, type, category } = req.query;
     if (!dueDateId) throw new CustomError("Due date id is required", 400);
 
     if (!isValidObjectId(dueDateId)) throw new CustomError("Invalid due date id", 400);
     if (!loanTypes.includes(type)) throw new CustomError("Invalid type", 400);
 
-    const result = await acknowledgementServ.load_entries(dueDateId, loanTypeValues[type]);
+    const result = await acknowledgementServ.load_entries(dueDateId, type);
 
     return res.status(200).json(result);
   } catch (error) {

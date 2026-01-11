@@ -1,6 +1,7 @@
 const CustomError = require("../../../utils/custom-error");
 const ReleaseEntry = require("../../release/entries/release-entries.schema");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
+const { loanTypeValues } = require("../../../constants/loan-types.js");
 
 exports.createAcknowledgementReceiptEntriesHelper = async (acknowledgementReceipt, acknowledgementReceiptEntries, author, session) => {
   const entries = acknowledgementReceiptEntries.map(entry => ({
@@ -15,6 +16,7 @@ exports.createAcknowledgementReceiptEntriesHelper = async (acknowledgementReceip
     credit: entry.credit,
     week: entry?.week,
     encodedBy: author._id,
+    type: loanTypeValues[entry.type],
   }));
 
   const addedEntries = await ReleaseEntry.insertMany(entries, { session });
@@ -49,6 +51,7 @@ exports.updateAcknowledgementReceiptEntriesHelper = async (acknowledgementReceip
           debit: entry.debit,
           credit: entry.credit,
           week: entry?.week,
+          type: loanTypeValues[entry.type],
         },
       },
     },

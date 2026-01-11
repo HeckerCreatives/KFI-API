@@ -12,6 +12,7 @@ const acknowledgementEntrySchema = new mongoose.Schema(
     debit: { type: Number, required: true },
     credit: { type: Number, required: true },
     particular: { type: String },
+    type: { type: String, enum: ["SEA", "GRP", "IND"], uppercase: true },
     encodedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     deletedAt: { type: Date },
   },

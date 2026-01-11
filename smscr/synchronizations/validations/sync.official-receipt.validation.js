@@ -285,6 +285,18 @@ exports.officialReceiptsUploadRules = [
     .if(body("officialReceipts.*.entries.*.credit").notEmpty())
     .isNumeric()
     .withMessage("Credit must be a number"),
+  body("officialReceipts.*.entries.*.type")
+    .if(body("officialReceipts.*.action").custom(value => value === "update" || value === "create"))
+    .if(body("officialReceipts.*.entries.*.action").custom(value => value === "update" || value === "create"))
+    .trim()
+    .notEmpty()
+    .withMessage("Type is required")
+    .isLength({ min: 1, max: 255 })
+    .withMessage("Type must only consist of 1 to 255 characters")
+    .custom(value => {
+      if (!loanTypes.includes(value)) throw Error("Invalid loan type");
+      return true;
+    }),
   body("root").custom(async (value, { req }) => {
     const officialReceipts = req.body.officialReceipts;
 

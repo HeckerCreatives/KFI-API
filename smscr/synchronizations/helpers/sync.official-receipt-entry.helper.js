@@ -1,3 +1,4 @@
+const { loanTypeValues } = require("../../../constants/loan-types.js");
 const CustomError = require("../../../utils/custom-error");
 const AcknowledgementEntry = require("../../acknowledgement/entries/acknowledgement-entries.schema");
 const activityLogServ = require("../../activity-logs/activity-log.service.js");
@@ -15,6 +16,7 @@ exports.createOfficialReceiptEntriesHelper = async (officialReceipt, officialRec
     debit: entry.debit,
     credit: entry.credit,
     encodedBy: author._id,
+    type: loanTypeValues[entry.type],
   }));
 
   const addedEntries = await AcknowledgementEntry.insertMany(entries, { session });
@@ -48,6 +50,7 @@ exports.updateOfficialReceiptEntriesHelper = async (officialReceipt, officialRec
           particular: entry.particular,
           debit: entry.debit,
           credit: entry.credit,
+          type: loanTypeValues[entry.type],
         },
       },
     },
