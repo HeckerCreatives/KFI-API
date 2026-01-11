@@ -28,6 +28,7 @@ const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js")
 const { lrExportByAccounts } = require("./print/export_by_account_codes.js");
 const { lrPrintSummarizedByAccounts } = require("./print/print_summarized_by_account_codes.js");
 const { lrExportSummarizedByAccounts } = require("./print/export_summarized_by_account_codes.js");
+const { printPastDuesPDF } = require("./print/past-dues-print.js");
 
 exports.getByCenter = async (req, res, next) => {
   try {
@@ -241,7 +242,7 @@ exports.exportAllDetailed = async (req, res, next) => {
     const transactions = await transactionServ.print_all_detailed(docNoFrom, docNoTo);
     const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
-    transactions.map(transaction => {
+    transactions.map((transaction) => {
       data.push(
         [
           `${transaction.code}`,
@@ -255,7 +256,7 @@ exports.exportAllDetailed = async (req, res, next) => {
         ],
         [],
         ["", "Account Code", "Description", "Debit", "Credit", "Particulars"],
-        ...transaction.entries.map(entry => ["", entry?.acctCode?.code, entry?.acctCode?.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
+        ...transaction.entries.map((entry) => ["", entry?.acctCode?.code, entry?.acctCode?.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
         [
           "",
           "",
@@ -281,7 +282,7 @@ exports.exportDetailedById = async (req, res, next) => {
     const transactions = await transactionServ.print_detailed_by_id(id);
     const data = [["Doc No", "Date", "Supplier", "Particular", "Bank", "Check No", "Check Date", "Amount"]];
 
-    transactions.map(transaction => {
+    transactions.map((transaction) => {
       data.push(
         [
           `${transaction.code}`,
@@ -295,7 +296,7 @@ exports.exportDetailedById = async (req, res, next) => {
         ],
         [],
         ["", "Account Code", "Description", "Debit", "Credit", "Particulars"],
-        ...transaction.entries.map(entry => ["", entry.acctCode.code, entry.acctCode.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
+        ...transaction.entries.map((entry) => ["", entry.acctCode.code, entry.acctCode.description, formatNumber(entry.debit), formatNumber(entry.credit), entry.particular]),
         [
           "",
           "",
@@ -319,7 +320,7 @@ exports.exportAllSummary = async (req, res, next) => {
   const { docNoFrom, docNoTo } = req.query;
   const transactions = await transactionServ.print_all_summary(docNoFrom, docNoTo);
 
-  const formattedLoanReleases = transactions.map(transaction => ({
+  const formattedLoanReleases = transactions.map((transaction) => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
     Supplier: transaction.center.description,
@@ -349,7 +350,7 @@ exports.exportSummaryById = async (req, res, next) => {
   if (!isValidObjectId(id)) throw new CustomError("Invalid loan release id", 400);
   const transactions = await transactionServ.print_summary_by_id(id);
 
-  const formattedLoanReleases = transactions.map(transaction => ({
+  const formattedLoanReleases = transactions.map((transaction) => ({
     "Document Number": transaction.code,
     Date: completeNumberDate(transaction.date),
     Supplier: transaction.center.description,
@@ -656,12 +657,12 @@ exports.printAllByBank = async (req, res, next) => {
 
     const uniqueBankIds = [...new Set(bankIds)];
 
-    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    const isAllIdValid = uniqueBankIds.every((id) => isValidObjectId(id));
     if (!isAllIdValid) {
       throw new CustomError("All bank ids must be valid ObjectIds", 400);
     }
 
-    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+    const bankObjectIds = uniqueBankIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
     if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
@@ -703,12 +704,12 @@ exports.exportAllByBank = async (req, res, next) => {
 
     const uniqueBankIds = [...new Set(bankIds)];
 
-    const isAllIdValid = uniqueBankIds.every(id => isValidObjectId(id));
+    const isAllIdValid = uniqueBankIds.every((id) => isValidObjectId(id));
     if (!isAllIdValid) {
       throw new CustomError("All bank ids must be valid ObjectIds", 400);
     }
 
-    const bankObjectIds = uniqueBankIds.map(id => new mongoose.Types.ObjectId(id));
+    const bankObjectIds = uniqueBankIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const doesExists = await Bank.countDocuments({ _id: { $in: bankObjectIds } }).exec();
     if (bankObjectIds.length !== doesExists) throw new CustomError("Some banks not found. Please check if all the banks sent exists.", 400);
@@ -747,10 +748,10 @@ exports.printByAccountCodes = async (req, res, next) => {
 
     const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
 
-    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    const isAllIdValid = uniqueChartOfAccountIds.every((id) => isValidObjectId(id));
     if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
 
-    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
     if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
@@ -788,10 +789,10 @@ exports.exportByAccountCodes = async (req, res, next) => {
 
   const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
 
-  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  const isAllIdValid = uniqueChartOfAccountIds.every((id) => isValidObjectId(id));
   if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
 
-  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map((id) => new mongoose.Types.ObjectId(id));
 
   const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
   if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
@@ -823,10 +824,10 @@ exports.printByAccountCodeSummarized = async (req, res, next) => {
 
     const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
 
-    const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+    const isAllIdValid = uniqueChartOfAccountIds.every((id) => isValidObjectId(id));
     if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
 
-    const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+    const charOfAccountObjectIds = uniqueChartOfAccountIds.map((id) => new mongoose.Types.ObjectId(id));
 
     const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
     if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
@@ -864,10 +865,10 @@ exports.exportByAccountCodeSummarized = async (req, res, next) => {
 
   const uniqueChartOfAccountIds = [...new Set(chartOfAccountsIds)];
 
-  const isAllIdValid = uniqueChartOfAccountIds.every(id => isValidObjectId(id));
+  const isAllIdValid = uniqueChartOfAccountIds.every((id) => isValidObjectId(id));
   if (!isAllIdValid) throw new CustomError("All account code ids must be valid ObjectIds", 400);
 
-  const charOfAccountObjectIds = uniqueChartOfAccountIds.map(id => new mongoose.Types.ObjectId(id));
+  const charOfAccountObjectIds = uniqueChartOfAccountIds.map((id) => new mongoose.Types.ObjectId(id));
 
   const doesExists = await ChartOfAccount.countDocuments({ _id: { $in: charOfAccountObjectIds }, deletedAt: null }).exec();
   if (charOfAccountObjectIds.length !== doesExists) throw new CustomError("Some chart of account not found. Please check if all the chart of account sent exists.", 400);
@@ -894,11 +895,28 @@ exports.exportByAccountCodeSummarized = async (req, res, next) => {
 
 exports.printPastDues = async (req, res, next) => {
   try {
-    const { centers = null, clients = null, loanReleaseDate = null, paymentDate = null } = req.body || {};
+    const { centers = null, clients = null, loanReleaseDateFrom = null, loanReleaseDateTo = null, paymentDateFrom = null, paymentDateTo = null } = req.body || {};
 
-    const pastDues = await transactionServ.get_loan_release_past_dues(centers, clients, loanReleaseDate, paymentDate);
+    const { pastDues, loanCodes } = await transactionServ.get_loan_release_past_dues(centers, clients, loanReleaseDateFrom, loanReleaseDateTo, paymentDateFrom, paymentDateTo);
 
-    return res.status(200).json({ success: true, pastDues });
+    const printer = new PdfPrinter(pmFonts);
+
+    const docDefinition = printPastDuesPDF(pastDues, loanCodes);
+
+    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+    res.setHeader("Content-Type", "application/pdf");
+
+    const author = getToken(req);
+    await activityLogServ.create({
+      author: author._id,
+      username: author.username,
+      activity: `printed loan release by accounts ( detailed )`,
+      resource: `loan release`,
+    });
+
+    pdfDoc.pipe(res);
+    pdfDoc.end();
   } catch (error) {
     next(error);
   }

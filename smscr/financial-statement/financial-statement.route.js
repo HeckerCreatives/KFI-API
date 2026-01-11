@@ -12,7 +12,7 @@ financialStatementRoutes
   .put("/:id", financialStatementIdRules, financialStatementRules, validateData, fsCtrl.updateFinancialStatement)
   .delete("/:id", financialStatementIdRules, validateData, fsCtrl.deleteFinancialStatement)
   .get("/entry/:id", financialStatementIdRules, validateData, fsCtrl.getAllFinancialStatementEntriesNoPagination)
-  .post("/entry/:id", financialStatementIdRules, financialStatementEntriesRules, validateData, fsCtrl.createFinancialStatementEntries)
-  .put("/entry/:id", financialStatementIdRules, financialStatementEntriesRules, validateData, fsCtrl.updateFinancialStatementEntries);
+  // .post("/entry/:id", financialStatementIdRules, financialStatementEntriesRules, validateData, fsCtrl.createFinancialStatementEntries)
+  .put("/report-definition/:id", financialStatementIdRules, financialStatementEntriesRules, validateData, fsCtrl.updateFinancialStatementEntries);
 
 module.exports = financialStatementRoutes;

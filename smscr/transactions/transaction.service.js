@@ -13,50 +13,21 @@ const PaymentSchedule = require("../payment-schedules/payment-schedule.schema.js
 const Bank = require("../banks/bank.schema.js");
 const ChartOfAccount = require("../chart-of-account/chart-of-account.schema.js");
 const LoanCode = require("../loan-code/loan-code.schema.js");
+const Loan = require("../loan/loan.schema.js");
 
-exports.load_entries = async data => {
+exports.load_entries = async (data) => {
   const clients = await Customer.find({ center: data.center, deletedAt: null, _id: { $in: data.clients } })
     .populate({ path: "center" })
     .lean()
     .exec();
-
-  // const loans = await LoanReleaseEntryParam.find()
-  //   .sort("sort")
-  //   .select("-createdAt -updatedAt -__v")
-  //   .populate({
-  //     path: "accountCode",
-  //     select: "_id description",
-  //   })
-  //   .lean()
-  //   .exec();
-
-  // const entries = [];
-
-  // clients.map(client => {
-  //   loans.map(loan => {
-  //     entries.push({
-  //       clientId: client._id,
-  //       client: client.name,
-  //       particular: `${client.center.centerNo} - ${client.name}`,
-  //       acctCodeId: loan.accountCode._id,
-  //       acctCode: loan.code,
-  //       description: loan.accountCode.description,
-  //       debit: "",
-  //       credit: "",
-  //       interest: "",
-  //       cycle: "",
-  //       checkNo: "",
-  //     });
-  //   });
-  // });
 
   const filter = { deletedAt: null, loan: data.typeOfLoan, module: "LR", loanType: data.isEduc ? "EDUC" : "OTHER" };
   const loans = await LoanCode.find(filter).populate({ path: "acctCode" }).lean().exec();
 
   const entries = [];
 
-  clients.map(client => {
-    loans.map(loan => {
+  clients.map((client) => {
+    loans.map((loan) => {
       entries.push({
         clientId: client._id,
         client: client.name,
@@ -202,7 +173,7 @@ exports.create_loan_release = async (data, author) => {
       throw new CustomError("Failed to save loan release");
     }
 
-    const _ids = addedEntries.map(entry => entry._id);
+    const _ids = addedEntries.map((entry) => entry._id);
 
     const transaction = await Transaction.findById(newLoanRelease._id)
       .populate({ path: "bank", select: "code description" })
@@ -222,7 +193,7 @@ exports.create_loan_release = async (data, author) => {
     });
 
     await Promise.all(
-      _ids.map(async id => {
+      _ids.map(async (id) => {
         await activityLogServ.create({
           author: author._id,
           username: author.username,
@@ -235,7 +206,7 @@ exports.create_loan_release = async (data, author) => {
     );
 
     const dueDates = setPaymentDates(newLoanRelease.noOfWeeks, newLoanRelease.date);
-    const paymentSchedules = dueDates.map(due => ({
+    const paymentSchedules = dueDates.map((due) => ({
       loanRelease: newLoanRelease._id,
       week: due.week,
       date: due.date,
@@ -264,8 +235,8 @@ exports.create_loan_release = async (data, author) => {
 exports.update_loan_release = async (id, data, author) => {
   const filter = { deletedAt: null, _id: id };
 
-  const entryToUpdate = data.entries.filter(entry => entry._id);
-  const entryToCreate = data.entries.filter(entry => !entry._id);
+  const entryToUpdate = data.entries.filter((entry) => entry._id);
+  const entryToCreate = data.entries.filter((entry) => !entry._id);
 
   const lrUpdates = { $set: { amount: data.amount, interest: data.interestRate, cycle: data.cycle } };
   const lrOptions = { new: true };
@@ -289,7 +260,7 @@ exports.update_loan_release = async (id, data, author) => {
     }
 
     if (entryToCreate.length > 0) {
-      const newEntries = entryToCreate.map(entry => ({
+      const newEntries = entryToCreate.map((entry) => ({
         line: entry.line,
         transaction: updatedLoanRelease._id,
         client: entry.clientId || null,
@@ -319,7 +290,7 @@ exports.update_loan_release = async (id, data, author) => {
     }
 
     if (entryToUpdate.length > 0) {
-      const updates = entryToUpdate.map(entry => ({
+      const updates = entryToUpdate.map((entry) => ({
         updateOne: {
           filter: { _id: entry._id },
           update: {
@@ -403,13 +374,19 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
 
   pipelines.push({ $sort: { code: 1 } });
 
-  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] },
+  });
 
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] },
+  });
 
   pipelines.push({ $lookup: { from: "loans", localField: "loan", foreignField: "_id", as: "loan", pipeline: [{ $project: { code: 1 } }] } });
 
-  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } } });
+  pipelines.push({
+    $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } },
+  });
 
   pipelines.push({
     $lookup: {
@@ -417,9 +394,33 @@ exports.print_all_detailed = async (docNoFrom, docNoTo) => {
       let: { localField: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
-        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
-        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } },
-        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { acctNumber: 1, name: 1 } }] } },
+        {
+          $lookup: {
+            from: "chartofaccounts",
+            localField: "acctCode",
+            foreignField: "_id",
+            as: "acctCode",
+            pipeline: [{ $project: { code: 1, description: 1 } }],
+          },
+        },
+        {
+          $lookup: {
+            from: "centers",
+            localField: "center",
+            foreignField: "_id",
+            as: "center",
+            pipeline: [{ $project: { centerNo: 1, description: 1 } }],
+          },
+        },
+        {
+          $lookup: {
+            from: "customers",
+            localField: "client",
+            foreignField: "_id",
+            as: "client",
+            pipeline: [{ $project: { acctNumber: 1, name: 1 } }],
+          },
+        },
         { $lookup: { from: "loans", localField: "product", foreignField: "_id", as: "product", pipeline: [{ $project: { code: 1 } }] } },
         {
           $addFields: {
@@ -462,9 +463,13 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
 
   pipelines.push({ $sort: { date: 1 } });
 
-  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] },
+  });
 
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] },
+  });
 
   pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
@@ -474,7 +479,15 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
       let: { localField: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
-        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        {
+          $lookup: {
+            from: "chartofaccounts",
+            localField: "acctCode",
+            foreignField: "_id",
+            as: "acctCode",
+            pipeline: [{ $project: { code: 1, description: 1 } }],
+          },
+        },
         { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
         { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, transaction: 0 } },
       ],
@@ -489,7 +502,7 @@ exports.print_all_detailed_by_date = async (dateFrom, dateTo) => {
   return transactions;
 };
 
-exports.print_all_by_bank = async bankIds => {
+exports.print_all_by_bank = async (bankIds) => {
   const pipelines = [];
 
   pipelines.push({ $match: { deletedAt: null, _id: { $in: bankIds } } });
@@ -532,9 +545,13 @@ exports.print_all_summary_by_date = async (dateFrom, dateTo) => {
 
   pipelines.push({ $sort: { date: 1 } });
 
-  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] },
+  });
 
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] },
+  });
 
   pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] } } });
 
@@ -544,7 +561,15 @@ exports.print_all_summary_by_date = async (dateFrom, dateTo) => {
       let: { localField: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
-        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
+        {
+          $lookup: {
+            from: "chartofaccounts",
+            localField: "acctCode",
+            foreignField: "_id",
+            as: "acctCode",
+            pipeline: [{ $project: { code: 1, description: 1 } }],
+          },
+        },
         { $addFields: { acctCode: { $arrayElemAt: ["$acctCode", 0] } } },
         { $project: { createdAt: 0, updatedAt: 0, __v: 0, encodedBy: 0, transaction: 0 } },
       ],
@@ -559,7 +584,7 @@ exports.print_all_summary_by_date = async (dateFrom, dateTo) => {
   return transactions;
 };
 
-exports.print_detailed_by_id = async transactionId => {
+exports.print_detailed_by_id = async (transactionId) => {
   const pipelines = [];
   const filter = { deletedAt: null, _id: new mongoose.Types.ObjectId(transactionId) };
 
@@ -567,13 +592,19 @@ exports.print_detailed_by_id = async transactionId => {
 
   pipelines.push({ $sort: { code: 1 } });
 
-  pipelines.push({ $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "banks", localField: "bank", foreignField: "_id", as: "bank", pipeline: [{ $project: { code: 1, description: 1 } }] },
+  });
 
-  pipelines.push({ $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } });
+  pipelines.push({
+    $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] },
+  });
 
   pipelines.push({ $lookup: { from: "loans", localField: "loan", foreignField: "_id", as: "loan", pipeline: [{ $project: { code: 1 } }] } });
 
-  pipelines.push({ $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } } });
+  pipelines.push({
+    $addFields: { bank: { $arrayElemAt: ["$bank", 0] }, center: { $arrayElemAt: ["$center", 0] }, loan: { $arrayElemAt: ["$loan", 0] } },
+  });
 
   pipelines.push({
     $lookup: {
@@ -581,9 +612,33 @@ exports.print_detailed_by_id = async transactionId => {
       let: { localField: "$_id" },
       pipeline: [
         { $match: { $expr: { $eq: ["$$localField", "$transaction"] }, deletedAt: null } },
-        { $lookup: { from: "chartofaccounts", localField: "acctCode", foreignField: "_id", as: "acctCode", pipeline: [{ $project: { code: 1, description: 1 } }] } },
-        { $lookup: { from: "centers", localField: "center", foreignField: "_id", as: "center", pipeline: [{ $project: { centerNo: 1, description: 1 } }] } },
-        { $lookup: { from: "customers", localField: "client", foreignField: "_id", as: "client", pipeline: [{ $project: { acctNumber: 1, name: 1 } }] } },
+        {
+          $lookup: {
+            from: "chartofaccounts",
+            localField: "acctCode",
+            foreignField: "_id",
+            as: "acctCode",
+            pipeline: [{ $project: { code: 1, description: 1 } }],
+          },
+        },
+        {
+          $lookup: {
+            from: "centers",
+            localField: "center",
+            foreignField: "_id",
+            as: "center",
+            pipeline: [{ $project: { centerNo: 1, description: 1 } }],
+          },
+        },
+        {
+          $lookup: {
+            from: "customers",
+            localField: "client",
+            foreignField: "_id",
+            as: "client",
+            pipeline: [{ $project: { acctNumber: 1, name: 1 } }],
+          },
+        },
         { $lookup: { from: "loans", localField: "product", foreignField: "_id", as: "product", pipeline: [{ $project: { code: 1 } }] } },
         {
           $addFields: {
@@ -617,13 +672,13 @@ exports.print_all_summary = async (docNoFrom, docNoTo) => {
   return transactions;
 };
 
-exports.print_summary_by_id = async transactionId => {
+exports.print_summary_by_id = async (transactionId) => {
   const filter = { deletedAt: null, _id: transactionId };
   const transactions = await Transaction.find(filter).populate({ path: "center" }).populate({ path: "bank" }).sort({ code: 1 });
   return transactions;
 };
 
-exports.print_file = async transactionId => {
+exports.print_file = async (transactionId) => {
   const loanRelease = await Transaction.findOne({ _id: transactionId, deletedAt: null }).populate("center").populate("bank").lean().exec();
   const entries = await Entry.find({ transaction: loanRelease._id, deletedAt: null })
     .sort({ line: 1 })
@@ -638,7 +693,7 @@ exports.print_file = async transactionId => {
   let payTo = `CTR#${loanRelease.center.centerNo}`;
 
   const uniqueClientIds = [];
-  entries.map(entry => {
+  entries.map((entry) => {
     if (entry?.client?._id && !uniqueClientIds.includes(`${entry.client._id}`)) uniqueClientIds.push(`${entry.client._id}`);
   });
 
@@ -704,19 +759,19 @@ exports.print_by_accounts = async (accounts, dateFrom, dateTo) => {
   return loanReleases;
 };
 
-exports.get_by_center = async centerId => {
+exports.get_by_center = async (centerId) => {
   const filter = { deletedAt: null, center: centerId };
   const loanReleases = await Transaction.find(filter).select("code").lean().exec();
   return { success: true, loanReleases };
 };
 
-exports.get_due_dates_by_id = async loanReleaseId => {
+exports.get_due_dates_by_id = async (loanReleaseId) => {
   const filter = { deletedAt: null, loanRelease: loanReleaseId };
   const dueDates = await PaymentSchedule.find(filter).populate({ path: "loanRelease", select: "code" }).sort({ week: 1 }).select("loanRelease date week").lean().exec();
   return { success: true, dueDates };
 };
 
-exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDate, paymentDate) => {
+exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDateFrom, loanReleaseDateTo, paymentDateFrom, paymentDateTo) => {
   const pipelines = [];
 
   pipelines.push({ $match: { client: { $exists: true, $ne: null }, cycle: { $exists: true, $ne: null } } });
@@ -755,6 +810,7 @@ exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDate, p
 
   pipelines.push({ $addFields: { lastPaymentDue: { $arrayElemAt: ["$lastPaymentDue", 0] } } });
 
+  // Maturity Date Filter
   pipelines.push({ $match: { "lastPaymentDue.date": { $exists: true, $ne: null, $gt: new Date() } } });
 
   pipelines.push({
@@ -843,22 +899,44 @@ exports.get_loan_release_past_dues = async (centers, clients, loanReleaseDate, p
 
   // FILTERS HERE
   if (clients) {
-    pipelines.push({ $match: { _id: { $in: clients.map(e => new mongoose.Types.ObjectId(e)) } } });
+    pipelines.push({ $match: { _id: { $in: clients.map((e) => new mongoose.Types.ObjectId(e)) } } });
   }
 
   if (centers) {
-    pipelines.push({ $match: { "transaction.center": { $in: centers.map(e => new mongoose.Types.ObjectId(e)) } } });
+    pipelines.push({ $match: { "transaction.center": { $in: centers.map((e) => new mongoose.Types.ObjectId(e)) } } });
   }
 
-  if (loanReleaseDate) {
-    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDate) } } });
+  // Loan Release Date Filter
+  if (loanReleaseDateFrom && loanReleaseDateTo) {
+    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDateFrom), $lte: new Date(loanReleaseDateTo) } } });
   }
 
-  if (paymentDate) {
-    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDate) } } });
+  if (!loanReleaseDateFrom && loanReleaseDateTo) {
+    pipelines.push({ $match: { "transaction.date": { $lte: new Date(loanReleaseDateTo) } } });
+  }
+
+  if (loanReleaseDateFrom && !loanReleaseDateTo) {
+    pipelines.push({ $match: { "transaction.date": { $gte: new Date(loanReleaseDateFrom) } } });
+  }
+
+  // Payment Date Filter
+  if (paymentDateFrom && paymentDateTo) {
+    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDateFrom), $lte: new Date(paymentDateTo) } } });
+  }
+
+  if (!paymentDateFrom && paymentDateTo) {
+    pipelines.push({ $match: { "lastPaymentDue.date": { $lte: new Date(paymentDateTo) } } });
+  }
+
+  if (paymentDateFrom && !paymentDateTo) {
+    pipelines.push({ $match: { "lastPaymentDue.date": { $gte: new Date(paymentDateFrom) } } });
   }
 
   const pastDues = await Entry.aggregate(pipelines).exec();
+  const loanCodes = await Loan.find({ deletedAt: null, code: { $in: ["BSK", "GS", "IC", "KELP"] } })
+    .select("code -_id")
+    .lean()
+    .exec();
 
-  return pastDues;
+  return { pastDues, loanCodes };
 };
